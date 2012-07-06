@@ -1,27 +1,16 @@
+# File artifacts which may by produced regular software on Windows, Mac OS X and Linux
+Thumbs.db
+.DS_Store
+*.bak
+
+# JetBrains PyCharm configuration and working files 
+.idea
+
+# Folder which should be used for temporary working files
+sandbox/
+
+# Python virtual environment 
+env/
+
 *.py[co]
-
-# Packages
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
-.installed.cfg
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-.coverage
-.tox
-
-#Translations
-*.mo
-
-#Mr Developer
-.mr.developer.cfg
+~temp/
