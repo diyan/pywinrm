@@ -1,3 +1,4 @@
+# Test how in-place editor works on GitHub
 from datetime import timedelta
 from http.transport import HttpPlaintext
 from isodate.isoduration import duration_isoformat
