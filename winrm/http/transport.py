@@ -75,14 +75,10 @@ class HttpGSSAPI(HttpTransport):
     def __init__(self, endpoint, realm, service=None, keytab=None, opts=None):
         """
         Uses Kerberos/GSSAPI to authenticate and encrypt messages
-        @type endpoint: string
-        @param endpoint: the WinRM webservice endpoint
-        @type realm: string
-        @param realm: the Kerberos realm we are authenticating to
-        @type service: string
-        @param service: the service name, default is HTTP
-        @type keytab: string
-        @param keytab: the path to a keytab file if you are using one
+        @param string endpoint: the WinRM webservice endpoint
+        @param string realm: the Kerberos realm we are authenticating to
+        @param string service: the service name, default is HTTP
+        @param string keytab: the path to a keytab file if you are using one
         """
         super(HttpGSSAPI, self).__init__(endpoint)
         # Remove the GSSAPI auth from HTTPClient because we are doing our own thing
