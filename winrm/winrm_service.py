@@ -1,7 +1,6 @@
 # Test how in-place editor works on GitHub
 from datetime import timedelta
 import uuid
-from http.transport import HttpPlaintext
 from isodate.isoduration import duration_isoformat
 import xmlwitch
 import requests
@@ -56,48 +55,65 @@ class WinRMWebService(object):
         @returns The ShellId from the SOAP response.  This is our open shell instance on the remote machine.
         @rtype string
         """
-        # TODO implement self.merge_headers(header, resource_uri_cmd, action_create, h_opts)
-        xml = xmlwitch.Builder(version='1.0', encoding='utf-8')
-        with xml.env__Envelope(**self.namespaces):
-            with xml.env__Header:
-                xml.a__To(self.endpoint)
-                with xml.a__ReplyTo:
-                    xml.a__Address('http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous', mustUnderstand='true')
-                xml.w__MaxEnvelopeSize('153600', mustUnderstand='true')
-                xml.a__MessageID('uuid:{0}'.format(uuid.uuid4()))
-                xml.w__Locale(None, xml__lang='en-US', mustUnderstand='false')
-                xml.p__DataLocale(None, xml__lang='en-US', mustUnderstand='false')
-                xml.w__OperationTimeout('PT60S')
-                xml.w__ResourceURI('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd', mustUnderstand='true')
-                xml.a__Action('http://schemas.xmlsoap.org/ws/2004/09/transfer/Create', mustUnderstand='true')
-                with xml.w__OptionSet:
-                    xml.w__Option(str(noprofile).upper(), Name='WINRS_NOPROFILE')
-                    xml.w__Option(str(codepage), Name='WINRS_CODEPAGE')
+        node = xmlwitch.Builder(version='1.0', encoding='utf-8')
+        with node.env__Envelope(**self._namespaces):
+            with node.env__Header:
+                self._build_soap_header(node)
+                self._set_resource_uri_cmd(node)
+                self._set_action_create(node)
+                with node.w__OptionSet:
+                    node.w__Option(str(noprofile).upper(), Name='WINRS_NOPROFILE')
+                    node.w__Option(str(codepage), Name='WINRS_CODEPAGE')
 
-            with xml.env__Body:
-                with xml.rsp__Shell:
-                    xml.rsp__InputStreams(i_stream)
-                    xml.rsp__OutputStreams(o_stream)
+            with node.env__Body:
+                with node.rsp__Shell:
+                    node.rsp__InputStreams(i_stream)
+                    node.rsp__OutputStreams(o_stream)
                     if working_directory:
                         #TODO ensure that rsp:WorkingDirectory should be nested within rsp:Shell
-                        xml.rsp_WorkingDirectory(working_directory)
+                        node.rsp_WorkingDirectory(working_directory)
                     # TODO: research Lifetime a bit more: http://msdn.microsoft.com/en-us/library/cc251546(v=PROT.13).aspx
                     #if lifetime:
-                    #    xml.rsp_Lifetime = iso8601_duration.sec_to_dur(lifetime)
+                    #    node.rsp_Lifetime = iso8601_duration.sec_to_dur(lifetime)
                     # TODO: make it so the input is given in milliseconds and converted to xs:duration
                     if idle_timeout:
-                        xml.rsp_IdleTimeOut = idle_timeout
+                        node.rsp_IdleTimeOut = idle_timeout
                     if env_vars:
-                        with xml.rsp_Environment:
+                        with node.rsp_Environment:
                             for key, value in env_vars.items():
-                                xml.rsp_Variable(value, Name=key)
+                                node.rsp_Variable(value, Name=key)
 
-        response = self.send_message(str(xml))
+        response = self.send_message(str(node))
         root = ET.fromstring(response)
         return root.find('.//*[@Name="ShellId"]').text
 
+    def _build_soap_header(self, node, message_id=uuid.uuid4()):
+        node.a__To(str(self.endpoint))
+        with node.a__ReplyTo:
+            node.a__Address('http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous', mustUnderstand='true')
+        node.w__MaxEnvelopeSize(str(self.max_env_sz), mustUnderstand='true')
+        node.a__MessageID('uuid:{0}'.format(message_id))
+        node.w__Locale(None, xml__lang=self.locale, mustUnderstand='false')
+        node.p__DataLocale(None, xml__lang=self.locale, mustUnderstand='false')
+        # TODO: research this a bit http://msdn.microsoft.com/en-us/library/cc251561(v=PROT.13).aspx
+        #node.cfg__MaxTimeoutms = 600
+        node.w__OperationTimeout(self.timeout)
+
+    def _set_resource_uri_cmd(self, node):
+        node.w__ResourceURI('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd', mustUnderstand='true')
+
+    def _set_action_create(self, node):
+        node.a__Action('http://schemas.xmlsoap.org/ws/2004/09/transfer/Create', mustUnderstand='true')
+
+    def _set_action_delete(self, node):
+        node.a__Action('http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete', mustUnderstand='true')
+
+    def _set_selector_shell_id(self, node, shell_id):
+        with node.w__SelectorSet:
+            node.w__Selector(shell_id, Name='ShellId')
+
     @property
-    def namespaces(self):
+    def _namespaces(self):
         return {
             'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
             'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
@@ -132,8 +148,21 @@ class WinRMWebService(object):
         @returns This should have more error checking but it just returns true for now.
         @rtype bool
         """
-        pass
+        message_id = uuid.uuid4()
+        node = xmlwitch.Builder(version='1.0', encoding='utf-8')
+        with node.env__Envelope(**self._namespaces):
+            with node.env__Header:
+                self._build_soap_header(node, message_id)
+                self._set_resource_uri_cmd(node)
+                self._set_action_delete(node)
+                self._set_selector_shell_id(node, shell_id)
 
+            # SOAP message requires empty env:Body
+            with node.env__Body:
+                pass
 
-endpoint = ''
-transport = HttpPlaintext(endpoint)
+        response = self.send_message(str(node))
+        root = ET.fromstring(response)
+        relates_to = root.find('.//{http://schemas.xmlsoap.org/ws/2004/08/addressing}RelatesTo').text
+        # TODO change assert into user-friendly exception
+        assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
