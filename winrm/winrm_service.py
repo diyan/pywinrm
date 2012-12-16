@@ -87,6 +87,8 @@ class WinRMWebService(object):
         root = ET.fromstring(response)
         return root.find('.//*[@Name="ShellId"]').text
 
+    # Helper methods for building SOAP Headers
+
     def _build_soap_header(self, node, message_id=uuid.uuid4()):
         node.a__To(str(self.endpoint))
         with node.a__ReplyTo:
@@ -102,11 +104,26 @@ class WinRMWebService(object):
     def _set_resource_uri_cmd(self, node):
         node.w__ResourceURI('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd', mustUnderstand='true')
 
+    def _set_resource_uri_wmi(self, node, namespace='root/cimv2/*'):
+        node.w__ResourceURI('http://schemas.microsoft.com/wbem/wsman/1/wmi/{0}'.format(namespace), mustUnderstand='true')
+
     def _set_action_create(self, node):
         node.a__Action('http://schemas.xmlsoap.org/ws/2004/09/transfer/Create', mustUnderstand='true')
 
     def _set_action_delete(self, node):
         node.a__Action('http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete', mustUnderstand='true')
+
+    def _set_action_command(self, node):
+        node.a__Action('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command', mustUnderstand='true')
+
+    def _set_action_receive(self, node):
+        node.a__Action('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive', mustUnderstand='true')
+
+    def _set_action_signal(self, node):
+        node.a__Action('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal', mustUnderstand='true')
+
+    def _set_action_enumerate(self, node):
+        node.a__Action('http://schemas.xmlsoap.org/ws/2004/09/enumeration/Enumerate', mustUnderstand='true')
 
     def _set_selector_shell_id(self, node, shell_id):
         with node.w__SelectorSet:
@@ -138,6 +155,7 @@ class WinRMWebService(object):
     def send_message(self, message):
         response = self.send_request(message)
         # TODO handle status codes other than HTTP OK 200
+        # TODO add message_id vs relates_to checking
         # TODO port error handling code
         return response.text
 
@@ -160,6 +178,66 @@ class WinRMWebService(object):
             # SOAP message requires empty env:Body
             with node.env__Body:
                 pass
+
+        response = self.send_message(str(node))
+        root = ET.fromstring(response)
+        relates_to = root.find('.//{http://schemas.xmlsoap.org/ws/2004/08/addressing}RelatesTo').text
+        # TODO change assert into user-friendly exception
+        assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
+
+    def run_command(self, shell_id, command, arguments=(), console_mode_stdin=True, skip_cmd_shell=False):
+        """
+        Run a command on a machine with an open shell
+        @param string shell_id: The shell id on the remote machine.  See #open_shell
+        @param string command: The command to run on the remote machine
+        @param iterable of string arguments: An array of arguments for this command
+        @param bool console_mode_stdin: (default: True)
+        @param bool skip_cmd_shell: (default: False)
+        @return: The CommandId from the SOAP response.  This is the ID we need to query in order to get output.
+        @rtype string
+        """
+        node = xmlwitch.Builder(version='1.0', encoding='utf-8')
+        with node.env__Envelope(**self._namespaces):
+            with node.env__Header:
+                self._build_soap_header(node)
+                self._set_resource_uri_cmd(node)
+                self._set_action_command(node)
+                self._set_selector_shell_id(node, shell_id)
+                with node.w__OptionSet:
+                    node.w__Option(str(console_mode_stdin).upper(), Name='WINRS_CONSOLEMODE_STDIN')
+                    node.w__Option(str(skip_cmd_shell).upper(), Name='WINRS_SKIP_CMD_SHELL')
+
+            with node.env__Body:
+                with node.rsp__CommandLine:
+                    node.rsp__Command(command)
+                    node.rsp__Arguments(' '.join(arguments))
+
+        response = self.send_message(str(node))
+        root = ET.fromstring(response)
+        command_id = root.find('.//{http://schemas.microsoft.com/wbem/wsman/1/windows/shell}CommandId').text
+        return command_id
+
+    def cleanup_command(self, shell_id, command_id):
+        """
+        Clean-up after a command. @see #run_command
+        @param string shell_id: The shell id on the remote machine.  See #open_shell
+        @param string command_id: The command id on the remote machine.  See #run_command
+        @returns: This should have more error checking but it just returns true for now.
+        @rtype bool
+        """
+        message_id = uuid.uuid4()
+        node = xmlwitch.Builder(version='1.0', encoding='utf-8')
+        with node.env__Envelope(**self._namespaces):
+            with node.env__Header:
+                self._build_soap_header(node, message_id)
+                self._set_resource_uri_cmd(node)
+                self._set_action_signal(node)
+                self._set_selector_shell_id(node, shell_id)
+
+            # Signal the Command references to terminate (close stdout/stderr)
+            with node.env__Body:
+                with node.rsp__Signal(CommandId=command_id):
+                    node.rsp__Code('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate')
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
