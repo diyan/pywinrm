@@ -29,17 +29,17 @@ class TestIntegration(object):
         command_id = self.winrm.run_command(shell_id, 'ipconfig', ['/all'])
         stdout, stderr, return_code = self.winrm.get_command_output(shell_id, command_id)
         assert return_code == 0
-        assert len(stdout) > 0
+        assert 'Windows IP Configuration' in stdout
         assert len(stderr) == 0
 
         self.winrm.cleanup_command(shell_id, command_id)
         self.winrm.close_shell(shell_id)
 
     def test_set_timeout(self):
-        raise SkipTest("Not implemented yet")
+        raise SkipTest('Not implemented yet')
 
     def test_set_max_env_size(self):
-        raise SkipTest("Not implemented yet")
+        raise SkipTest('Not implemented yet')
 
     def test_set_locale(self):
-        raise SkipTest("Not implemented yet")
+        raise SkipTest('Not implemented yet')
