@@ -57,7 +57,7 @@ setup(name=project_name,
     author='Alexey Diyan',
     author_email='alexey.diyan@gmail.com',
     url='http://github.com/diyan/pywinrm/',
-    packages=['distutils', 'distutils.command'],
+    #packages=['distutils', 'distutils.command'],
     cmdclass={
         'bootstrap_env': BootstrapEnvironmentCommand  }
 )
