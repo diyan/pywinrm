@@ -244,3 +244,55 @@ class WinRMWebService(object):
         relates_to = root.find('.//{http://schemas.xmlsoap.org/ws/2004/08/addressing}RelatesTo').text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
+
+    def get_command_output(self, shell_id, command_id):
+        """
+        Get the Output of the given shell and command
+        @param string shell_id: The shell id on the remote machine.  See #open_shell
+        @param string command_id: The command id on the remote machine.  See #run_command
+        #@return [Hash] Returns a Hash with a key :exitcode and :data.  Data is an Array of Hashes where the cooresponding key
+        #   is either :stdout or :stderr.  The reason it is in an Array so so we can get the output in the order it ocurrs on
+        #   the console.
+        """
+        node = xmlwitch.Builder(version='1.0', encoding='utf-8')
+        with node.env__Envelope(**self._namespaces):
+            with node.env__Header:
+                self._build_soap_header(node)
+                self._set_resource_uri_cmd(node)
+                self._set_action_receive(node)
+                self._set_selector_shell_id(node, shell_id)
+
+            with node.env__Body:
+                with node.rsp__Receive:
+                    node.rsp__DesiredStream('stdout stderr', CommandId=command_id)
+
+        response = self.send_message(str(node))
+        root = ET.fromstring(response)
+        stream_nodes = root.findall('.//{http://schemas.microsoft.com/wbem/wsman/1/windows/shell}Stream')
+        stdout = stderr = ''
+        return_code = -1
+        for stream_node in stream_nodes:
+            if stream_node.text:
+                if stream_node.attrib['Name'] == 'stdout':
+                    stdout += stream_node.text.decode('base-64')
+                elif stream_node.attrib['Name'] == 'stderr':
+                    stderr += stream_node.text.decode('base-64')
+
+        # We may need to get additional output if the stream has not finished.
+        # The CommandState will change from Running to Done like so:
+        # @example
+        #   from...
+        #   <rsp:CommandState CommandId="..." State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Running"/>
+        #   to...
+        #   <rsp:CommandState CommandId="..." State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
+        #     <rsp:ExitCode>0</rsp:ExitCode>
+        #   </rsp:CommandState>
+        command_done = root.find('.//*[@State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done"]')
+        if not command_done:
+            new_stdout, new_stderr, ignored_code = self.get_command_output(shell_id, command_id)
+            stdout += new_stdout
+            stderr += new_stderr
+        else:
+            return_code = int(root.find('.//{http://schemas.microsoft.com/wbem/wsman/1/windows/shell}ExitCode').text)
+
+        return stdout, stderr, return_code
