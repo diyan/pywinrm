@@ -1,4 +1,3 @@
-# Test how in-place editor works on GitHub
 from datetime import timedelta
 import uuid
 from isodate.isoduration import duration_isoformat
@@ -288,7 +287,7 @@ class WinRMWebService(object):
         #     <rsp:ExitCode>0</rsp:ExitCode>
         #   </rsp:CommandState>
         command_done = root.find('.//*[@State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done"]')
-        if not command_done:
+        if command_done is None:
             new_stdout, new_stderr, ignored_code = self.get_command_output(shell_id, command_id)
             stdout += new_stdout
             stderr += new_stderr

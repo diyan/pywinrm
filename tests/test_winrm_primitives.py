@@ -246,63 +246,49 @@ def winrm_soap_behavior(url, data, auth):
     return None
 
 class TestWinRMPrimitives(object):
-    @patch('uuid.uuid4')
-    @patch('requests.post')
-    def test_open_shell_and_close_shell(self, http_post_mock, uuid4_mock):
+    @classmethod
+    def setup_class(cls):
+        cls.uuid4_patcher = patch('uuid.uuid4')
+        uuid4_mock = cls.uuid4_patcher.start()
         uuid4_mock.return_value = uuid.UUID('11111111-1111-1111-1111-111111111111')
+
+        cls.http_post_patcher = patch('requests.post')
+        http_post_mock = cls.http_post_patcher.start()
         http_post_mock.side_effect = winrm_soap_behavior
 
         from winrm_service import WinRMWebService
-        winrm = WinRMWebService(
+        cls.winrm = WinRMWebService(
             endpoint='http://windows-host:5985/wsman',
             transport='plaintext',
             username='john.smith',
             password='secret')
 
-        shell_id = winrm.open_shell()
+    @classmethod
+    def teardown_class(cls):
+        cls.uuid4_patcher.stop()
+        cls.http_post_patcher.stop()
+
+    def test_open_shell_and_close_shell(self):
+        shell_id = self.winrm.open_shell()
         assert shell_id == '11111111-1111-1111-1111-111111111113'
 
-        winrm.close_shell(shell_id)
+        self.winrm.close_shell(shell_id)
 
-    @patch('uuid.uuid4')
-    @patch('requests.post')
-    def test_run_command_and_cleanup_command(self, http_post_mock, uuid4_mock):
-        uuid4_mock.return_value = uuid.UUID('11111111-1111-1111-1111-111111111111')
-        http_post_mock.side_effect = winrm_soap_behavior
-
-        from winrm_service import WinRMWebService
-        winrm = WinRMWebService(
-            endpoint='http://windows-host:5985/wsman',
-            transport='plaintext',
-            username='john.smith',
-            password='secret')
-
-        shell_id = winrm.open_shell()
-        command_id = winrm.run_command(shell_id, 'ipconfig', ['/all'])
+    def test_run_command_and_cleanup_command(self):
+        shell_id = self.winrm.open_shell()
+        command_id = self.winrm.run_command(shell_id, 'ipconfig', ['/all'])
         assert command_id == '11111111-1111-1111-1111-111111111114'
 
-        winrm.cleanup_command(shell_id, command_id)
-        winrm.close_shell(shell_id)
+        self.winrm.cleanup_command(shell_id, command_id)
+        self.winrm.close_shell(shell_id)
 
-    @patch('uuid.uuid4')
-    @patch('requests.post')
-    def test_get_command_output(self, http_post_mock, uuid4_mock):
-        uuid4_mock.return_value = uuid.UUID('11111111-1111-1111-1111-111111111111')
-        http_post_mock.side_effect = winrm_soap_behavior
-
-        from winrm_service import WinRMWebService
-        winrm = WinRMWebService(
-            endpoint='http://windows-host:5985/wsman',
-            transport='plaintext',
-            username='john.smith',
-            password='secret')
-
-        shell_id = winrm.open_shell()
-        command_id = winrm.run_command(shell_id, 'ipconfig', ['/all'])
-        stdout, stderr, return_code = winrm.get_command_output(shell_id, command_id)
+    def test_get_command_output(self):
+        shell_id = self.winrm.open_shell()
+        command_id = self.winrm.run_command(shell_id, 'ipconfig', ['/all'])
+        stdout, stderr, return_code = self.winrm.get_command_output(shell_id, command_id)
         assert return_code == 0
         assert 'Windows IP Configuration' in stdout
         assert len(stderr) == 0
 
-        winrm.cleanup_command(shell_id, command_id)
-        winrm.close_shell(shell_id)
+        self.winrm.cleanup_command(shell_id, command_id)
+        self.winrm.close_shell(shell_id)
