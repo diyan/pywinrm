@@ -1,3 +1,5 @@
 requests
 isodate
 xmlwitch
+nose
+mock

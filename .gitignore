@@ -3,15 +3,17 @@ Thumbs.db
 .DS_Store
 *.bak
 
-# JetBrains PyCharm configuration and working files 
+# JetBrains PyCharm configuration and working files
 .idea
 
 # Folder which should be used for temporary working files
 sandbox/
 
-# Python virtual environment 
+# Python virtual environment
 env/
 
 *.py[co]
 ~temp/
 *~
+
+/tests/config.json
