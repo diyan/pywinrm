@@ -16,9 +16,17 @@ class TestIntegration(object):
 
         self.winrm.close_shell(shell_id)
 
-    def test_run_command_and_cleanup_command(self):
+    def test_run_command_with_arguments_and_cleanup_command(self):
         shell_id = self.winrm.open_shell()
         command_id = self.winrm.run_command(shell_id, 'ipconfig', ['/all'])
+        assert re.match('^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', command_id)
+
+        self.winrm.cleanup_command(shell_id, command_id)
+        self.winrm.close_shell(shell_id)
+
+    def test_run_command_without_arguments_and_cleanup_command(self):
+        shell_id = self.winrm.open_shell()
+        command_id = self.winrm.run_command(shell_id, 'hostname')
         assert re.match('^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', command_id)
 
         self.winrm.cleanup_command(shell_id, command_id)

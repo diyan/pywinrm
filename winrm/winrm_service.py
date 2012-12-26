@@ -209,7 +209,8 @@ class WinRMWebService(object):
             with node.env__Body:
                 with node.rsp__CommandLine:
                     node.rsp__Command(command)
-                    node.rsp__Arguments(' '.join(arguments))
+                    if arguments:
+                        node.rsp__Arguments(' '.join(arguments))
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)

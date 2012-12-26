@@ -87,7 +87,7 @@ close_shell_response = """\
 </s:Envelope>
 """
 
-run_command_request = """\
+run_cmd_with_args_request = """\
 <?xml version="1.0" encoding="utf-8"?>
 <env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
   <env:Header>
@@ -118,7 +118,37 @@ run_command_request = """\
   </env:Body>
 </env:Envelope>"""
 
-run_command_response = """\
+run_cmd_wo_args_request = """\
+<?xml version="1.0" encoding="utf-8"?>
+<env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
+  <env:Header>
+    <a:To>http://windows-host:5985/wsman</a:To>
+    <a:ReplyTo>
+      <a:Address mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+    </a:ReplyTo>
+    <w:MaxEnvelopeSize mustUnderstand="true">153600</w:MaxEnvelopeSize>
+    <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+    <w:Locale mustUnderstand="false" xml:lang="en-US" />
+    <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
+    <w:OperationTimeout>PT60S</w:OperationTimeout>
+    <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+    <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
+    <w:SelectorSet>
+      <w:Selector Name="ShellId">11111111-1111-1111-1111-111111111113</w:Selector>
+    </w:SelectorSet>
+    <w:OptionSet>
+      <w:Option Name="WINRS_CONSOLEMODE_STDIN">TRUE</w:Option>
+      <w:Option Name="WINRS_SKIP_CMD_SHELL">FALSE</w:Option>
+    </w:OptionSet>
+  </env:Header>
+  <env:Body>
+    <rsp:CommandLine>
+      <rsp:Command>hostname</rsp:Command>
+    </rsp:CommandLine>
+  </env:Body>
+</env:Envelope>"""
+
+run_cmd_response = """\
 <?xml version="1.0" ?>
 <s:Envelope xml:lang="en-US" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer">
 	<s:Header>
@@ -134,7 +164,7 @@ run_command_response = """\
 	</s:Body>
 </s:Envelope>"""
 
-cleanup_command_request = """\
+cleanup_cmd_request = """\
 <?xml version="1.0" encoding="utf-8"?>
 <env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
   <env:Header>
@@ -160,7 +190,7 @@ cleanup_command_request = """\
   </env:Body>
 </env:Envelope>"""
 
-cleanup_command_response = """\
+cleanup_cmd_response = """\
 <?xml version="1.0" ?>
 <s:Envelope xml:lang="en-US" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer">
 	<s:Header>
@@ -223,27 +253,20 @@ get_cmd_output_response = """\
 </s:Envelope>"""
 
 def winrm_soap_behavior(url, data, auth):
+    response_text = None
     if data == open_shell_request:
-        response = Mock()
-        response.text = open_shell_response
-        return response
+        response_text = open_shell_response
     elif data == close_shell_request:
-        response = Mock()
-        response.text = close_shell_response
-        return response
-    elif data == run_command_request:
-        response = Mock()
-        response.text = run_command_response
-        return response
-    elif data == cleanup_command_request:
-        response = Mock()
-        response.text = cleanup_command_response
-        return response
+        response_text = close_shell_response
+    elif data in (run_cmd_with_args_request, run_cmd_wo_args_request):
+        response_text = run_cmd_response
+    elif data == cleanup_cmd_request:
+        response_text = cleanup_cmd_response
     elif data == get_cmd_output_request:
-        response = Mock()
-        response.text = get_cmd_output_response
-        return response
-    return None
+        response_text = get_cmd_output_response
+    response = Mock()
+    response.text = response_text
+    return response
 
 class TestWinRMPrimitives(object):
     @classmethod
@@ -274,9 +297,17 @@ class TestWinRMPrimitives(object):
 
         self.winrm.close_shell(shell_id)
 
-    def test_run_command_and_cleanup_command(self):
+    def test_run_command_with_arguments_and_cleanup_command(self):
         shell_id = self.winrm.open_shell()
         command_id = self.winrm.run_command(shell_id, 'ipconfig', ['/all'])
+        assert command_id == '11111111-1111-1111-1111-111111111114'
+
+        self.winrm.cleanup_command(shell_id, command_id)
+        self.winrm.close_shell(shell_id)
+
+    def test_run_command_without_arguments_and_cleanup_command(self):
+        shell_id = self.winrm.open_shell()
+        command_id = self.winrm.run_command(shell_id, 'hostname')
         assert command_id == '11111111-1111-1111-1111-111111111114'
 
         self.winrm.cleanup_command(shell_id, command_id)
