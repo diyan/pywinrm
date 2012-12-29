@@ -10,6 +10,6 @@ class WinRMWSManFault(Exception):
     """A Fault returned in the SOAP response. The XML node is a WSManFault"""
     pass
 
-class WinRMHTTPTransportError(Exception):
-    """"Bad HTTP Transport"""
+class WinRMTransportError(Exception):
+    """"Transport-level error"""
     pass

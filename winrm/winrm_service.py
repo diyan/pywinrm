@@ -1,8 +1,9 @@
+__version__ = '0.0.1'
+from http.transport import HttpPlaintext
 from datetime import timedelta
 import uuid
 from isodate.isoduration import duration_isoformat
 import xmlwitch
-import requests
 import xml.etree.ElementTree as ET
 
 class WinRMWebService(object):
@@ -29,7 +30,10 @@ class WinRMWebService(object):
         self.timeout = WinRMWebService.DEFAULT_TIMEOUT
         self.max_env_sz = WinRMWebService.DEFAULT_MAX_ENV_SIZE
         self.locale = WinRMWebService.DEFAULT_LOCALE
-        self.transport = transport
+        if transport == 'plaintext':
+            self.transport = HttpPlaintext(endpoint, username, password)
+        else:
+            raise NotImplementedError()
         self.username = username
         self.password = password
         self.service = service
@@ -145,18 +149,10 @@ class WinRMWebService(object):
             'xmlns:cfg': 'http://schemas.microsoft.com/wbem/wsman/1/config'
         }
 
-    def send_request(self, message):
-        return requests.post(
-            self.endpoint,
-            data=message,
-            auth=(self.username, self.password))
-
     def send_message(self, message):
-        response = self.send_request(message)
-        # TODO handle status codes other than HTTP OK 200
         # TODO add message_id vs relates_to checking
         # TODO port error handling code
-        return response.text
+        return self.transport.send_message(message)
 
     def close_shell(self, shell_id):
         """

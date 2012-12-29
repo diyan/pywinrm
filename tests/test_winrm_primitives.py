@@ -252,21 +252,20 @@ get_cmd_output_response = """\
 	</s:Body>
 </s:Envelope>"""
 
-def winrm_soap_behavior(url, data, auth):
-    response_text = None
-    if data == open_shell_request:
-        response_text = open_shell_response
-    elif data == close_shell_request:
-        response_text = close_shell_response
-    elif data in (run_cmd_with_args_request, run_cmd_wo_args_request):
-        response_text = run_cmd_response
-    elif data == cleanup_cmd_request:
-        response_text = cleanup_cmd_response
-    elif data == get_cmd_output_request:
-        response_text = get_cmd_output_response
-    response = Mock()
-    response.text = response_text
-    return response
+class TransportStub(object):
+    def send_message(self, message):
+        if message == open_shell_request:
+            return open_shell_response
+        elif message == close_shell_request:
+            return close_shell_response
+        elif message in (run_cmd_with_args_request, run_cmd_wo_args_request):
+            return run_cmd_response
+        elif message == cleanup_cmd_request:
+            return cleanup_cmd_response
+        elif message == get_cmd_output_request:
+            return get_cmd_output_response
+        else:
+            return None
 
 class TestWinRMPrimitives(object):
     @classmethod
@@ -275,10 +274,6 @@ class TestWinRMPrimitives(object):
         uuid4_mock = cls.uuid4_patcher.start()
         uuid4_mock.return_value = uuid.UUID('11111111-1111-1111-1111-111111111111')
 
-        cls.http_post_patcher = patch('requests.post')
-        http_post_mock = cls.http_post_patcher.start()
-        http_post_mock.side_effect = winrm_soap_behavior
-
         from winrm_service import WinRMWebService
         cls.winrm = WinRMWebService(
             endpoint='http://windows-host:5985/wsman',
@@ -286,10 +281,11 @@ class TestWinRMPrimitives(object):
             username='john.smith',
             password='secret')
 
+        cls.winrm.transport = TransportStub()
+
     @classmethod
     def teardown_class(cls):
         cls.uuid4_patcher.stop()
-        cls.http_post_patcher.stop()
 
     def test_open_shell_and_close_shell(self):
         shell_id = self.winrm.open_shell()

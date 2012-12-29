@@ -1,4 +1,3 @@
-requests
 isodate
 xmlwitch
 nose
