@@ -1,7 +1,10 @@
 import os, sys, urllib
 from distutils.core import Command, setup
+from winrm_service import __version__
 
 project_name = 'pywinrm'
+readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
+long_description = open(readme_path).read()
 
 class BootstrapEnvironmentCommand(Command):
     description = 'create project development environment from scratch'
@@ -52,8 +55,10 @@ class BootstrapEnvironmentCommand(Command):
             os.environ['PATH'] = virtual_env_path + path
 
 setup(name=project_name,
-    version='0.0.1',
+    version=__version__,
     description='Python library for Windows Remote Management',
+    long_description=long_description,
+    keywords='winrm ws-man devops ws-management'.split(' '),
     author='Alexey Diyan',
     author_email='alexey.diyan@gmail.com',
     url='http://github.com/diyan/pywinrm/',
