@@ -1,10 +1,12 @@
-__version__ = '0.0.1'
+from __future__ import with_statement
 from http.transport import HttpPlaintext
 from datetime import timedelta
 import uuid
 from isodate.isoduration import duration_isoformat
 import xmlwitch
 import xml.etree.ElementTree as ET
+
+__version__ = '0.0.1'
 
 class WinRMWebService(object):
     """
