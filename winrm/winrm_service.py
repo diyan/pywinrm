@@ -88,7 +88,7 @@ class WinRMWebService(object):
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
-        return root.find('.//*[@Name="ShellId"]').text
+        return (node for node in root.findall('.//*') if node.get('Name') == 'ShellId').next().text
 
     # Helper methods for building SOAP Headers
 
@@ -176,7 +176,7 @@ class WinRMWebService(object):
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
-        relates_to = root.find('.//{http://schemas.xmlsoap.org/ws/2004/08/addressing}RelatesTo').text
+        relates_to = (node for node in root.findall('.//*') if node.tag.endswith('RelatesTo')).next().text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
@@ -210,7 +210,7 @@ class WinRMWebService(object):
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
-        command_id = root.find('.//{http://schemas.microsoft.com/wbem/wsman/1/windows/shell}CommandId').text
+        command_id = (node for node in root.findall('.//*') if node.tag.endswith('CommandId')).next().text
         return command_id
 
     def cleanup_command(self, shell_id, command_id):
@@ -237,7 +237,7 @@ class WinRMWebService(object):
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
-        relates_to = root.find('.//{http://schemas.xmlsoap.org/ws/2004/08/addressing}RelatesTo').text
+        relates_to = (node for node in root.findall('.//*') if node.tag.endswith('RelatesTo')).next().text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
@@ -264,7 +264,7 @@ class WinRMWebService(object):
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
-        stream_nodes = root.findall('.//{http://schemas.microsoft.com/wbem/wsman/1/windows/shell}Stream')
+        stream_nodes = [node for node in root.findall('.//*') if node.tag.endswith('Stream')]
         stdout = stderr = ''
         return_code = -1
         for stream_node in stream_nodes:
@@ -283,12 +283,12 @@ class WinRMWebService(object):
         #   <rsp:CommandState CommandId="..." State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
         #     <rsp:ExitCode>0</rsp:ExitCode>
         #   </rsp:CommandState>
-        command_done = root.find('.//*[@State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done"]')
-        if command_done is None:
+        command_done = len([node for node in root.findall('.//*') if node.get('State', '').endswith('CommandState/Done')]) == 1
+        if not command_done:
             new_stdout, new_stderr, ignored_code = self.get_command_output(shell_id, command_id)
             stdout += new_stdout
             stderr += new_stderr
         else:
-            return_code = int(root.find('.//{http://schemas.microsoft.com/wbem/wsman/1/windows/shell}ExitCode').text)
+            return_code = int((node for node in root.findall('.//*') if node.tag.endswith('ExitCode')).next().text)
 
         return stdout, stderr, return_code
