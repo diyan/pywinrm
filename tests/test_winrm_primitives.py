@@ -1,5 +1,5 @@
 import uuid
-from mock import patch, Mock
+from mock import patch
 
 open_shell_request = """\
 <?xml version="1.0" encoding="utf-8"?>

@@ -7,9 +7,6 @@ class TestIntegration(object):
     def setup_class(cls):
         cls.winrm = real_winrm_service()
 
-    def teardown(self):
-        pass
-
     def test_open_shell_and_close_shell(self):
         shell_id = self.winrm.open_shell()
         assert re.match('^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', shell_id)
