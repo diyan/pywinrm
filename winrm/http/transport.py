@@ -1,6 +1,13 @@
-import urllib2
-from urllib2 import URLError, HTTPError
+import sys
 from winrm.exceptions import WinRMTransportError
+
+is_py2 = sys.version[0] == '2'
+if is_py2:
+    from urllib2 import Request, URLError, HTTPError, HTTPBasicAuthHandler, HTTPPasswordMgrWithDefaultRealm
+    from urllib2 import urlopen, build_opener, install_opener
+else:
+    from urllib.request import Request, URLError, HTTPError, HTTPBasicAuthHandler, HTTPPasswordMgrWithDefaultRealm
+    from urllib.request import urlopen, build_opener, install_opener
 
 class HttpTransport(object):
     def __init__(self, endpoint, username, password):
@@ -14,14 +21,14 @@ class HttpTransport(object):
         headers = {'Content-Type' : 'application/soap+xml;charset=UTF-8',
                    'Content-Length' : len(message),
                    'User-Agent' : 'Python WinRM client'}
-        password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        password_manager = HTTPPasswordMgrWithDefaultRealm()
         password_manager.add_password(None, self.endpoint, self.username, self.password)
-        auth_manager = urllib2.HTTPBasicAuthHandler(password_manager)
-        opener = urllib2.build_opener(auth_manager)
-        urllib2.install_opener(opener)
-        request = urllib2.Request(self.endpoint, data=message, headers=headers)
+        auth_manager = HTTPBasicAuthHandler(password_manager)
+        opener = build_opener(auth_manager)
+        install_opener(opener)
+        request = Request(self.endpoint, data=message, headers=headers)
         try:
-            response = urllib2.urlopen(request, timeout=self.timeout)
+            response = urlopen(request, timeout=self.timeout)
             # Version 1.1 of WinRM adds the namespaces in the document instead of the envelope so we have to
             # add them ourselves here. This should have no affect version 2.
             response_text = response.read()
@@ -40,7 +47,7 @@ class HttpTransport(object):
                 error_message += ', {0}'.format(ex.msg)
             raise WinRMTransportError(error_message)
         except URLError as ex:
-            raise WinRMTransportError(ex.message)
+            raise WinRMTransportError(ex.reason)
 
     def basic_auth_only(self):
         #here we should remove handler for any authentication handlers other than basic

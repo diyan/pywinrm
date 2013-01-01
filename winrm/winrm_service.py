@@ -1,5 +1,4 @@
-from __future__ import with_statement
-from http.transport import HttpPlaintext
+from winrm.http.transport import HttpPlaintext
 from datetime import timedelta
 import uuid
 from isodate.isoduration import duration_isoformat
@@ -88,7 +87,7 @@ class WinRMWebService(object):
                             for key, value in env_vars.items():
                                 node.rsp_Variable(value, Name=key)
 
-        response = self.send_message(str(node))
+        response = self.send_message(node.__str__())
         root = ET.fromstring(response)
         return (node for node in root.findall('.//*') if node.get('Name') == 'ShellId').next().text
 
