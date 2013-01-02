@@ -1,3 +1,4 @@
+import base64
 from winrm.http.transport import HttpPlaintext
 from datetime import timedelta
 import uuid
@@ -87,9 +88,9 @@ class WinRMWebService(object):
                             for key, value in env_vars.items():
                                 node.rsp_Variable(value, Name=key)
 
-        response = self.send_message(node.__str__())
+        response = self.send_message(str(node))
         root = ET.fromstring(response)
-        return (node for node in root.findall('.//*') if node.get('Name') == 'ShellId').next().text
+        return next(node for node in root.findall('.//*') if node.get('Name') == 'ShellId').text
 
     # Helper methods for building SOAP Headers
 
@@ -177,7 +178,7 @@ class WinRMWebService(object):
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
-        relates_to = (node for node in root.findall('.//*') if node.tag.endswith('RelatesTo')).next().text
+        relates_to = next(node for node in root.findall('.//*') if node.tag.endswith('RelatesTo')).text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
@@ -211,7 +212,7 @@ class WinRMWebService(object):
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
-        command_id = (node for node in root.findall('.//*') if node.tag.endswith('CommandId')).next().text
+        command_id = next(node for node in root.findall('.//*') if node.tag.endswith('CommandId')).text
         return command_id
 
     def cleanup_command(self, shell_id, command_id):
@@ -238,7 +239,7 @@ class WinRMWebService(object):
 
         response = self.send_message(str(node))
         root = ET.fromstring(response)
-        relates_to = (node for node in root.findall('.//*') if node.tag.endswith('RelatesTo')).next().text
+        relates_to = next(node for node in root.findall('.//*') if node.tag.endswith('RelatesTo')).text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
@@ -271,9 +272,9 @@ class WinRMWebService(object):
         for stream_node in stream_nodes:
             if stream_node.text:
                 if stream_node.attrib['Name'] == 'stdout':
-                    stdout += stream_node.text.decode('base-64')
+                    stdout += str(base64.b64decode(stream_node.text.encode('ascii')))
                 elif stream_node.attrib['Name'] == 'stderr':
-                    stderr += stream_node.text.decode('base-64')
+                    stderr += str(base64.b64decode(stream_node.text.encode('ascii')))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
@@ -290,6 +291,6 @@ class WinRMWebService(object):
             stdout += new_stdout
             stderr += new_stderr
         else:
-            return_code = int((node for node in root.findall('.//*') if node.tag.endswith('ExitCode')).next().text)
+            return_code = int(next(node for node in root.findall('.//*') if node.tag.endswith('ExitCode')).text)
 
         return stdout, stderr, return_code

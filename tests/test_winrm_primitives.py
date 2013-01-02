@@ -1,4 +1,5 @@
 import uuid
+import xml.etree.ElementTree as ET
 from mock import patch
 
 open_shell_request = """\
@@ -252,17 +253,22 @@ get_cmd_output_response = """\
 	</s:Body>
 </s:Envelope>"""
 
+def xml_str_compare(first, second):
+    first_normalized = ET.tostring(ET.fromstring(first))
+    second_normalized = ET.tostring(ET.fromstring(second))
+    return first_normalized == second_normalized
+
 class TransportStub(object):
     def send_message(self, message):
-        if message == open_shell_request:
+        if xml_str_compare(message, open_shell_request):
             return open_shell_response
-        elif message == close_shell_request:
+        elif xml_str_compare(message, close_shell_request):
             return close_shell_response
-        elif message in (run_cmd_with_args_request, run_cmd_wo_args_request):
+        elif xml_str_compare(message, run_cmd_with_args_request) or xml_str_compare(message, run_cmd_wo_args_request):
             return run_cmd_response
-        elif message == cleanup_cmd_request:
+        elif xml_str_compare(message, cleanup_cmd_request):
             return cleanup_cmd_response
-        elif message == get_cmd_output_request:
+        elif xml_str_compare(message, get_cmd_output_request):
             return get_cmd_output_response
         else:
             return None

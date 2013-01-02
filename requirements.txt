@@ -1,4 +1,4 @@
 isodate
-https://github.com/diyan/xmlwitch/archive/master.zip
+http://github.com/diyan/xmlwitch/archive/master.zip
 nose
 mock
