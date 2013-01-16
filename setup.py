@@ -1,6 +1,7 @@
 import os, sys, urllib
 from distutils.core import Command, setup
-from winrm_service import __version__
+
+__version__ = '0.0.1'
 
 project_name = 'pywinrm'
 readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
@@ -62,7 +63,9 @@ setup(name=project_name,
     author='Alexey Diyan',
     author_email='alexey.diyan@gmail.com',
     url='http://github.com/diyan/pywinrm/',
-    #packages=['distutils', 'distutils.command'],
+    packages=['winrm', 'winrm.http'],
+    install_requires=['xmlwitch==dev', 'isodate'],
+    dependency_links=['https://github.com/diyan/xmlwitch/tarball/master#egg=xmlwitch-dev'],
     cmdclass={
         'bootstrap_env': BootstrapEnvironmentCommand  }
 )

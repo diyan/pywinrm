@@ -1,12 +1,10 @@
 import base64
-from winrm.http.transport import HttpPlaintext
+from winrm.http.transport import HttpPlaintext, HttpKerberos
 from datetime import timedelta
 import uuid
 from isodate.isoduration import duration_isoformat
 import xmlwitch
 import xml.etree.ElementTree as ET
-
-__version__ = '0.0.1'
 
 class WinRMWebService(object):
     """
@@ -34,6 +32,8 @@ class WinRMWebService(object):
         self.locale = WinRMWebService.DEFAULT_LOCALE
         if transport == 'plaintext':
             self.transport = HttpPlaintext(endpoint, username, password)
+        elif transport == 'kerberos':
+            self.transport = HttpKerberos(endpoint)
         else:
             raise NotImplementedError()
         self.username = username
