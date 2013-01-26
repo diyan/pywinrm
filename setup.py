@@ -65,7 +65,7 @@ setup(name=project_name,
     url='http://github.com/diyan/pywinrm/',
     license='MIT license',
     packages=['winrm', 'winrm.http'],
-    install_requires=['xmlwitch==dev', 'isodate'],
+    install_requires=['xmlwitch', 'isodate'],
     dependency_links=['https://github.com/diyan/xmlwitch/tarball/master#egg=xmlwitch-dev'],
     cmdclass={
         'bootstrap_env': BootstrapEnvironmentCommand  }
