@@ -42,6 +42,38 @@ winrm.cleanup_command(shell_id, command_id)
 winrm.close_shell(shell_id)
 ```
 
+## Powershell example
+```python
+from pywinrm import WinRMClient
+import base64
+
+script = """$strComputer = $Host
+Clear
+
+$RAM = WmiObject Win32_ComputerSystem
+$MB = 1048576
+
+"Installed Memory: " + [int]($RAM.TotalPhysicalMemory /$MB) + " MB" """
+
+# powershell scripts with multi lines, braces, etc. 
+# must be utf-16 unicoded and base64 encoded
+script = base64.b64encode(script.encode("utf-16"))
+
+cmd = "powershell -encodedcommand %s" % (script)
+
+winrm = WinRMClient(
+    endpoint='http://windows-host:5985/wsman',
+    transport='plaintext',
+    username='john.smith',
+    password='secret')
+shell_id = winrm.open_shell()
+command_id = winrm.run_command(shell_id, cmd)
+stdout, stderr, return_code = winrm.get_command_output(shell_id, command_id)
+winrm.cleanup_command(shell_id, command_id)
+winrm.close_shell(shell_id)
+print stdout
+```
+
 ## Contribute
 
 Want to help - send a pull request. I will accept good pull requests for sure.
