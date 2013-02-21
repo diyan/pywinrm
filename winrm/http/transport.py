@@ -27,28 +27,6 @@ class HttpTransport(object):
         self.user_agent =  'Python WinRM client'
         self.timeout = 3600 # Set this to an unreasonable amount for now because WinRM has timeouts
 
-    def basic_auth_only(self):
-        #here we should remove handler for any authentication handlers other than basic
-        # but maybe leave original credentials
-
-        # auths = @httpcli.www_auth.instance_variable_get('@authenticator')
-        # auths.delete_if {|i| i.scheme !~ /basic/i}
-        # drop all variables in auths if they not contains "basic" as insensitive.
-        pass
-
-    def no_sspi_auth(self):
-        # here we should remove handler for Negotiate/NTLM negotiation
-        # but maybe leave original credentials
-        pass
-
-class HttpPlaintext(HttpTransport):
-    def __init__(self, endpoint, username='', password='', disable_sspi=True, basic_auth_only=True):
-        super(HttpPlaintext, self).__init__(endpoint, username, password)
-        if disable_sspi:
-            self.no_sspi_auth()
-        if basic_auth_only:
-            self.basic_auth_only()
-
     def send_message(self, message):
         headers = {'Content-Type' : 'application/soap+xml;charset=UTF-8',
                    'Content-Length' : len(message),
@@ -80,6 +58,29 @@ class HttpPlaintext(HttpTransport):
             raise WinRMTransportError(error_message)
         except URLError as ex:
             raise WinRMTransportError(ex.reason)
+
+    def basic_auth_only(self):
+        #here we should remove handler for any authentication handlers other than basic
+        # but maybe leave original credentials
+
+        # auths = @httpcli.www_auth.instance_variable_get('@authenticator')
+        # auths.delete_if {|i| i.scheme !~ /basic/i}
+        # drop all variables in auths if they not contains "basic" as insensitive.
+        pass
+
+    def no_sspi_auth(self):
+        # here we should remove handler for Negotiate/NTLM negotiation
+        # but maybe leave original credentials
+        pass
+
+class HttpPlaintext(HttpTransport):
+    def __init__(self, endpoint, username='', password='', disable_sspi=True, basic_auth_only=True):
+        super(HttpPlaintext, self).__init__(endpoint, username, password)
+        if disable_sspi:
+            self.no_sspi_auth()
+        if basic_auth_only:
+            self.basic_auth_only()
+
 
 class HttpSSL(HttpTransport):
     """Uses SSL to secure the transport"""

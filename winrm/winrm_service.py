@@ -1,5 +1,5 @@
 import base64
-from winrm.http.transport import HttpPlaintext, HttpKerberos
+from winrm.http.transport import HttpPlaintext, HttpKerberos, HttpSSL
 from datetime import timedelta
 import uuid
 from isodate.isoduration import duration_isoformat
@@ -32,6 +32,8 @@ class WinRMWebService(object):
         self.locale = WinRMWebService.DEFAULT_LOCALE
         if transport == 'plaintext':
             self.transport = HttpPlaintext(endpoint, username, password)
+        elif transport == 'ssl':
+            self.transport = HttpSSL(endpoint, username, password)
         elif transport == 'kerberos':
             self.transport = HttpKerberos(endpoint)
         else:
