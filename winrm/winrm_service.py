@@ -252,6 +252,16 @@ class WinRMWebService(object):
         #   is either :stdout or :stderr.  The reason it is in an Array so so we can get the output in the order it ocurrs on
         #   the console.
         """
+        stdout_buffer, stderr_buffer = [], []
+        command_done = False
+        while not command_done:
+            stdout, stderr, return_code, command_done = \
+                self._raw_get_command_output(shell_id, command_id)
+            stdout_buffer.append(stdout)
+            stderr_buffer.append(stderr)
+        return "".join(stdout_buffer), "".join(stderr_buffer), return_code
+
+    def _raw_get_command_output(self, shell_id, command_id):
         node = xmlwitch.Builder(version='1.0', encoding='utf-8')
         with node.env__Envelope(**self._namespaces):
             with node.env__Header:
@@ -286,11 +296,7 @@ class WinRMWebService(object):
         #     <rsp:ExitCode>0</rsp:ExitCode>
         #   </rsp:CommandState>
         command_done = len([node for node in root.findall('.//*') if node.get('State', '').endswith('CommandState/Done')]) == 1
-        if not command_done:
-            new_stdout, new_stderr, ignored_code = self.get_command_output(shell_id, command_id)
-            stdout += new_stdout
-            stderr += new_stderr
-        else:
+        if command_done:
             return_code = int(next(node for node in root.findall('.//*') if node.tag.endswith('ExitCode')).text)
 
-        return stdout, stderr, return_code
+        return stdout, stderr, return_code, command_done
