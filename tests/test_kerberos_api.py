@@ -199,11 +199,12 @@ typedef int gss_cred_usage_t;
  * The macros that test status codes for error conditions. Note that the
  * GSS_ERROR() macro has changed slightly from the V1 GSSAPI so that it now
  * evaluates its argument only once.
+ * NOTE: CFFI can not parse calling macros but allows declare them as functions
  */
-#define GSS_CALLING_ERROR ...
-#define GSS_ROUTINE_ERROR ...
-#define GSS_SUPPLEMENTARY_INFO ...
-#define GSS_ERROR ...
+OM_uint32 GSS_CALLING_ERROR(OM_uint32);
+OM_uint32 GSS_ROUTINE_ERROR(OM_uint32);
+OM_uint32 GSS_SUPPLEMENTARY_INFO(OM_uint32);
+OM_uint32 GSS_ERROR(OM_uint32);
 
 /*
  * Now the actual status code definitions
@@ -266,7 +267,7 @@ typedef int gss_cred_usage_t;
  * GSS_C_NT_USER_NAME should be initialized to point
  * to that gss_OID_desc.
  */
-... extern gss_OID GSS_C_NT_USER_NAME;
+extern gss_OID GSS_C_NT_USER_NAME;
 
 /*
  * The implementation must reserve static storage for a
@@ -278,7 +279,7 @@ typedef int gss_cred_usage_t;
  * The constant GSS_C_NT_MACHINE_UID_NAME should be
  * initialized to point to that gss_OID_desc.
  */
-... extern gss_OID GSS_C_NT_MACHINE_UID_NAME;
+extern gss_OID GSS_C_NT_MACHINE_UID_NAME;
 
 /*
  * The implementation must reserve static storage for a
@@ -290,7 +291,7 @@ typedef int gss_cred_usage_t;
  * The constant GSS_C_NT_STRING_UID_NAME should be
  * initialized to point to that gss_OID_desc.
  */
-... extern gss_OID GSS_C_NT_STRING_UID_NAME;
+extern gss_OID GSS_C_NT_STRING_UID_NAME;
 
 /*
  * The implementation must reserve static storage for a
@@ -309,7 +310,7 @@ typedef int gss_cred_usage_t;
  * parameter, but should not be emitted by GSS-API
  * implementations
  */
-... extern gss_OID GSS_C_NT_HOSTBASED_SERVICE_X;
+extern gss_OID GSS_C_NT_HOSTBASED_SERVICE_X;
 
 /*
  * The implementation must reserve static storage for a
@@ -322,7 +323,7 @@ typedef int gss_cred_usage_t;
  * GSS_C_NT_HOSTBASED_SERVICE should be initialized
  * to point to that gss_OID_desc.
  */
-... extern gss_OID GSS_C_NT_HOSTBASED_SERVICE;
+extern gss_OID GSS_C_NT_HOSTBASED_SERVICE;
 
 /*
  * The implementation must reserve static storage for a
@@ -334,7 +335,7 @@ typedef int gss_cred_usage_t;
  * and GSS_C_NT_ANONYMOUS should be initialized to point
  * to that gss_OID_desc.
  */
-... extern gss_OID GSS_C_NT_ANONYMOUS;
+extern gss_OID GSS_C_NT_ANONYMOUS;
 
 
 /*
@@ -347,11 +348,11 @@ typedef int gss_cred_usage_t;
  * GSS_C_NT_EXPORT_NAME should be initialized to point
  * to that gss_OID_desc.
  */
-... extern gss_OID GSS_C_NT_EXPORT_NAME;
+extern gss_OID GSS_C_NT_EXPORT_NAME;
 
 /* Function Prototypes */
 
-OM_uint32 ...
+OM_uint32
 gss_acquire_cred(
     OM_uint32 *, /* minor_status */
     gss_name_t, /* desired_name */
@@ -362,12 +363,12 @@ gss_acquire_cred(
     gss_OID_set *, /* actual_mechs */
     OM_uint32 *); /* time_rec */
 
-OM_uint32 ...
+OM_uint32
 gss_release_cred(
     OM_uint32 *, /* minor_status */
     gss_cred_id_t *); /* cred_handle */
 
-OM_uint32 ...
+OM_uint32
 gss_init_sec_context(
     OM_uint32 *, /* minor_status */
     gss_cred_id_t, /* claimant_cred_handle */
@@ -383,7 +384,7 @@ gss_init_sec_context(
     OM_uint32 *, /* ret_flags */
     OM_uint32 *); /* time_rec */
 
-OM_uint32 ...
+OM_uint32
 gss_accept_sec_context(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t *, /* context_handle */
@@ -397,21 +398,21 @@ gss_accept_sec_context(
     OM_uint32 *, /* time_rec */
     gss_cred_id_t *); /* delegated_cred_handle */
 
-OM_uint32 ...
+OM_uint32
 gss_process_context_token(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
     gss_buffer_t); /* token_buffer */
 
 
-OM_uint32 ...
+OM_uint32
 gss_delete_sec_context(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t *, /* context_handle */
     gss_buffer_t); /* output_token */
 
 
-OM_uint32 ...
+OM_uint32
 gss_context_time(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -419,7 +420,7 @@ gss_context_time(
 
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_get_mic(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -429,7 +430,7 @@ gss_get_mic(
 
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_verify_mic(OM_uint32 *, /* minor_status */
                gss_ctx_id_t, /* context_handle */
                gss_buffer_t, /* message_buffer */
@@ -438,7 +439,7 @@ gss_verify_mic(OM_uint32 *, /* minor_status */
 );
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_wrap(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -450,7 +451,7 @@ gss_wrap(
 
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_unwrap(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -460,7 +461,7 @@ gss_unwrap(
     gss_qop_t *); /* qop_state */
 
 
-OM_uint32 ...
+OM_uint32
 gss_display_status(
     OM_uint32 *, /* minor_status */
     OM_uint32, /* status_value */
@@ -470,13 +471,13 @@ gss_display_status(
     gss_buffer_t); /* status_string */
 
 
-OM_uint32 ...
+OM_uint32
 gss_indicate_mechs(
     OM_uint32 *, /* minor_status */
     gss_OID_set *); /* mech_set */
 
 
-OM_uint32 ...
+OM_uint32
 gss_compare_name(
     OM_uint32 *, /* minor_status */
     gss_name_t, /* name1 */
@@ -484,7 +485,7 @@ gss_compare_name(
     int *); /* name_equal */
 
 
-OM_uint32 ...
+OM_uint32
 gss_display_name(
     OM_uint32 *, /* minor_status */
     gss_name_t, /* input_name */
@@ -492,29 +493,29 @@ gss_display_name(
     gss_OID *); /* output_name_type */
 
 
-OM_uint32 ...
+OM_uint32
 gss_import_name(
     OM_uint32 *, /* minor_status */
     gss_buffer_t, /* input_name_buffer */
     gss_OID, /* input_name_type(used to be const) */
     gss_name_t *); /* output_name */
 
-OM_uint32 ...
+OM_uint32
 gss_release_name(
     OM_uint32 *, /* minor_status */
     gss_name_t *); /* input_name */
 
-OM_uint32 ...
+OM_uint32
 gss_release_buffer(
     OM_uint32 *, /* minor_status */
     gss_buffer_t); /* buffer */
 
-OM_uint32 ...
+OM_uint32
 gss_release_oid_set(
     OM_uint32 *, /* minor_status */
     gss_OID_set *); /* set */
 
-OM_uint32 ...
+OM_uint32
 gss_inquire_cred(
     OM_uint32 *, /* minor_status */
     gss_cred_id_t, /* cred_handle */
@@ -524,7 +525,7 @@ gss_inquire_cred(
     gss_OID_set *); /* mechanisms */
 
 /* Last argument new for V2 */
-OM_uint32 ...
+OM_uint32
 gss_inquire_context(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -537,7 +538,7 @@ gss_inquire_context(
     int *); /* open */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_wrap_size_limit(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -547,7 +548,7 @@ gss_wrap_size_limit(
     OM_uint32 *); /* max_input_size */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_import_name_object(
     OM_uint32 *, /* minor_status */
     void *, /* input_name */
@@ -555,7 +556,7 @@ gss_import_name_object(
     gss_name_t *); /* output_name */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_export_name_object(
     OM_uint32 *, /* minor_status */
     gss_name_t, /* input_name */
@@ -563,7 +564,7 @@ gss_export_name_object(
     void **); /* output_name */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_add_cred(
     OM_uint32 *, /* minor_status */
     gss_cred_id_t, /* input_cred_handle */
@@ -578,7 +579,7 @@ gss_add_cred(
     OM_uint32 *); /* acceptor_time_rec */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_inquire_cred_by_mech(
     OM_uint32 *, /* minor_status */
     gss_cred_id_t, /* cred_handle */
@@ -589,40 +590,40 @@ gss_inquire_cred_by_mech(
     gss_cred_usage_t *); /* cred_usage */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_export_sec_context(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t *, /* context_handle */
     gss_buffer_t); /* interprocess_token */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_import_sec_context(
     OM_uint32 *, /* minor_status */
     gss_buffer_t, /* interprocess_token */
     gss_ctx_id_t *); /* context_handle */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_release_oid(
     OM_uint32 *, /* minor_status */
     gss_OID *); /* oid */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_create_empty_oid_set(
     OM_uint32 *, /* minor_status */
     gss_OID_set *); /* oid_set */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_add_oid_set_member(
     OM_uint32 *, /* minor_status */
     gss_OID, /* member_oid */
     gss_OID_set *); /* oid_set */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_test_oid_set_member(
     OM_uint32 *, /* minor_status */
     gss_OID, /* member */
@@ -630,28 +631,28 @@ gss_test_oid_set_member(
     int *); /* present */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_str_to_oid(
     OM_uint32 *, /* minor_status */
     gss_buffer_t, /* oid_str */
     gss_OID *); /* oid */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_oid_to_str(
     OM_uint32 *, /* minor_status */
     gss_OID, /* oid */
     gss_buffer_t); /* oid_str */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_inquire_names_for_mech(
     OM_uint32 *, /* minor_status */
     gss_OID, /* mechanism */
     gss_OID_set *); /* name_types */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_inquire_mechs_for_name(
     OM_uint32 *, /* minor_status */
     const gss_name_t, /* input_name */
@@ -664,7 +665,7 @@ gss_inquire_mechs_for_name(
  * entrypoints (as opposed to #defines) should be provided, to allow GSSAPI
  * V1 applications to link against GSSAPI V2 implementations.
  */
-OM_uint32 ...
+OM_uint32
 gss_sign(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -672,7 +673,7 @@ gss_sign(
     gss_buffer_t, /* message_buffer */
     gss_buffer_t); /* message_token */
 
-OM_uint32 ...
+OM_uint32
 gss_verify(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -680,7 +681,7 @@ gss_verify(
     gss_buffer_t, /* token_buffer */
     int *); /* qop_state */
 
-OM_uint32 ...
+OM_uint32
 gss_seal(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -690,7 +691,7 @@ gss_seal(
     int *, /* conf_state */
     gss_buffer_t); /* output_message_buffer */
 
-OM_uint32 ...
+OM_uint32
 gss_unseal(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context_handle */
@@ -700,21 +701,21 @@ gss_unseal(
     int *); /* qop_state */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_export_name(
     OM_uint32 *, /* minor_status */
     const gss_name_t, /* input_name */
     gss_buffer_t); /* exported_name */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_duplicate_name(
     OM_uint32 *, /* minor_status */
     const gss_name_t, /* input_name */
     gss_name_t *); /* dest_name */
 
 /* New for V2 */
-OM_uint32 ...
+OM_uint32
 gss_canonicalize_name(
     OM_uint32 *, /* minor_status */
     const gss_name_t, /* input_name */
@@ -726,7 +727,7 @@ gss_canonicalize_name(
 #define GSS_C_PRF_KEY_FULL ...
 #define GSS_C_PRF_KEY_PARTIAL ...
 
-OM_uint32 ...
+OM_uint32
 gss_pseudo_random(
     OM_uint32 *, /* minor_status */
     gss_ctx_id_t, /* context */
@@ -735,7 +736,7 @@ gss_pseudo_random(
     ssize_t, /* desired_output_len */
     gss_buffer_t); /* prf_out */
 
-OM_uint32 ...
+OM_uint32
 gss_store_cred(
     OM_uint32 *, /* minor_status */
     const gss_cred_id_t,/* input_cred_handle */
@@ -746,7 +747,7 @@ gss_store_cred(
     gss_OID_set *, /* elements_stored */
     gss_cred_usage_t *);/* cred_usage_stored */
 
-OM_uint32 ...
+OM_uint32
 gss_set_neg_mechs(
     OM_uint32 *, /* minor_status */
     gss_cred_id_t, /* cred_handle */
@@ -773,7 +774,7 @@ typedef const struct gss_name_struct *gss_const_name_t;
 typedef const gss_OID_desc *gss_const_OID;
 typedef const gss_OID_set_desc *gss_const_OID_set;
 
-OM_uint32 ...
+OM_uint32
 gss_indicate_mechs_by_attrs(
     OM_uint32 *, /* minor_status */
     gss_const_OID_set, /* desired_mech_attrs */
@@ -781,14 +782,14 @@ gss_indicate_mechs_by_attrs(
     gss_const_OID_set, /* critical_mech_attrs */
     gss_OID_set *); /* mechs */
 
-OM_uint32 ...
+OM_uint32
 gss_inquire_attrs_for_mech(
     OM_uint32 *, /* minor_status */
     gss_const_OID, /* mech */
     gss_OID_set *, /* mech_attrs */
     gss_OID_set *); /* known_mech_attrs */
 
-OM_uint32 ...
+OM_uint32
 gss_display_mech_attr(
     OM_uint32 *, /* minor_status */
     gss_const_OID, /* mech_attr */
@@ -796,38 +797,38 @@ gss_display_mech_attr(
     gss_buffer_t, /* short_desc */
     gss_buffer_t); /* long_desc */
 
-... extern gss_const_OID GSS_C_MA_MECH_CONCRETE;
-... extern gss_const_OID GSS_C_MA_MECH_PSEUDO;
-... extern gss_const_OID GSS_C_MA_MECH_COMPOSITE;
-... extern gss_const_OID GSS_C_MA_MECH_NEGO;
-... extern gss_const_OID GSS_C_MA_MECH_GLUE;
-... extern gss_const_OID GSS_C_MA_NOT_MECH;
-... extern gss_const_OID GSS_C_MA_DEPRECATED;
-... extern gss_const_OID GSS_C_MA_NOT_DFLT_MECH;
-... extern gss_const_OID GSS_C_MA_ITOK_FRAMED;
-... extern gss_const_OID GSS_C_MA_AUTH_INIT;
-... extern gss_const_OID GSS_C_MA_AUTH_TARG;
-... extern gss_const_OID GSS_C_MA_AUTH_INIT_INIT;
-... extern gss_const_OID GSS_C_MA_AUTH_TARG_INIT;
-... extern gss_const_OID GSS_C_MA_AUTH_INIT_ANON;
-... extern gss_const_OID GSS_C_MA_AUTH_TARG_ANON;
-... extern gss_const_OID GSS_C_MA_DELEG_CRED;
-... extern gss_const_OID GSS_C_MA_INTEG_PROT;
-... extern gss_const_OID GSS_C_MA_CONF_PROT;
-... extern gss_const_OID GSS_C_MA_MIC;
-... extern gss_const_OID GSS_C_MA_WRAP;
-... extern gss_const_OID GSS_C_MA_PROT_READY;
-... extern gss_const_OID GSS_C_MA_REPLAY_DET;
-... extern gss_const_OID GSS_C_MA_OOS_DET;
-... extern gss_const_OID GSS_C_MA_CBINDINGS;
-... extern gss_const_OID GSS_C_MA_PFS;
-... extern gss_const_OID GSS_C_MA_COMPRESS;
-... extern gss_const_OID GSS_C_MA_CTX_TRANS;
+extern gss_const_OID GSS_C_MA_MECH_CONCRETE;
+extern gss_const_OID GSS_C_MA_MECH_PSEUDO;
+extern gss_const_OID GSS_C_MA_MECH_COMPOSITE;
+extern gss_const_OID GSS_C_MA_MECH_NEGO;
+extern gss_const_OID GSS_C_MA_MECH_GLUE;
+extern gss_const_OID GSS_C_MA_NOT_MECH;
+extern gss_const_OID GSS_C_MA_DEPRECATED;
+extern gss_const_OID GSS_C_MA_NOT_DFLT_MECH;
+extern gss_const_OID GSS_C_MA_ITOK_FRAMED;
+extern gss_const_OID GSS_C_MA_AUTH_INIT;
+extern gss_const_OID GSS_C_MA_AUTH_TARG;
+extern gss_const_OID GSS_C_MA_AUTH_INIT_INIT;
+extern gss_const_OID GSS_C_MA_AUTH_TARG_INIT;
+extern gss_const_OID GSS_C_MA_AUTH_INIT_ANON;
+extern gss_const_OID GSS_C_MA_AUTH_TARG_ANON;
+extern gss_const_OID GSS_C_MA_DELEG_CRED;
+extern gss_const_OID GSS_C_MA_INTEG_PROT;
+extern gss_const_OID GSS_C_MA_CONF_PROT;
+extern gss_const_OID GSS_C_MA_MIC;
+extern gss_const_OID GSS_C_MA_WRAP;
+extern gss_const_OID GSS_C_MA_PROT_READY;
+extern gss_const_OID GSS_C_MA_REPLAY_DET;
+extern gss_const_OID GSS_C_MA_OOS_DET;
+extern gss_const_OID GSS_C_MA_CBINDINGS;
+extern gss_const_OID GSS_C_MA_PFS;
+extern gss_const_OID GSS_C_MA_COMPRESS;
+extern gss_const_OID GSS_C_MA_CTX_TRANS;
 
 /*
  * RFC 5801
  */
-OM_uint32 ...
+OM_uint32
 gss_inquire_saslname_for_mech(
     OM_uint32 *, /* minor_status */
     const gss_OID, /* desired_mech */
@@ -836,7 +837,7 @@ gss_inquire_saslname_for_mech(
     gss_buffer_t /* mech_description */
 );
 
-OM_uint32 ...
+OM_uint32
 gss_inquire_mech_for_saslname(
     OM_uint32 *, /* minor_status */
     const gss_buffer_t, /* sasl_mech_name */
