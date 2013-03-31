@@ -2,10 +2,10 @@ import sys
 import base64
 from winrm.exceptions import WinRMTransportError
 
-HAVE_KERBEROS=False
+HAVE_KERBEROS = False
 try:
     import kerberos
-    HAVE_KERBEROS=True
+    HAVE_KERBEROS = True
 except ImportError:
     pass
 
@@ -19,13 +19,14 @@ else:
     from urllib.request import urlopen, build_opener, install_opener
     from urllib.parse import urlparse
 
+
 class HttpTransport(object):
     def __init__(self, endpoint, username, password):
         self.endpoint = endpoint
         self.username = username
         self.password = password
-        self.user_agent =  'Python WinRM client'
-        self.timeout = 3600 # Set this to an unreasonable amount for now because WinRM has timeouts
+        self.user_agent = 'Python WinRM client'
+        self.timeout = 3600  # Set this to an unreasonable amount for now because WinRM has timeouts
 
     def basic_auth_only(self):
         #here we should remove handler for any authentication handlers other than basic
@@ -41,6 +42,7 @@ class HttpTransport(object):
         # but maybe leave original credentials
         pass
 
+
 class HttpPlaintext(HttpTransport):
     def __init__(self, endpoint, username='', password='', disable_sspi=True, basic_auth_only=True):
         super(HttpPlaintext, self).__init__(endpoint, username, password)
@@ -50,9 +52,9 @@ class HttpPlaintext(HttpTransport):
             self.basic_auth_only()
 
     def send_message(self, message):
-        headers = {'Content-Type' : 'application/soap+xml;charset=UTF-8',
-                   'Content-Length' : len(message),
-                   'User-Agent' : 'Python WinRM client'}
+        headers = {'Content-Type': 'application/soap+xml;charset=UTF-8',
+                   'Content-Length': len(message),
+                   'User-Agent': 'Python WinRM client'}
         password_manager = HTTPPasswordMgrWithDefaultRealm()
         password_manager.add_password(None, self.endpoint, self.username, self.password)
         auth_manager = HTTPBasicAuthHandler(password_manager)
@@ -81,6 +83,7 @@ class HttpPlaintext(HttpTransport):
         except URLError as ex:
             raise WinRMTransportError(ex.reason)
 
+
 class HttpSSL(HttpTransport):
     """Uses SSL to secure the transport"""
     def __init__(self, endpoint, username, password, ca_trust_path=None, disable_sspi=True, basic_auth_only=True):
@@ -93,6 +96,7 @@ class HttpSSL(HttpTransport):
         if basic_auth_only:
             self.basic_auth_only()
 
+
 class KerberosTicket:
     """
     Implementation based on http://ncoghlan_devs-python-notes.readthedocs.org/en/latest/python_kerberos.html
@@ -101,7 +105,8 @@ class KerberosTicket:
         ignored_code, krb_context = kerberos.authGSSClientInit(service)
         kerberos.authGSSClientStep(krb_context, '')
         # TODO authGSSClientStep may raise following error:
-        #GSSError: (('Unspecified GSS failure.  Minor code may provide more information', 851968), ("Credentials cache file '/tmp/krb5cc_1000' not found", -1765328189))
+        #GSSError: (('Unspecified GSS failure.  Minor code may provide more information', 851968),
+        # ("Credentials cache file '/tmp/krb5cc_1000' not found", -1765328189))
         self._krb_context = krb_context
         gss_response = kerberos.authGSSClientResponse(krb_context)
         self.auth_header = 'Negotiate {0}'.format(gss_response)
@@ -123,6 +128,7 @@ class KerberosTicket:
         kerberos.authGSSClientStep(krb_context, auth_details)
         print('User {0} authenticated successfully using Kerberos authentication'.format(kerberos.authGSSClientUserName(krb_context)))
         kerberos.authGSSClientClean(krb_context)
+
 
 class HttpKerberos(HttpTransport):
     def __init__(self, endpoint, realm=None, service='HTTP', keytab=None):

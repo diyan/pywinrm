@@ -1,6 +1,7 @@
 import os
 from nose import SkipTest
 
+
 def real_winrm_service():
     config_path = os.path.join(os.path.dirname(__file__), 'config.json')
     if os.path.isfile(config_path):

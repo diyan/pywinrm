@@ -2,6 +2,7 @@ from nose import SkipTest
 import re
 from fixtures import real_winrm_service
 
+
 class TestIntegration(object):
     @classmethod
     def setup_class(cls):
