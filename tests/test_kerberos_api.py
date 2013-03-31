@@ -225,17 +225,17 @@ def validate_gss_status(major_value, minor_value):
     message_ctx_p = ffi.new('OM_uint32 *')
     status_str_buf = ffi.new('gss_buffer_t')
     mech_type = ffi.new('gss_OID', [C.GSS_C_NO_OID])
-    major_status = C.gss_display_status(minor_status_p, major_value,
-                                        C.GSS_C_GSS_CODE, mech_type,
-                                        message_ctx_p, status_str_buf)
+    major_status = C.gss_display_status(
+        minor_status_p, major_value, C.GSS_C_GSS_CODE, mech_type,
+        message_ctx_p, status_str_buf)
     if major_status != 0:
         raise GSSInternalError('Failed to get GSS major display status for last API call')
     major_status_str = _gss_buffer_to_str(status_str_buf)
 
     mech_type = ffi.new('gss_OID', [C.GSS_C_NULL_OID])
-    major_status = C.gss_display_status(minor_status_p, minor_value,
-                                        C.GSS_C_MECH_CODE, mech_type,
-                                        message_ctx_p, status_str_buf)
+    major_status = C.gss_display_status(
+        minor_status_p, minor_value, C.GSS_C_MECH_CODE, mech_type,
+        message_ctx_p, status_str_buf)
     if major_status != 0:
         raise GSSInternalError('Failed to get GSS minor display status for last API call')
     minor_status_str = _gss_buffer_to_str(status_str_buf)
@@ -254,7 +254,10 @@ def authenticate_gss_client_init(service, principal):
 
     service_buf = _str_to_gss_buffer(service)
     out_server_name_p = ffi.new('gss_name_t *')
-    major_status = C.gss_import_name(minor_status_p, service_buf, C.GSS_C_NT_HOSTBASED_SERVICE, out_server_name_p)
+    major_status = C.gss_import_name(
+        minor_status_p, service_buf,
+        ffi.cast('gss_OID', C.GSS_C_NT_HOSTBASED_SERVICE), out_server_name_p)
+        #ffi.cast('gss_OID', C.GSS_C_NO_OID), out_server_name_p)
     validate_gss_status(major_status, minor_status_p[0])
 
     gss_ctx_id_p = ffi.new('gss_ctx_id_t *')
