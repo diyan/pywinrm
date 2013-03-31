@@ -28,8 +28,6 @@ ffi.cdef("""
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define KRB5_CALLCONV ...
-#define KRB5_CALLCONV_C ...
 
 /*
  * $Id$
@@ -155,7 +153,9 @@ typedef int gss_cred_usage_t;
 #define GSS_C_NO_CONTEXT ...
 #define GSS_C_NO_CREDENTIAL ...
 #define GSS_C_NO_CHANNEL_BINDINGS ...
-#define GSS_C_EMPTY_BUFFER ...
+// NOTE: CFFI supports only integer macros, so we declare value as const
+// FIXME: Unable to compile declaration below
+// static const gss_buffer_t GSS_C_EMPTY_BUFFER;
 
 /*
  * Some alternate names for a couple of the above values. These are defined
@@ -254,7 +254,6 @@ OM_uint32 GSS_ERROR(OM_uint32);
  * Finally, function prototypes for the GSSAPI routines.
  */
 
-#define GSS_DLLIMP ...
 
 /* Reserved static storage for GSS_oids. Comments are quotes from RFC 2744.
  *
@@ -547,21 +546,9 @@ gss_wrap_size_limit(
     OM_uint32, /* req_output_size */
     OM_uint32 *); /* max_input_size */
 
-/* New for V2 */
-OM_uint32
-gss_import_name_object(
-    OM_uint32 *, /* minor_status */
-    void *, /* input_name */
-    gss_OID, /* input_name_type */
-    gss_name_t *); /* output_name */
-
-/* New for V2 */
-OM_uint32
-gss_export_name_object(
-    OM_uint32 *, /* minor_status */
-    gss_name_t, /* input_name */
-    gss_OID, /* desired_name_type */
-    void **); /* output_name */
+/* FIXME: gss_import_name_object, gss_export_name_object declarations
+ * was excluded because libgssapi_krb5.so does not export this function
+ */
 
 /* New for V2 */
 OM_uint32
@@ -754,11 +741,12 @@ gss_set_neg_mechs(
     const gss_OID_set); /* mech_set */
 
 
-/* XXXX these are not part of the GSSAPI C bindings! (but should be) */
-
-#define GSS_CALLING_ERROR_FIELD ...
-#define GSS_ROUTINE_ERROR_FIELD ...
-#define GSS_SUPPLEMENTARY_INFO_FIELD ...
+/* XXXX these are not part of the GSSAPI C bindings! (but should be)
+ * NOTE: CFFI can not parse calling macros but allows declare them as functions
+ */
+OM_uint32 GSS_CALLING_ERROR_FIELD(OM_uint32);
+OM_uint32 GSS_ROUTINE_ERROR_FIELD(OM_uint32);
+OM_uint32 GSS_SUPPLEMENTARY_INFO_FIELD(OM_uint32);
 
 /* XXXX This is a necessary evil until the spec is fixed */
 #define GSS_S_CRED_UNAVAIL ...
