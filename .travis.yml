@@ -8,6 +8,8 @@ python:
   - pypy
 install:
   # Build/test dependencies
+  - sudo apt-get install libffi-dev
+  - pip install cffi
   - pip install -r requirements.txt --use-mirrors
   # TODO Wrap explicit environment setup into following:
   #- python setup.py install
