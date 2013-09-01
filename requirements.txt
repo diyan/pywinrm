@@ -1,4 +1,4 @@
 isodate
 http://github.com/diyan/xmlwitch/archive/master.zip
-nose
+pytest
 mock

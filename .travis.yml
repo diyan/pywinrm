@@ -11,6 +11,8 @@ install:
   - pip install -r requirements.txt --use-mirrors
   # TODO Wrap explicit environment setup into following:
   #- python setup.py install
-script: nosetests -v
-# TODO wrap unit test execution into following:
-# python setup.py test
+script:
+  - cd winrm
+  - py.test -v tests
+  # TODO wrap unit test execution into following:
+  # python setup.py test
