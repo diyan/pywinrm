@@ -287,7 +287,7 @@ def winrm(request):
     uuid4_mock.return_value = uuid.UUID(
         '11111111-1111-1111-1111-111111111111')
 
-    from winrm_service import WinRMWebService
+    from winrm.winrm_service import WinRMWebService
 
     winrm = WinRMWebService(
         endpoint='http://windows-host:5985/wsman',

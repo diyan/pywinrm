@@ -16,4 +16,4 @@ env/
 ~temp/
 *~
 
-/tests/config.json
+/winrm/tests/config.json
