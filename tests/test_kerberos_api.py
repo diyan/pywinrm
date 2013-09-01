@@ -1,3 +1,4 @@
+from unittest import SkipTest
 from cffi import FFI
 
 ffi = FFI()
@@ -918,6 +919,9 @@ def authenticate_gss_client_init(service, principal):
     validate_gss_status(major_status, minor_status_p[0])
 
 
-# FIXME: Investigate how to pass server name and fix following error
-# ('Server not found in Kerberos database', 2529638919))
-authenticate_gss_client_init('HTTP@server-host', 'username@realm')
+class TestKerberosApi(object):
+    def test_authenticate_gss_client_init(self):
+        raise SkipTest('Not implemented yet')
+        # FIXME: Investigate how to pass server name and fix following error
+        # ('Server not found in Kerberos database', 2529638919))
+        authenticate_gss_client_init('HTTP@server-host', 'username@realm')
