@@ -281,61 +281,61 @@ class TransportStub(object):
 
 
 @fixture(scope='module')
-def winrm(request):
+def protocol(request):
     uuid4_patcher = patch('uuid.uuid4')
     uuid4_mock = uuid4_patcher.start()
     uuid4_mock.return_value = uuid.UUID(
         '11111111-1111-1111-1111-111111111111')
 
-    from winrm.winrm_service import WinRMWebService
+    from winrm.protocol import Protocol
 
-    winrm = WinRMWebService(
+    protocol = Protocol(
         endpoint='http://windows-host:5985/wsman',
         transport='plaintext',
         username='john.smith',
         password='secret')
 
-    winrm.transport = TransportStub()
+    protocol.transport = TransportStub()
 
     def uuid4_patch_stop():
         uuid4_patcher.stop()
 
     request.addfinalizer(uuid4_patch_stop)
-    return winrm
+    return protocol
 
 
-def test_open_shell_and_close_shell(winrm):
-    shell_id = winrm.open_shell()
+def test_open_shell_and_close_shell(protocol):
+    shell_id = protocol.open_shell()
     assert shell_id == '11111111-1111-1111-1111-111111111113'
 
-    winrm.close_shell(shell_id)
+    protocol.close_shell(shell_id)
 
 
-def test_run_command_with_arguments_and_cleanup_command(winrm):
-    shell_id = winrm.open_shell()
-    command_id = winrm.run_command(shell_id, 'ipconfig', ['/all'])
+def test_run_command_with_arguments_and_cleanup_command(protocol):
+    shell_id = protocol.open_shell()
+    command_id = protocol.run_command(shell_id, 'ipconfig', ['/all'])
     assert command_id == '11111111-1111-1111-1111-111111111114'
 
-    winrm.cleanup_command(shell_id, command_id)
-    winrm.close_shell(shell_id)
+    protocol.cleanup_command(shell_id, command_id)
+    protocol.close_shell(shell_id)
 
 
-def test_run_command_without_arguments_and_cleanup_command(winrm):
-    shell_id = winrm.open_shell()
-    command_id = winrm.run_command(shell_id, 'hostname')
+def test_run_command_without_arguments_and_cleanup_command(protocol):
+    shell_id = protocol.open_shell()
+    command_id = protocol.run_command(shell_id, 'hostname')
     assert command_id == '11111111-1111-1111-1111-111111111114'
 
-    winrm.cleanup_command(shell_id, command_id)
-    winrm.close_shell(shell_id)
+    protocol.cleanup_command(shell_id, command_id)
+    protocol.close_shell(shell_id)
 
 
-def test_get_command_output(winrm):
-    shell_id = winrm.open_shell()
-    command_id = winrm.run_command(shell_id, 'ipconfig', ['/all'])
-    stdout, stderr, return_code = winrm.get_command_output(shell_id, command_id)
+def test_get_command_output(protocol):
+    shell_id = protocol.open_shell()
+    command_id = protocol.run_command(shell_id, 'ipconfig', ['/all'])
+    stdout, stderr, return_code = protocol.get_command_output(shell_id, command_id)
     assert return_code == 0
     assert 'Windows IP Configuration' in stdout
     assert len(stderr) == 0
 
-    winrm.cleanup_command(shell_id, command_id)
-    winrm.close_shell(shell_id)
+    protocol.cleanup_command(shell_id, command_id)
+    protocol.close_shell(shell_id)

@@ -6,7 +6,8 @@ from isodate.isoduration import duration_isoformat
 import xmlwitch
 import xml.etree.ElementTree as ET
 
-class WinRMWebService(object):
+
+class Protocol(object):
     """
     This is the main class that does the SOAP request/response logic. There are a few helper classes, but pretty
     much everything comes through here first.
@@ -27,9 +28,9 @@ class WinRMWebService(object):
         @param string ca_trust_path: Certification Authority trust path
         """
         self.endpoint = endpoint
-        self.timeout = WinRMWebService.DEFAULT_TIMEOUT
-        self.max_env_sz = WinRMWebService.DEFAULT_MAX_ENV_SIZE
-        self.locale = WinRMWebService.DEFAULT_LOCALE
+        self.timeout = Protocol.DEFAULT_TIMEOUT
+        self.max_env_sz = Protocol.DEFAULT_MAX_ENV_SIZE
+        self.locale = Protocol.DEFAULT_LOCALE
         if transport == 'plaintext':
             self.transport = HttpPlaintext(endpoint, username, password)
         elif transport == 'kerberos':
