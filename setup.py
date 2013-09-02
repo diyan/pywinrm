@@ -1,7 +1,7 @@
 import os, sys, urllib
 from distutils.core import Command, setup
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 project_name = 'pywinrm'
 readme_path = os.path.join(os.path.dirname(__file__), 'README.md')

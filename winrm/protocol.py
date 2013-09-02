@@ -16,7 +16,7 @@ class Protocol(object):
     DEFAULT_MAX_ENV_SIZE = 153600
     DEFAULT_LOCALE = 'en-US'
 
-    def __init__(self, endpoint, transport='kerberos', username=None, password=None, realm=None, service=None, keytab=None, ca_trust_path=None):
+    def __init__(self, endpoint, transport='plaintext', username=None, password=None, realm=None, service=None, keytab=None, ca_trust_path=None):
         """
         @param string endpoint: the WinRM webservice endpoint
         @param string transport: transport type, one of 'kerberos' (default), 'ssl', 'plaintext'
@@ -95,7 +95,9 @@ class Protocol(object):
 
     # Helper methods for building SOAP Headers
 
-    def _build_soap_header(self, node, message_id=uuid.uuid4()):
+    def _build_soap_header(self, node, message_id=None):
+        if not message_id:
+            message_id = uuid.uuid4()
         node.a__To(str(self.endpoint))
         with node.a__ReplyTo:
             node.a__Address('http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous', mustUnderstand='true')
