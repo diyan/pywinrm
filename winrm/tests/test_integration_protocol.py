@@ -31,12 +31,12 @@ def test_run_command_without_arguments_and_cleanup_command(protocol_real):
 def test_get_command_output(protocol_real):
     shell_id = protocol_real.open_shell()
     command_id = protocol_real.run_command(shell_id, 'ipconfig', ['/all'])
-    stdout, stderr, return_code = protocol_real.get_command_output(
+    std_out, std_err, status_code = protocol_real.get_command_output(
         shell_id, command_id)
 
-    assert return_code == 0
-    assert 'Windows IP Configuration' in stdout
-    assert len(stderr) == 0
+    assert status_code == 0
+    assert 'Windows IP Configuration' in std_out
+    assert len(std_err) == 0
 
     protocol_real.cleanup_command(shell_id, command_id)
     protocol_real.close_shell(shell_id)

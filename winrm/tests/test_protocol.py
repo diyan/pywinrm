@@ -332,10 +332,10 @@ def test_run_command_without_arguments_and_cleanup_command(protocol):
 def test_get_command_output(protocol):
     shell_id = protocol.open_shell()
     command_id = protocol.run_command(shell_id, 'ipconfig', ['/all'])
-    stdout, stderr, return_code = protocol.get_command_output(shell_id, command_id)
-    assert return_code == 0
-    assert 'Windows IP Configuration' in stdout
-    assert len(stderr) == 0
+    std_out, std_err, status_code = protocol.get_command_output(shell_id, command_id)
+    assert status_code == 0
+    assert 'Windows IP Configuration' in std_out
+    assert len(std_err) == 0
 
     protocol.cleanup_command(shell_id, command_id)
     protocol.close_shell(shell_id)
