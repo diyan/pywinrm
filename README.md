@@ -26,20 +26,42 @@ $ sudo apt-get install python-dev libkrb5-dev
 $ pip install kerberos
 ```
 
-## Example Usage. TODO update public API
+## Example Usage
+### Standard API example (in progress)
 ```python
-from pywinrm import WinRMClient
+import pywinrm
 
-winrm = WinRMClient(
+s = pywinrm.Session('windows-host', auth=('john.smith', 'secret'))
+r = s.run_cmd('ipconfig', ['/all'])
+>>> r.status_code
+0
+>>> r.std_out
+Windows IP Configuration
+
+   Host Name . . . . . . . . . . . . : WINDOWS-HOST
+   Primary Dns Suffix  . . . . . . . :
+   Node Type . . . . . . . . . . . . : Hybrid
+   IP Routing Enabled. . . . . . . . : No
+   WINS Proxy Enabled. . . . . . . . : No
+...
+>>> r.std_err
+
+```
+
+### Low-level API example
+```python
+from pywinrm.protocol import Protocol
+
+p = Protocol(
     endpoint='http://windows-host:5985/wsman',
     transport='plaintext',
     username='john.smith',
     password='secret')
-shell_id = winrm.open_shell()
-command_id = winrm.run_command(shell_id, 'ipconfig', ['/all'])
-stdout, stderr, return_code = winrm.get_command_output(shell_id, command_id)
-winrm.cleanup_command(shell_id, command_id)
-winrm.close_shell(shell_id)
+shell_id = p.open_shell()
+command_id = p.run_command(shell_id, 'ipconfig', ['/all'])
+std_out, std_err, status_code = p.get_command_output(shell_id, command_id)
+p.cleanup_command(shell_id, command_id)
+p.close_shell(shell_id)
 ```
 
 ## Contribute
