@@ -1,10 +1,10 @@
 import base64
-from winrm.http.transport import HttpPlaintext, HttpKerberos
 from datetime import timedelta
 import uuid
+import xml.etree.ElementTree as ET
 from isodate.isoduration import duration_isoformat
 import xmlwitch
-import xml.etree.ElementTree as ET
+from winrm.transport import HttpPlaintext, HttpKerberos
 
 
 class Protocol(object):

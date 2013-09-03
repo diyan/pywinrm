@@ -29,9 +29,9 @@ $ pip install kerberos
 ## Example Usage
 ### Standard API example (in progress)
 ```python
-import pywinrm
+import winrm
 
-s = pywinrm.Session('windows-host', auth=('john.smith', 'secret'))
+s = winrm.Session('windows-host', auth=('john.smith', 'secret'))
 r = s.run_cmd('ipconfig', ['/all'])
 >>> r.status_code
 0
@@ -50,7 +50,7 @@ Windows IP Configuration
 
 ### Low-level API example
 ```python
-from pywinrm.protocol import Protocol
+from winrm.protocol import Protocol
 
 p = Protocol(
     endpoint='http://windows-host:5985/wsman',
