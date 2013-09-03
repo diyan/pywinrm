@@ -4,10 +4,15 @@ import urllib
 from distutils.core import Command, setup
 
 __version__ = '0.0.2dev'
-
 project_name = 'pywinrm'
-readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
-long_description = open(readme_path).read()
+
+# PyPi supports only reStructuredText, so pandoc should be installed
+# before uploading package
+try:
+    import pypandoc
+    long_description = pypandoc.convert('README.md', 'rst')
+except ImportError:
+    long_description = ''
 
 
 class BootstrapEnvironmentCommand(Command):
