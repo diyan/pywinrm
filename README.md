@@ -15,12 +15,12 @@ For more information on WinRM, please visit
 * [python-kerberos](http://pypi.python.org/pypi/kerberos) is optional
 
 ## Installation
-To install pywinrm, simply (TODO fix setup.py):
+### To install pywinrm, simply
 ```bash
 $ pip install http://github.com/diyan/pywinrm/archive/master.zip
 ```
 
-In order to use Kerberos authentication you need to install optional dependency:
+### In order to use Kerberos authentication you need optional dependency
 ```bash
 $ sudo apt-get install python-dev libkrb5-dev
 $ pip install kerberos
