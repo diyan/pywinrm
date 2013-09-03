@@ -11,11 +11,13 @@ Thumbs.db
 .idea
 
 # Folder which should be used for temporary working files
-sandbox/
+/sandbox/
 
 # Python virtual environment
-env/
+/env/
 
+/dist/
+/MANIFEST
 *.py[co]
 ~temp/
 *~
