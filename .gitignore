@@ -3,6 +3,10 @@ Thumbs.db
 .DS_Store
 *.bak
 
+# Unit test / coverage reports
+.coverage
+.cache
+
 # JetBrains PyCharm configuration and working files
 .idea
 
