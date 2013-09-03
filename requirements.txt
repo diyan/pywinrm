@@ -1,4 +1,6 @@
 isodate
 http://github.com/diyan/xmlwitch/archive/master.zip
 pytest
+pytest-cov
+pytest-pep8
 mock

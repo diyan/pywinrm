@@ -7,12 +7,11 @@ python:
   - 3.3
   - pypy
 install:
-  # Build/test dependencies
   - pip install -r requirements.txt --use-mirrors
-  # TODO Wrap explicit environment setup into following:
-  #- python setup.py install
+  - pip install coveralls --use-mirrors
 script:
-  - cd winrm
-  - py.test -v tests
-  # TODO wrap unit test execution into following:
-  # python setup.py test
+  #TODO enable pep8 checking
+  #py.test -v --pep8 winrm --cov winrm --cov-report term-missing winrm/tests/
+  - py.test -v --cov winrm --cov-report term-missing winrm/tests/
+after_success:
+  - coveralls
