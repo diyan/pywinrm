@@ -19,6 +19,7 @@ else:
     from urllib.request import urlopen, build_opener, install_opener
     from urllib.parse import urlparse
 
+
 class HttpTransport(object):
     def __init__(self, endpoint, username, password):
         self.endpoint = endpoint
@@ -40,6 +41,7 @@ class HttpTransport(object):
         # here we should remove handler for Negotiate/NTLM negotiation
         # but maybe leave original credentials
         pass
+
 
 class HttpPlaintext(HttpTransport):
     def __init__(self, endpoint, username='', password='', disable_sspi=True, basic_auth_only=True):
@@ -81,6 +83,7 @@ class HttpPlaintext(HttpTransport):
         except URLError as ex:
             raise WinRMTransportError(ex.reason)
 
+
 class HttpSSL(HttpTransport):
     """Uses SSL to secure the transport"""
     def __init__(self, endpoint, username, password, ca_trust_path=None, disable_sspi=True, basic_auth_only=True):
@@ -92,6 +95,7 @@ class HttpSSL(HttpTransport):
             self.no_sspi_auth()
         if basic_auth_only:
             self.basic_auth_only()
+
 
 class KerberosTicket:
     """
@@ -123,6 +127,7 @@ class KerberosTicket:
         kerberos.authGSSClientStep(krb_context, auth_details)
         print('User {0} authenticated successfully using Kerberos authentication'.format(kerberos.authGSSClientUserName(krb_context)))
         kerberos.authGSSClientClean(krb_context)
+
 
 class HttpKerberos(HttpTransport):
     def __init__(self, endpoint, realm=None, service='HTTP', keytab=None):

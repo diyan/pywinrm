@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-import xml.etree.ElementTree as ET
+import xmltodict
 from pytest import skip, fixture
 from mock import patch
 
@@ -258,10 +258,21 @@ get_cmd_output_response = """\
 </s:Envelope>"""
 
 
+def sort_dict(ordered_dict):
+    items = sorted(ordered_dict.items(), key=lambda x: x[0])
+    ordered_dict.clear()
+    for key, value in items:
+        if isinstance(value, dict):
+            sort_dict(value)
+        ordered_dict[key] = value
+
+
 def xml_str_compare(first, second):
-    first_normalized = ET.tostring(ET.fromstring(first))
-    second_normalized = ET.tostring(ET.fromstring(second))
-    return first_normalized == second_normalized
+    first_dict = xmltodict.parse(first)
+    second_dict = xmltodict.parse(second)
+    sort_dict(first_dict)
+    sort_dict(second_dict)
+    return first_dict == second_dict
 
 
 class TransportStub(object):
@@ -279,7 +290,7 @@ class TransportStub(object):
         elif xml_str_compare(message, get_cmd_output_request):
             return get_cmd_output_response
         else:
-            return None
+            raise Exception('Message was not expected')
 
 
 @fixture(scope='module')
