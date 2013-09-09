@@ -86,9 +86,7 @@ setup(name=project_name,
       license='MIT license',
       packages=['winrm', 'winrm.tests'],
       package_data={'winrm.tests': ['config_example.json', '*.ps1']},
-      install_requires=['xmlwitch', 'isodate'],
-      dependency_links=[
-          'https://github.com/diyan/xmlwitch/tarball/master#egg=xmlwitch-dev'],
+      install_requires=['xmltodict', 'isodate'],
       cmdclass={
           'bootstrap_env': BootstrapEnvironmentCommand}
 )

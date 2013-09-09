@@ -4,7 +4,6 @@ import uuid
 import xml.etree.ElementTree as ET
 from isodate.isoduration import duration_isoformat
 import xmltodict
-import xmlwitch
 from winrm.transport import HttpPlaintext, HttpKerberos
 
 
@@ -67,14 +66,14 @@ class Protocol(object):
             action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Create')}
         header = rq['env:Envelope']['env:Header']
         header['w:OptionSet'] = {
-            "w:Option": [
+            'w:Option': [
                 {
-                    "@Name": "WINRS_NOPROFILE",
-                    "#text": str(noprofile).upper() #TODO remove str call
+                    '@Name': 'WINRS_NOPROFILE',
+                    '#text': str(noprofile).upper() #TODO remove str call
                 },
                 {
-                    "@Name": "WINRS_CODEPAGE",
-                    "#text": str(codepage) #TODO remove str call
+                    '@Name': 'WINRS_CODEPAGE',
+                    '#text': str(codepage) #TODO remove str call
                 }
             ]
         }
@@ -103,22 +102,7 @@ class Protocol(object):
         root = ET.fromstring(rs)
         return next(node for node in root.findall('.//*') if node.get('Name') == 'ShellId').text
 
-    # Helper methods for building SOAP Headers
-
-    def _build_soap_header(self, node, message_id=None):
-        if not message_id:
-            message_id = uuid.uuid4()
-        node.a__To(str(self.endpoint))
-        with node.a__ReplyTo:
-            node.a__Address('http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous', mustUnderstand='true')
-        node.w__MaxEnvelopeSize(str(self.max_env_sz), mustUnderstand='true')
-        node.a__MessageID('uuid:{0}'.format(message_id))
-        node.w__Locale(None, xml__lang=self.locale, mustUnderstand='false')
-        node.p__DataLocale(None, xml__lang=self.locale, mustUnderstand='false')
-        # TODO: research this a bit http://msdn.microsoft.com/en-us/library/cc251561(v=PROT.13).aspx
-        #node.cfg__MaxTimeoutms = 600
-        node.w__OperationTimeout(self.timeout)
-
+    # Helper method for building SOAP Header
     def _get_soap_header(self, action=None, resource_uri=None, shell_id=None, message_id=None):
         if not message_id:
             message_id = uuid.uuid4()
@@ -136,94 +120,48 @@ class Protocol(object):
             '@xmlns:rsp': 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell',
             '@xmlns:cfg': 'http://schemas.microsoft.com/wbem/wsman/1/config',
 
-            "env:Header": {
-                "a:To": "http://windows-host:5985/wsman",
-                "a:ReplyTo": {
-                    "a:Address": {
-                        "@mustUnderstand": "true",
-                        "#text": "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous"
+            'env:Header': {
+                'a:To': 'http://windows-host:5985/wsman',
+                'a:ReplyTo': {
+                    'a:Address': {
+                        '@mustUnderstand': 'true',
+                        '#text': 'http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous'
                     }
                 },
-                "w:MaxEnvelopeSize": {
-                    "@mustUnderstand": "true",
-                    "#text": "153600"
+                'w:MaxEnvelopeSize': {
+                    '@mustUnderstand': 'true',
+                    '#text': '153600'
                 },
-                "a:MessageID": 'uuid:{0}'.format(message_id),
-                    "w:Locale": {
-                    "@mustUnderstand": "false",
-                    "@xml:lang": "en-US"
+                'a:MessageID': 'uuid:{0}'.format(message_id),
+                'w:Locale': {
+                    '@mustUnderstand': 'false',
+                    '@xml:lang': 'en-US'
                 },
-                "p:DataLocale": {
-                    "@mustUnderstand": "false",
-                    "@xml:lang": "en-US"
+                'p:DataLocale': {
+                    '@mustUnderstand': 'false',
+                    '@xml:lang': 'en-US'
                 },
                 # TODO: research this a bit http://msdn.microsoft.com/en-us/library/cc251561(v=PROT.13).aspx
                 #'cfg:MaxTimeoutms': 600
-                "w:OperationTimeout": "PT60S",
-                    "w:ResourceURI": {
-                        "@mustUnderstand": "true",
-                        '#text': resource_uri
+                'w:OperationTimeout': 'PT60S',
+                'w:ResourceURI': {
+                    '@mustUnderstand': 'true',
+                    '#text': resource_uri
                 },
-                "a:Action": {
-                    "@mustUnderstand": "true",
+                'a:Action': {
+                    '@mustUnderstand': 'true',
                     '#text': action
                 }
             }
         }
         if shell_id:
-            header['w:SelectorSet'] = {
-                "w:Selector": {
-                    "@Name": 'ShellId',
-                    "#text": shell_id
+            header['env:Header']['w:SelectorSet'] = {
+                'w:Selector': {
+                    '@Name': 'ShellId',
+                    '#text': shell_id
                 }
             }
         return header
-
-
-    def _set_resource_uri_cmd(self, node):
-        node.w__ResourceURI('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd', mustUnderstand='true')
-
-    def _set_resource_uri_wmi(self, node, namespace='root/cimv2/*'):
-        node.w__ResourceURI('http://schemas.microsoft.com/wbem/wsman/1/wmi/{0}'.format(namespace), mustUnderstand='true')
-
-    def _set_action_create(self, node):
-        node.a__Action('http://schemas.xmlsoap.org/ws/2004/09/transfer/Create', mustUnderstand='true')
-
-    def _set_action_delete(self, node):
-        node.a__Action('http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete', mustUnderstand='true')
-
-    def _set_action_command(self, node):
-        node.a__Action('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command', mustUnderstand='true')
-
-    def _set_action_receive(self, node):
-        node.a__Action('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive', mustUnderstand='true')
-
-    def _set_action_signal(self, node):
-        node.a__Action('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal', mustUnderstand='true')
-
-    def _set_action_enumerate(self, node):
-        node.a__Action('http://schemas.xmlsoap.org/ws/2004/09/enumeration/Enumerate', mustUnderstand='true')
-
-    def _set_selector_shell_id(self, node, shell_id):
-        with node.w__SelectorSet:
-            node.w__Selector(shell_id, Name='ShellId')
-
-    @property
-    def _namespaces(self):
-        return {
-            'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
-            'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-            'xmlns:env': 'http://www.w3.org/2003/05/soap-envelope',
-
-            'xmlns:a': 'http://schemas.xmlsoap.org/ws/2004/08/addressing',
-            'xmlns:b': 'http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd',
-            'xmlns:n': 'http://schemas.xmlsoap.org/ws/2004/09/enumeration',
-            'xmlns:x': 'http://schemas.xmlsoap.org/ws/2004/09/transfer',
-            'xmlns:w': 'http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd',
-            'xmlns:p': 'http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd',
-            'xmlns:rsp': 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell',
-            'xmlns:cfg': 'http://schemas.microsoft.com/wbem/wsman/1/config'
-        }
 
     def send_message(self, message):
         # TODO add message_id vs relates_to checking
@@ -270,14 +208,14 @@ class Protocol(object):
             shell_id=shell_id)}
         header = rq['env:Envelope']['env:Header']
         header['w:OptionSet'] = {
-            "w:Option": [
+            'w:Option': [
                 {
-                    "@Name": "WINRS_CONSOLEMODE_STDIN",
-                    "#text": str(console_mode_stdin).upper()
+                    '@Name': 'WINRS_CONSOLEMODE_STDIN',
+                    '#text': str(console_mode_stdin).upper()
                 },
                 {
-                    "@Name": "WINRS_SKIP_CMD_SHELL",
-                    "#text": str(skip_cmd_shell).upper()
+                    '@Name': 'WINRS_SKIP_CMD_SHELL',
+                    '#text': str(skip_cmd_shell).upper()
                 }
             ]
         }
@@ -301,21 +239,19 @@ class Protocol(object):
         @rtype bool
         """
         message_id = uuid.uuid4()
-        node = xmlwitch.Builder(version='1.0', encoding='utf-8')
-        with node.env__Envelope(**self._namespaces):
-            with node.env__Header:
-                self._build_soap_header(node, message_id)
-                self._set_resource_uri_cmd(node)
-                self._set_action_signal(node)
-                self._set_selector_shell_id(node, shell_id)
+        rq = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',
+            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal',
+            shell_id=shell_id)}
 
-            # Signal the Command references to terminate (close stdout/stderr)
-            with node.env__Body:
-                with node.rsp__Signal(CommandId=command_id):
-                    node.rsp__Code('http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate')
+        # Signal the Command references to terminate (close stdout/stderr)
+        signal = rq['env:Envelope'].setdefault('env:Body', {}).setdefault('rsp:Signal', {})
+        signal['@CommandId'] = command_id
+        signal['rsp:Code'] = \
+            'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate'
 
-        response = self.send_message(str(node))
-        root = ET.fromstring(response)
+        rs = self.send_message(xmltodict.unparse(rq))
+        root = ET.fromstring(rs)
         relates_to = next(node for node in root.findall('.//*') if node.tag.endswith('RelatesTo')).text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
@@ -336,23 +272,21 @@ class Protocol(object):
                 self._raw_get_command_output(shell_id, command_id)
             stdout_buffer.append(stdout)
             stderr_buffer.append(stderr)
-        return "".join(stdout_buffer), "".join(stderr_buffer), return_code
+        return ''.join(stdout_buffer), ''.join(stderr_buffer), return_code
 
     def _raw_get_command_output(self, shell_id, command_id):
-        node = xmlwitch.Builder(version='1.0', encoding='utf-8')
-        with node.env__Envelope(**self._namespaces):
-            with node.env__Header:
-                self._build_soap_header(node)
-                self._set_resource_uri_cmd(node)
-                self._set_action_receive(node)
-                self._set_selector_shell_id(node, shell_id)
+        rq = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',
+            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive',
+            shell_id=shell_id)}
 
-            with node.env__Body:
-                with node.rsp__Receive:
-                    node.rsp__DesiredStream('stdout stderr', CommandId=command_id)
+        stream = rq['env:Envelope'].setdefault('env:Body', {}).setdefault('rsp:Receive', {})\
+            .setdefault('rsp:DesiredStream', {})
+        stream['@CommandId'] = command_id
+        stream['#text'] = 'stdout stderr'
 
-        response = self.send_message(str(node))
-        root = ET.fromstring(response)
+        rs = self.send_message(xmltodict.unparse(rq))
+        root = ET.fromstring(rs)
         stream_nodes = [node for node in root.findall('.//*') if node.tag.endswith('Stream')]
         stdout = stderr = ''
         return_code = -1

@@ -1,5 +1,5 @@
 isodate
-http://github.com/diyan/xmlwitch/archive/master.zip
+xmltodict
 pytest
 pytest-cov
 pytest-pep8
