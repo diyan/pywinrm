@@ -75,18 +75,39 @@ class BootstrapEnvironmentCommand(Command):
             os.environ['PATH'] = virtual_env_path + path
 
 
-setup(name=project_name,
-      version=__version__,
-      description='Python library for Windows Remote Management',
-      long_description=long_description,
-      keywords='winrm ws-man devops ws-management'.split(' '),
-      author='Alexey Diyan',
-      author_email='alexey.diyan@gmail.com',
-      url='http://github.com/diyan/pywinrm/',
-      license='MIT license',
-      packages=['winrm', 'winrm.tests'],
-      package_data={'winrm.tests': ['config_example.json', '*.ps1']},
-      install_requires=['xmltodict', 'isodate'],
-      cmdclass={
-          'bootstrap_env': BootstrapEnvironmentCommand}
+setup(
+    name=project_name,
+    version=__version__,
+    description='Python library for Windows Remote Management',
+    long_description=long_description,
+    keywords='winrm ws-man devops ws-management'.split(' '),
+    author='Alexey Diyan',
+    author_email='alexey.diyan@gmail.com',
+    url='http://github.com/diyan/pywinrm/',
+    license='MIT license',
+    packages=('winrm', 'winrm.tests'),
+    package_data={'winrm.tests': ('config_example.json', '*.ps1')},
+    install_requires=('xmltodict', 'isodate'),
+    cmdclass={
+        'bootstrap_env': BootstrapEnvironmentCommand},
+    classifiers=(
+        'Development Status :: 3 - Alpha',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
+        'Natural Language :: English',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: Implementation :: PyPy',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: System :: Clustering',
+        'Topic :: System :: Distributed Computing',
+        'Topic :: System :: Systems Administration'
+    )
 )
