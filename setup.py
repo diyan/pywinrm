@@ -86,11 +86,10 @@ setup(
     url='http://github.com/diyan/pywinrm/',
     license='MIT license',
     packages=('winrm', 'winrm.tests'),
-    package_data={'winrm.tests': ('config_example.json', '*.ps1')},
-    install_requires=('xmltodict', 'isodate'),
-    cmdclass={
-        'bootstrap_env': BootstrapEnvironmentCommand},
-    classifiers=(
+    package_data={'winrm.tests': ['config_example.json', '*.ps1']},
+    install_requires=['xmltodict', 'isodate'],
+    cmdclass={'bootstrap_env': BootstrapEnvironmentCommand},
+    classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
         'Intended Audience :: Developers',
@@ -108,6 +107,6 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: System :: Clustering',
         'Topic :: System :: Distributed Computing',
-        'Topic :: System :: Systems Administration'
-    )
+        'Topic :: System :: Systems Administration',
+	],
 )
