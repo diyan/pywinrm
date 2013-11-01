@@ -7,8 +7,8 @@ python:
   - 3.3
   - pypy
 install:
-  - pip install -r requirements.txt --use-mirrors
-  - pip install coveralls --use-mirrors
+  - pip install -r requirements.txt --use-mirrors --upgrade
+  - pip install coveralls --use-mirrors --upgrade
 script:
   #TODO enable pep8 checking
   #py.test -v --pep8 winrm --cov winrm --cov-report term-missing winrm/tests/
