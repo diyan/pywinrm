@@ -242,7 +242,8 @@ class Protocol(object):
         rq = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal',
-            shell_id=shell_id)}
+            shell_id=shell_id,
+            message_id=message_id)}
 
         # Signal the Command references to terminate (close stdout/stderr)
         signal = rq['env:Envelope'].setdefault('env:Body', {}).setdefault('rsp:Signal', {})
