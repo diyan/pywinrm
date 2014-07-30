@@ -65,11 +65,11 @@ p.close_shell(shell_id)
 ```
 
 ### Enable Basic Auth (Insecure)
-
+```
 winrm set winrm/config/client/auth @{Basic="true"}
 winrm set winrm/config/service/auth @{Basic="true"}
 winrm set winrm/config/service @{AllowUnencrypted="true"}
-
+```
 
 ## Contribute
 
