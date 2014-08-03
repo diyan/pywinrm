@@ -161,7 +161,7 @@ class KerberosTicket:
             raise RuntimeError('Ticket already used for verification')
         self._krb_context = None
         kerberos.authGSSClientStep(krb_context, auth_details)
-        print('User {0} authenticated successfully using Kerberos authentication'.format(kerberos.authGSSClientUserName(krb_context)))
+        #print('User {0} authenticated successfully using Kerberos authentication'.format(kerberos.authGSSClientUserName(krb_context)))
         kerberos.authGSSClientClean(krb_context)
 
 
