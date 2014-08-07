@@ -127,7 +127,7 @@ class HttpSSL(HttpPlaintext):
 
     def _setup_opener(self):
         if not self._cert_pem:
-            super(HttpSSL, self)._setup_opener(message)
+            super(HttpSSL, self)._setup_opener()
         else:
             opener = build_opener(HTTPSClientAuthHandler(self._cert_pem, self._cert_key_pem))
             install_opener(opener)
