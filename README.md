@@ -31,7 +31,7 @@ $ pip install kerberos
 ```python
 import winrm
 
-s = winrm.Session('windows-host', auth=('john.smith', 'secret'))
+s = winrm.Session('http://windows-host.example.com:5985/wsman', auth=('john.smith', 'secret'))
 r = s.run_cmd('ipconfig', ['/all'])
 >>> r.status_code
 0
@@ -62,6 +62,13 @@ command_id = p.run_command(shell_id, 'ipconfig', ['/all'])
 std_out, std_err, status_code = p.get_command_output(shell_id, command_id)
 p.cleanup_command(shell_id, command_id)
 p.close_shell(shell_id)
+```
+
+### Enable Basic Auth (Insecure)
+```
+winrm set winrm/config/client/auth @{Basic="true"}
+winrm set winrm/config/service/auth @{Basic="true"}
+winrm set winrm/config/service @{AllowUnencrypted="true"}
 ```
 
 ## Contribute
