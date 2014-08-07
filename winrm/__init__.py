@@ -8,7 +8,7 @@ class Response(object):
 
     def __repr__(self):
         #TODO put tree dots at the end if out/err was truncated
-        return '<Response code {}, out "{}", err "{}">'.format(
+        return '<Response code {0}, out "{1}", err "{2}">'.format(
             self.status_code, self.std_out[:20], self.std_err[:20])
 
 
