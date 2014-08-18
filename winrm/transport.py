@@ -84,6 +84,11 @@ class HttpPlaintext(HttpTransport):
             #return doc
             #return doc
         except HTTPError as ex:
+            response_text = ex.read()
+            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
+            # should handle this 500 error and retry receiving command output.
+            if 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and 'Code="2150858793"' in response_text:
+                return response_text
             error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.code)
             if ex.msg:
                 error_message += ', {0}'.format(ex.msg)
@@ -200,6 +205,11 @@ class HttpKerberos(HttpTransport):
             response_text = response.read()
             return response_text
         except HTTPError as ex:
+            response_text = ex.read()
+            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
+            # should handle this 500 error and retry receiving command output.
+            if 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and 'Code="2150858793"' in response_text:
+                return response_text
             #if ex.code == 401 and ex.headers['WWW-Authenticate'] == 'Negotiate, Basic realm="WSMAN"':
             error_message = 'Kerberos-based authentication was failed. Code {0}'.format(ex.code)
             if ex.msg:
