@@ -44,4 +44,4 @@ class Session(object):
         path = match.group('path')
         if not path:
             path = 'wsman'
-        return '{}://{}:{}/{}'.format(scheme, host, port, path.lstrip('/'))
+        return '{0}://{1}:{2}/{3}'.format(scheme, host, port, path.lstrip('/'))
