@@ -1,6 +1,8 @@
 import sys
 import base64
-from winrm.exceptions import WinRMTransportError
+
+from winrm.exceptions import WinRMTransportError, UnauthorizedError
+
 
 HAVE_KERBEROS=False
 try:
@@ -53,8 +55,8 @@ class HttpPlaintext(HttpTransport):
         if basic_auth_only:
             self.basic_auth_only()
 
-        self._headers = {'Content-Type' : 'application/soap+xml;charset=UTF-8',
-                         'User-Agent' : 'Python WinRM client'}
+        self._headers = {'Content-Type': 'application/soap+xml;charset=UTF-8',
+                         'User-Agent': 'Python WinRM client'}
 
     def _setup_opener(self):
         password_manager = HTTPPasswordMgrWithDefaultRealm()
@@ -84,17 +86,20 @@ class HttpPlaintext(HttpTransport):
             #return doc
             #return doc
         except HTTPError as ex:
+            if ex.code == 401:
+                raise UnauthorizedError(transport='plaintext', message=ex.msg)
             response_text = ex.read()
             # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
             # should handle this 500 error and retry receiving command output.
             if 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and 'Code="2150858793"' in response_text:
+                # TODO raise TimeoutError here instead of just return text
                 return response_text
             error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.code)
             if ex.msg:
                 error_message += ', {0}'.format(ex.msg)
-            raise WinRMTransportError(error_message)
+            raise WinRMTransportError('http', error_message)
         except URLError as ex:
-            raise WinRMTransportError(ex.reason)
+            raise WinRMTransportError('http', ex.reason)
 
 
 class HTTPSClientAuthHandler(HTTPSHandler):
