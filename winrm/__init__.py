@@ -1,3 +1,5 @@
+import re
+
 from winrm.protocol import Protocol
 
 
@@ -14,10 +16,10 @@ class Response(object):
 
 class Session(object):
     #TODO implement context manager methods
-    def __init__(self, url, auth):
-        #TODO convert short urls into well-formed endpoint
+    def __init__(self, target, auth, transport='plaintext'):
         username, password = auth
-        self.protocol = Protocol(url, username=username, password=password)
+        self.url = self._build_url(target, transport)
+        self.protocol = Protocol(self.url, transport=transport, username=username, password=password)
 
     def run_cmd(self, command, args=()):
         #TODO optimize perf. Do not call open/close shell every time
@@ -27,3 +29,19 @@ class Session(object):
         self.protocol.cleanup_command(shell_id, command_id)
         self.protocol.close_shell(shell_id)
         return rs
+
+    @staticmethod
+    def _build_url(target, transport):
+        match = re.match(
+            '(?i)^((?P<scheme>http[s]?)://)?(?P<host>[0-9a-z-_]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?', target)
+        scheme = match.group('scheme')
+        if not scheme:
+            scheme = 'https' if transport == 'ssl' else 'http'  # TODO do we have anything other than HTTP/HTTPS
+        host = match.group('host')
+        port = match.group('port')
+        if not port:
+            port = 5986 if transport == 'ssl' else 5985
+        path = match.group('path')
+        if not path:
+            path = 'wsman'
+        return '{}://{}:{}/{}'.format(scheme, host, port, path.lstrip('/'))
