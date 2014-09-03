@@ -147,8 +147,8 @@ class KerberosTicket:
     """
     Implementation based on http://ncoghlan_devs-python-notes.readthedocs.org/en/latest/python_kerberos.html
     """
-    def __init__(self, service):
-        ignored_code, krb_context = kerberos.authGSSClientInit(service)
+    def __init__(self, service, user, password):
+        ignored_code, krb_context = kerberos.authGSSClientInit(service, principal=user, password=password)
         kerberos.authGSSClientStep(krb_context, '')
         # TODO authGSSClientStep may raise following error:
         #GSSError: (('Unspecified GSS failure.  Minor code may provide more information', 851968), ("Credentials cache file '/tmp/krb5cc_1000' not found", -1765328189))
@@ -189,6 +189,8 @@ class HttpKerberos(HttpTransport):
 
         super(HttpKerberos, self).__init__(endpoint, None, None)
         self.krb_service = '{0}@{1}'.format(service, urlparse(endpoint).hostname)
+        self.username = None
+        self.password = None
         #self.krb_ticket = KerberosTicket(krb_service)
 
     def set_auth(self, username, password):
@@ -197,7 +199,7 @@ class HttpKerberos(HttpTransport):
     def send_message(self, message):
         # TODO current implementation does negotiation on each HTTP request which is not efficient
         # TODO support kerberos session with message encryption
-        krb_ticket = KerberosTicket(self.krb_service)
+        krb_ticket = KerberosTicket(self.krb_service, self.username, self.password)
         headers = {'Authorization': krb_ticket.auth_header,
                    'Connection': 'Keep-Alive',
                    'Content-Type': 'application/soap+xml;charset=UTF-8',
