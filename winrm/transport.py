@@ -176,7 +176,7 @@ class KerberosTicket:
 
 
 class HttpKerberos(HttpTransport):
-    def __init__(self, endpoint, realm=None, service='HTTP', keytab=None):
+    def __init__(self, endpoint, realm=None, service='HTTP', keytab=None, username=None, password=None):
         """
         Uses Kerberos/GSS-API to authenticate and encrypt messages
         @param string endpoint: the WinRM webservice endpoint
@@ -189,8 +189,8 @@ class HttpKerberos(HttpTransport):
 
         super(HttpKerberos, self).__init__(endpoint, None, None)
         self.krb_service = '{0}@{1}'.format(service, urlparse(endpoint).hostname)
-        self.username = None
-        self.password = None
+        self.username = username
+        self.password = password
         #self.krb_ticket = KerberosTicket(krb_service)
 
     def set_auth(self, username, password):
