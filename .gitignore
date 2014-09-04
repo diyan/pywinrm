@@ -23,3 +23,6 @@ Thumbs.db
 *~
 
 /winrm/tests/config.json
+
+# Build folder
+/build/
