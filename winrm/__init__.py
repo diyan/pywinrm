@@ -33,7 +33,7 @@ class Session(object):
     @staticmethod
     def _build_url(target, transport):
         match = re.match(
-            '(?i)^((?P<scheme>http[s]?)://)?(?P<host>[0-9a-z-_]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?', target)
+            '(?i)^((?P<scheme>http[s]?)://)?(?P<host>[0-9a-z-_.]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?', target)
         scheme = match.group('scheme')
         if not scheme:
             scheme = 'https' if transport == 'ssl' else 'http'  # TODO do we have anything other than HTTP/HTTPS
