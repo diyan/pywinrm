@@ -148,7 +148,9 @@ class KerberosTicket:
     Implementation based on http://ncoghlan_devs-python-notes.readthedocs.org/en/latest/python_kerberos.html
     """
     def __init__(self, service, user, password):
-        ignored_code, krb_context = kerberos.authGSSClientInit(service, principal=user, password=password)
+        gss_flags = kerberos.GSS_C_DELEG_FLAG | kerberos.GSS_C_MUTUAL_FLAG | kerberos.GSS_C_SEQUENCE_FLAG
+        ignored_code, krb_context = kerberos.authGSSClientInit(service, principal=user, password=password,
+                                                               gssflags=gss_flags)
         kerberos.authGSSClientStep(krb_context, '')
         # TODO authGSSClientStep may raise following error:
         #GSSError: (('Unspecified GSS failure.  Minor code may provide more information', 851968), ("Credentials cache file '/tmp/krb5cc_1000' not found", -1765328189))
@@ -185,7 +187,7 @@ class HttpKerberos(HttpTransport):
         @param string keytab: the path to a keytab file if you are using one
         """
         if not HAVE_KERBEROS:
-            raise WinRMTransportError('kerberos is not installed')
+            raise WinRMTransportError('http', 'kerberos is not installed')
 
         super(HttpKerberos, self).__init__(endpoint, None, None)
         self.krb_service = '{0}@{1}'.format(service, urlparse(endpoint).hostname)
@@ -221,9 +223,9 @@ class HttpKerberos(HttpTransport):
             error_message = 'Kerberos-based authentication was failed. Code {0}'.format(ex.code)
             if ex.msg:
                 error_message += ', {0}'.format(ex.msg)
-            raise WinRMTransportError(error_message)
+            raise WinRMTransportError('http', error_message)
         except URLError as ex:
-            raise WinRMTransportError(ex.reason)
+            raise WinRMTransportError('http', ex.reason)
 
     def _winrm_encrypt(self, string):
         """

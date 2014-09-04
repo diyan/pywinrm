@@ -16,7 +16,8 @@ class Protocol(object):
     DEFAULT_MAX_ENV_SIZE = 153600
     DEFAULT_LOCALE = 'en-US'
 
-    def __init__(self, endpoint, transport='plaintext', username=None, password=None, realm=None, service=None, keytab=None, ca_trust_path=None, cert_pem=None, cert_key_pem=None):
+    def __init__(self, endpoint, transport='plaintext', username=None, password=None, realm=None, service=None,
+                 keytab=None, ca_trust_path=None, cert_pem=None, cert_key_pem=None):
         """
         @param string endpoint: the WinRM webservice endpoint
         @param string transport: transport type, one of 'kerberos' (default), 'ssl', 'plaintext'
@@ -36,7 +37,7 @@ class Protocol(object):
         if transport == 'plaintext':
             self.transport = HttpPlaintext(endpoint, username, password)
         elif transport == 'kerberos':
-            self.transport = HttpKerberos(endpoint)
+            self.transport = HttpKerberos(endpoint, username=username, password=password)
         elif transport == 'ssl':
             self.transport = HttpSSL(endpoint, username, password, cert_pem=cert_pem, cert_key_pem=cert_key_pem)
         else:
@@ -194,6 +195,7 @@ class Protocol(object):
         relates_to = next(node for node in root.findall('.//*') if node.tag.endswith('RelatesTo')).text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
+        return True
 
     def run_command(self, shell_id, command, arguments=(), console_mode_stdin=True, skip_cmd_shell=False):
         """
