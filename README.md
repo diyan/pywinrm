@@ -50,9 +50,10 @@ Windows IP Configuration
 
 ### Powershell example
 
-Powershell scripts executed using WinRM. The script will be base64 UTF16 little
-endian encoded prior to sending to the Windows machines. Error messages are converted
-from the Powershell CLIXML format to a human readable format as a convenience.
+Powershell scripts can be executed using WinRM. The script will be base64 
+UTF16 little endian encoded prior to sending to the Windows machines.
+Error messages are converted from the Powershell CLIXML format to a human 
+readable format as a convenience.
 
 ```python
 import winrm
