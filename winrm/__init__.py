@@ -1,4 +1,6 @@
 import re
+import base64
+import xml.etree.ElementTree as ET
 
 from winrm.protocol import Protocol
 
@@ -29,6 +31,63 @@ class Session(object):
         self.protocol.cleanup_command(shell_id, command_id)
         self.protocol.close_shell(shell_id)
         return rs
+
+
+    def run_ps(self, script):
+        """base64 encodes a Powershell script and executes the powershell encoded script command"""
+
+        # must use utf16 little endian on windows
+        base64_script = base64.b64encode(script.encode("utf_16_le"))
+        rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script))
+        if len(rs.std_err):
+            # if there was an error message, clean it it up and make it human readable
+            rs.std_err = self.clean_error_msg(rs.std_err)
+        return rs
+
+
+    def clean_error_msg(self, msg):
+        """converts a Powershell CLIXML message to a more human readable string"""
+
+        # if the msg does not start with this, return it as is
+        if msg.startswith("#< CLIXML\r\n"):
+            # for proper xml, we need to remove the CLIXML part (the first line)
+            msg_xml = msg[11:]
+            print(">%s<" % msg_xml)
+            try:
+                # remove the namespaces from the xml for easier processing
+                msg_xml = self.strip_namespace(msg_xml)
+                root = ET.fromstring(msg_xml)
+                # the S node is the error message, find all S nodes
+                nodes = root.findall("./S")
+                new_msg = ""
+                for s in nodes:
+                    # append error msg string to result, also
+                    # the hex chars represent CRLF so we replace with newline
+                    new_msg += s.text.replace("_x000D__x000A_","\n")
+            except Exception as e:
+                # if any of the above fails, the msg was not true xml
+                # print a warning and return the orignal string
+                print("Warning: there was a problem converting the Powershell error message: %s" % (e))
+            else:
+                # if new_msg was populated, that's our error message
+                # otherwise the original error message will be used
+                if len(new_msg):
+                    # remove leading and trailing whitespace while we are here
+                    msg = new_msg.strip()
+        return msg
+
+
+    def strip_namespace(self, xml):
+        """strips any namespaces from an xml string"""
+        try:
+            p = re.compile("xmlns=*[\"\"][^\"\"]*[\"\"]")
+            allmatches = p.finditer(xml)
+            for match in allmatches:
+                xml = xml.replace(match.group(), "")
+            return xml
+        except Exception as e:
+            raise Exception(e)
+
 
     @staticmethod
     def _build_url(target, transport):
