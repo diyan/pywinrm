@@ -219,9 +219,9 @@ class HttpKerberos(HttpTransport):
             error_message = 'Kerberos-based authentication was failed. Code {0}'.format(ex.code)
             if ex.msg:
                 error_message += ', {0}'.format(ex.msg)
-            raise WinRMTransportError(error_message)
+            raise WinRMTransportError('kerberos', error_message)
         except URLError as ex:
-            raise WinRMTransportError(ex.reason)
+            raise WinRMTransportError('kerberos', ex.reason)
 
     def _winrm_encrypt(self, string):
         """
