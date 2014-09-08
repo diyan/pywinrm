@@ -3,7 +3,7 @@ import sys
 import urllib
 from distutils.core import Command, setup
 
-__version__ = '0.0.2dev'
+__version__ = '0.0.3dev'
 project_name = 'pywinrm'
 
 # PyPi supports only reStructuredText, so pandoc should be installed
