@@ -147,8 +147,11 @@ class KerberosTicket:
     """
     Implementation based on http://ncoghlan_devs-python-notes.readthedocs.org/en/latest/python_kerberos.html
     """
-    def __init__(self, service, user, password):
-        gss_flags = kerberos.GSS_C_DELEG_FLAG | kerberos.GSS_C_MUTUAL_FLAG | kerberos.GSS_C_SEQUENCE_FLAG
+    def __init__(self, service, user, password, enable_delegation=False):
+        gss_flags = kerberos.GSS_C_MUTUAL_FLAG | kerberos.GSS_C_SEQUENCE_FLAG
+        if enable_delegation:
+            gss_flags |= kerberos.GSS_C_DELEG_FLAG
+
         ignored_code, krb_context = kerberos.authGSSClientInit(service, principal=user, password=password,
                                                                gssflags=gss_flags)
         kerberos.authGSSClientStep(krb_context, '')
@@ -178,7 +181,7 @@ class KerberosTicket:
 
 
 class HttpKerberos(HttpTransport):
-    def __init__(self, endpoint, realm=None, service='HTTP', keytab=None, username=None, password=None):
+    def __init__(self, endpoint, realm=None, service='HTTP', keytab=None, username=None, password=None, enable_delegation=False):
         """
         Uses Kerberos/GSS-API to authenticate and encrypt messages
         @param string endpoint: the WinRM webservice endpoint
@@ -193,6 +196,7 @@ class HttpKerberos(HttpTransport):
         self.krb_service = '{0}@{1}'.format(service, urlparse(endpoint).hostname)
         self.username = username
         self.password = password
+        self.enable_delegation = enable_delegation
         #self.krb_ticket = KerberosTicket(krb_service)
 
     def set_auth(self, username, password):
@@ -201,7 +205,7 @@ class HttpKerberos(HttpTransport):
     def send_message(self, message):
         # TODO current implementation does negotiation on each HTTP request which is not efficient
         # TODO support kerberos session with message encryption
-        krb_ticket = KerberosTicket(self.krb_service, self.username, self.password)
+        krb_ticket = KerberosTicket(self.krb_service, self.username, self.password, enable_delegation=self.enable_delegation)
         headers = {'Authorization': krb_ticket.auth_header,
                    'Connection': 'Keep-Alive',
                    'Content-Type': 'application/soap+xml;charset=UTF-8',

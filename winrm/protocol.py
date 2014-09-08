@@ -17,7 +17,7 @@ class Protocol(object):
     DEFAULT_LOCALE = 'en-US'
 
     def __init__(self, endpoint, transport='plaintext', username=None, password=None, realm=None, service=None,
-                 keytab=None, ca_trust_path=None, cert_pem=None, cert_key_pem=None):
+                 keytab=None, ca_trust_path=None, cert_pem=None, cert_key_pem=None, enable_kerberos_delegation=False):
         """
         @param string endpoint: the WinRM webservice endpoint
         @param string transport: transport type, one of 'kerberos' (default), 'ssl', 'plaintext'
@@ -29,6 +29,7 @@ class Protocol(object):
         @param string ca_trust_path: Certification Authority trust path
         @param string cert_pem: client authentication certificate file path in PEM format
         @param string cert_key_pem: client authentication certificate key file path in PEM format
+        @param bool enable_kerberos_delegation: indicates whether Kerberos delegation should be enabled
         """
         self.endpoint = endpoint
         self.timeout = Protocol.DEFAULT_TIMEOUT
@@ -37,7 +38,7 @@ class Protocol(object):
         if transport == 'plaintext':
             self.transport = HttpPlaintext(endpoint, username, password)
         elif transport == 'kerberos':
-            self.transport = HttpKerberos(endpoint, username=username, password=password)
+            self.transport = HttpKerberos(endpoint, username=username, password=password, enable_delegation=enable_kerberos_delegation)
         elif transport == 'ssl':
             self.transport = HttpSSL(endpoint, username, password, cert_pem=cert_pem, cert_key_pem=cert_key_pem)
         else:
