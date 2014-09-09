@@ -48,6 +48,34 @@ Windows IP Configuration
 
 ```
 
+### Powershell example
+
+Powershell scripts can be executed using WinRM. The script will be base64 
+UTF16 little endian encoded prior to sending to the Windows machines.
+Error messages are converted from the Powershell CLIXML format to a human 
+readable format as a convenience.
+
+```python
+import winrm
+
+ps_script = """$strComputer = $Host
+Clear
+$RAM = WmiObject Win32_ComputerSystem
+$MB = 1048576
+
+"Installed Memory: " + [int]($RAM.TotalPhysicalMemory /$MB) + " MB" """
+
+s = winrm.Session('http://windows-host.example.com:5985/wsman', auth=('john.smith', 'secret'))
+r = s.run_ps(ps_script)
+>>> r.status_code
+0
+>>> r.std_out
+Installed Memory: 3840 MB
+
+>>> r.std_err
+
+```
+
 ### Low-level API example
 ```python
 from winrm.protocol import Protocol
