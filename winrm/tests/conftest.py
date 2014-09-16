@@ -319,14 +319,23 @@ def protocol_fake(request):
 
 @fixture(scope='module')
 def protocol_real():
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-    if os.path.isfile(config_path):
+    endpoint = os.environ.get('WINRM_ENDPOINT', None)
+    transport = os.environ.get('WINRM_TRANSPORT', None)
+    username = os.environ.get('WINRM_USERNAME', None)
+    password = os.environ.get('WINRM_PASSWORD', None)
+    if endpoint:
         # TODO consider replace json with yaml for integration test settings
         # TODO json does not support comments
-        settings = json.load(open(config_path))
+        settings = {'endpoint': endpoint}
+        if transport:
+            settings['transport'] = transport
+        if username:
+            settings['username'] = username
+        if password:
+            settings['password'] = password
 
         from winrm.protocol import Protocol
         protocol = Protocol(**settings)
         return protocol
     else:
-        skip('config.json was not found. Integration tests will be skipped')
+        skip('WINRM_ENDPOINT environment variable was not set. Integration tests will be skipped')
