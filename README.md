@@ -20,18 +20,19 @@ For more information on WinRM, please visit
 $ pip install http://github.com/diyan/pywinrm/archive/master.zip
 ```
 
-### In order to use Kerberos authentication you need optional dependency
+### To use Kerberos authentication you need optional dependency
+
 ```bash
 $ sudo apt-get install python-dev libkrb5-dev
 $ pip install kerberos
 ```
 
 ## Example Usage
-### Standard API example (in progress)
+### Run process on remote host
 ```python
 import winrm
 
-s = winrm.Session('http://windows-host.example.com:5985/wsman', auth=('john.smith', 'secret'))
+s = winrm.Session('windows-host.example.com', auth=('john.smith', 'secret'))
 r = s.run_cmd('ipconfig', ['/all'])
 >>> r.status_code
 0
@@ -48,12 +49,16 @@ Windows IP Configuration
 
 ```
 
-### Powershell example
+NOTE pywirnm with try guess correct endpoint url from various formats:
+  
+ - windows-host -> http://windows-host:5985/wsman
+ - windows-host:1111 -> http://windows-host:1111/wsman
+ - http://windows-host -> http://windows-host:5985/wsman
+ - http://windows-host:1111 -> http://windows-host:1111/wsman
+ - http://windows-host:1111/wsman -> http://windows-host:1111/wsman
 
-Powershell scripts can be executed using WinRM. The script will be base64 
-UTF16 little endian encoded prior to sending to the Windows machines.
-Error messages are converted from the Powershell CLIXML format to a human 
-readable format as a convenience.
+
+### Run Powershell on remote host
 
 ```python
 import winrm
@@ -76,7 +81,10 @@ Installed Memory: 3840 MB
 
 ```
 
-### Low-level API example
+Powershell script will be base64 UTF16 little endian encoded prior to sending to Windows host. Error messages are converted from the Powershell CLIXML format to a human readable format as a convenience.
+
+### Run process with low-level API
+
 ```python
 from winrm.protocol import Protocol
 
@@ -92,7 +100,11 @@ p.cleanup_command(shell_id, command_id)
 p.close_shell(shell_id)
 ```
 
-### Enable Basic Auth (Insecure)
+### Enable WinRM on remote host
+
+- Enable basic WinRM authentication (good only for troubleshooting, for hosts in domain better to use Kerberos authentication)
+- Allow unencrypted message passing over WinRM (not secure for hosts in domain but this feature is not implemented so far)
+
 ```
 winrm set winrm/config/client/auth @{Basic="true"}
 winrm set winrm/config/service/auth @{Basic="true"}
