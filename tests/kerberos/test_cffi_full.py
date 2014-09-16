@@ -913,7 +913,7 @@ def validate_gss_status(major_value, minor_value):
     assert C.GSS_S_NO_CONTEXT == 524288
     assert C.GSS_S_DEFECTIVE_TOKEN == 589824
 
-    # TODO replace hardcoded integers into constants from cffi
+    # TODO replace hardcoded integers into constants/flags from cffi
     if major_value == 851968 and minor_value == 2529639107:
         #TODO In addition to minor_value check we need to check that kerberos client is installed.
         raise CredentialsCacheNotFound(
@@ -950,6 +950,7 @@ def authenticate_gss_client_init(service, principal):
         out_server_name_p)
     validate_gss_status(major_status, minor_status_p[0])
 
+    gss_ctx_id_p = ffi.new('gss_ctx_id_t *')
     gss_flags = C.GSS_C_MUTUAL_FLAG | C.GSS_C_SEQUENCE_FLAG | C.GSS_C_CONF_FLAG | C.GSS_C_INTEG_FLAG
     input_token = ffi.new('gss_buffer_t')
     output_token = ffi.new('gss_buffer_t')
