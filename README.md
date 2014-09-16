@@ -70,7 +70,7 @@ $MB = 1048576
 
 "Installed Memory: " + [int]($RAM.TotalPhysicalMemory /$MB) + " MB" """
 
-s = winrm.Session('http://windows-host.example.com:5985/wsman', auth=('john.smith', 'secret'))
+s = winrm.Session('windows-host.example.com', auth=('john.smith', 'secret'))
 r = s.run_ps(ps_script)
 >>> r.status_code
 0
