@@ -43,6 +43,6 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: System :: Clustering',
         'Topic :: System :: Distributed Computing',
-        'Topic :: System :: Systems Administration',
+        'Topic :: System :: Systems Administration'
     ],
 )
