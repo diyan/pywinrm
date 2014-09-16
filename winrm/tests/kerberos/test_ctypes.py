@@ -128,11 +128,12 @@ def authenticate_gss_client_init(service, principal):
     validate_gss_status(major_status, minor_status.value)
 
 
-krb_service = os.environ.get('WINRM_KRB_SERVICE', 'HTTP@server-host')
-krb_principal = os.environ.get('WINRM_KRB_PRINCIPAL', 'username@realm')
+if __name__ == '__main__':
+    krb_service = os.environ.get('WINRM_KRB_SERVICE', 'HTTP@server-host')
+    krb_principal = os.environ.get('WINRM_KRB_PRINCIPAL', 'username@realm')
 
-# FIXME: Investigate how to pass server name and fix following error
-# NOTE cffi helped write binding for both gss_import_name and gss_display_status with some type checks;
-#   while ctypes looks like a walking on mining field
-#__main__.GSSInternalError: Failed to get GSS major display status for last API call
-authenticate_gss_client_init(krb_service, krb_principal)
+    # FIXME: Investigate how to pass server name and fix following error
+    # NOTE cffi helped write binding for both gss_import_name and gss_display_status with some type checks;
+    #   while ctypes looks like a walking on mining field
+    #__main__.GSSInternalError: Failed to get GSS major display status for last API call
+    authenticate_gss_client_init(krb_service, krb_principal)

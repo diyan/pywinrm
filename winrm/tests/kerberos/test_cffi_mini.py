@@ -222,10 +222,10 @@ def authenticate_gss_client_init(service, principal):
         ffi.NULL) #ffi.cast('OM_uint32 *', C.GSS_C_INDEFINITE))
     validate_gss_status(major_status, minor_status_p[0])
 
+if __name__ == '__main__':
+    krb_service = os.environ.get('WINRM_KRB_SERVICE', 'HTTP@server-host')
+    krb_principal = os.environ.get('WINRM_KRB_PRINCIPAL', 'username@realm')
 
-krb_service = os.environ.get('WINRM_KRB_SERVICE', 'HTTP@server-host')
-krb_principal = os.environ.get('WINRM_KRB_PRINCIPAL', 'username@realm')
-
-# FIXME: Investigate how to pass server name and fix following error
-#__main__.GSSError: (('A required output parameter could not be written', 34078720), ('Unknown error', 0))
-authenticate_gss_client_init(krb_service, krb_principal)
+    # FIXME: Investigate how to pass server name and fix following error
+    #__main__.GSSError: (('A required output parameter could not be written', 34078720), ('Unknown error', 0))
+    authenticate_gss_client_init(krb_service, krb_principal)
