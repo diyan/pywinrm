@@ -3,18 +3,24 @@ Thumbs.db
 .DS_Store
 *.bak
 
+# Unit test / coverage reports
+.coverage
+.cache
+
 # JetBrains PyCharm configuration and working files
 .idea
 
 # Folder which should be used for temporary working files
-sandbox/
+/sandbox/
 
 # Python virtual environment
-env/
+/env/
 
+/dist/
+/MANIFEST
 *.py[co]
 __pycache__
 ~temp/
 *~
 
-/tests/config.json
+/winrm/tests/config.json

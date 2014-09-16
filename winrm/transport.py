@@ -1,6 +1,8 @@
 import sys
 import base64
-from winrm.exceptions import WinRMTransportError
+
+from winrm.exceptions import WinRMTransportError, UnauthorizedError
+
 
 HAVE_KERBEROS = False
 try:
@@ -11,13 +13,16 @@ except ImportError:
 
 is_py2 = sys.version[0] == '2'
 if is_py2:
-    from urllib2 import Request, URLError, HTTPError, HTTPBasicAuthHandler, HTTPPasswordMgrWithDefaultRealm
+    from urllib2 import Request, URLError, HTTPError, HTTPBasicAuthHandler, HTTPPasswordMgrWithDefaultRealm, HTTPSHandler
     from urllib2 import urlopen, build_opener, install_opener
     from urlparse import urlparse
+    from httplib import HTTPSConnection
 else:
-    from urllib.request import Request, URLError, HTTPError, HTTPBasicAuthHandler, HTTPPasswordMgrWithDefaultRealm
+    from urllib.request import Request, URLError, HTTPError, HTTPBasicAuthHandler, HTTPPasswordMgrWithDefaultRealm, HTTPSHandler
     from urllib.request import urlopen, build_opener, install_opener
     from urllib.parse import urlparse
+    from http.client import HTTPSConnection
+
 
 
 class HttpTransport(object):
@@ -51,15 +56,21 @@ class HttpPlaintext(HttpTransport):
         if basic_auth_only:
             self.basic_auth_only()
 
-    def send_message(self, message):
-        headers = {'Content-Type': 'application/soap+xml;charset=UTF-8',
-                   'Content-Length': len(message),
-                   'User-Agent': 'Python WinRM client'}
+        self._headers = {'Content-Type': 'application/soap+xml;charset=UTF-8',
+                         'User-Agent': 'Python WinRM client'}
+
+    def _setup_opener(self):
         password_manager = HTTPPasswordMgrWithDefaultRealm()
         password_manager.add_password(None, self.endpoint, self.username, self.password)
         auth_manager = HTTPBasicAuthHandler(password_manager)
         opener = build_opener(auth_manager)
         install_opener(opener)
+
+    def send_message(self, message):
+        headers = self._headers.copy()
+        headers['Content-Length'] = len(message)
+
+        self._setup_opener()
         request = Request(self.endpoint, data=message, headers=headers)
         try:
             response = urlopen(request, timeout=self.timeout)
@@ -76,18 +87,44 @@ class HttpPlaintext(HttpTransport):
             #return doc
             #return doc
         except HTTPError as ex:
+            if ex.code == 401:
+                raise UnauthorizedError(transport='plaintext', message=ex.msg)
+            response_text = ex.read()
+            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
+            # should handle this 500 error and retry receiving command output.
+            if 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and 'Code="2150858793"' in response_text:
+                # TODO raise TimeoutError here instead of just return text
+                return response_text
             error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.code)
             if ex.msg:
                 error_message += ', {0}'.format(ex.msg)
-            raise WinRMTransportError(error_message)
+            raise WinRMTransportError('http', error_message)
         except URLError as ex:
-            raise WinRMTransportError(ex.reason)
+            raise WinRMTransportError('http', ex.reason)
 
 
-class HttpSSL(HttpTransport):
+class HTTPSClientAuthHandler(HTTPSHandler):
+    def __init__(self, cert, key):
+        HTTPSHandler.__init__(self)
+        self.cert = cert
+        self.key = key
+
+    def https_open(self, req):
+        return self.do_open(self.getConnection, req)
+
+    def getConnection(self, host, timeout=300):
+        return HTTPSConnection(host, key_file=self.key, cert_file=self.cert)
+
+
+class HttpSSL(HttpPlaintext):
     """Uses SSL to secure the transport"""
-    def __init__(self, endpoint, username, password, ca_trust_path=None, disable_sspi=True, basic_auth_only=True):
+    def __init__(self, endpoint, username, password, ca_trust_path=None, disable_sspi=True, basic_auth_only=True,
+                 cert_pem=None, cert_key_pem=None):
         super(HttpSSL, self).__init__(endpoint, username, password)
+
+        self._cert_pem = cert_pem
+        self._cert_key_pem = cert_key_pem
+
         #Ruby
         #@httpcli.set_auth(endpoint, user, pass)
         #@httpcli.ssl_config.set_trust_ca(ca_trust_path) unless ca_trust_path.nil?
@@ -95,6 +132,16 @@ class HttpSSL(HttpTransport):
             self.no_sspi_auth()
         if basic_auth_only:
             self.basic_auth_only()
+
+        if self._cert_pem:
+            self._headers['Authorization'] = "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"
+
+    def _setup_opener(self):
+        if not self._cert_pem:
+            super(HttpSSL, self)._setup_opener()
+        else:
+            opener = build_opener(HTTPSClientAuthHandler(self._cert_pem, self._cert_key_pem))
+            install_opener(opener)
 
 
 class KerberosTicket:
@@ -126,7 +173,7 @@ class KerberosTicket:
             raise RuntimeError('Ticket already used for verification')
         self._krb_context = None
         kerberos.authGSSClientStep(krb_context, auth_details)
-        print('User {0} authenticated successfully using Kerberos authentication'.format(kerberos.authGSSClientUserName(krb_context)))
+        #print('User {0} authenticated successfully using Kerberos authentication'.format(kerberos.authGSSClientUserName(krb_context)))
         kerberos.authGSSClientClean(krb_context)
 
 
@@ -165,13 +212,18 @@ class HttpKerberos(HttpTransport):
             response_text = response.read()
             return response_text
         except HTTPError as ex:
+            response_text = ex.read()
+            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
+            # should handle this 500 error and retry receiving command output.
+            if 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and 'Code="2150858793"' in response_text:
+                return response_text
             #if ex.code == 401 and ex.headers['WWW-Authenticate'] == 'Negotiate, Basic realm="WSMAN"':
             error_message = 'Kerberos-based authentication was failed. Code {0}'.format(ex.code)
             if ex.msg:
                 error_message += ', {0}'.format(ex.msg)
-            raise WinRMTransportError(error_message)
+            raise WinRMTransportError('kerberos', error_message)
         except URLError as ex:
-            raise WinRMTransportError(ex.reason)
+            raise WinRMTransportError('kerberos', ex.reason)
 
     def _winrm_encrypt(self, string):
         """

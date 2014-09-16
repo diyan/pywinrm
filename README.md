@@ -1,4 +1,4 @@
-# pywinrm [![Build Status](https://travis-ci.org/diyan/pywinrm.png)](https://travis-ci.org/diyan/pywinrm)
+# pywinrm [![Build Status](https://travis-ci.org/diyan/pywinrm.png)](https://travis-ci.org/diyan/pywinrm) [![Coverage Status](https://coveralls.io/repos/diyan/pywinrm/badge.png)](https://coveralls.io/r/diyan/pywinrm)
 
 pywinrm is a Python client for Windows Remote Management (WinRM).
 This allows you to invoke commands on target Windows machines from any machine
@@ -15,31 +15,88 @@ For more information on WinRM, please visit
 * [python-kerberos](http://pypi.python.org/pypi/kerberos) is optional
 
 ## Installation
-To install pywinrm, simply (TODO fix setup.py):
+### To install pywinrm, simply
 ```bash
 $ pip install http://github.com/diyan/pywinrm/archive/master.zip
 ```
 
-In order to use Kerberos authentication you need to install optional dependency:
+### In order to use Kerberos authentication you need optional dependency
 ```bash
 $ sudo apt-get install python-dev libkrb5-dev
 $ pip install kerberos
 ```
 
-## Example Usage. TODO update public API
+## Example Usage
+### Standard API example (in progress)
 ```python
-from pywinrm import WinRMClient
+import winrm
 
-winrm = WinRMClient(
+s = winrm.Session('http://windows-host.example.com:5985/wsman', auth=('john.smith', 'secret'))
+r = s.run_cmd('ipconfig', ['/all'])
+>>> r.status_code
+0
+>>> r.std_out
+Windows IP Configuration
+
+   Host Name . . . . . . . . . . . . : WINDOWS-HOST
+   Primary Dns Suffix  . . . . . . . :
+   Node Type . . . . . . . . . . . . : Hybrid
+   IP Routing Enabled. . . . . . . . : No
+   WINS Proxy Enabled. . . . . . . . : No
+...
+>>> r.std_err
+
+```
+
+### Powershell example
+
+Powershell scripts can be executed using WinRM. The script will be base64 
+UTF16 little endian encoded prior to sending to the Windows machines.
+Error messages are converted from the Powershell CLIXML format to a human 
+readable format as a convenience.
+
+```python
+import winrm
+
+ps_script = """$strComputer = $Host
+Clear
+$RAM = WmiObject Win32_ComputerSystem
+$MB = 1048576
+
+"Installed Memory: " + [int]($RAM.TotalPhysicalMemory /$MB) + " MB" """
+
+s = winrm.Session('http://windows-host.example.com:5985/wsman', auth=('john.smith', 'secret'))
+r = s.run_ps(ps_script)
+>>> r.status_code
+0
+>>> r.std_out
+Installed Memory: 3840 MB
+
+>>> r.std_err
+
+```
+
+### Low-level API example
+```python
+from winrm.protocol import Protocol
+
+p = Protocol(
     endpoint='http://windows-host:5985/wsman',
     transport='plaintext',
     username='john.smith',
     password='secret')
-shell_id = winrm.open_shell()
-command_id = winrm.run_command(shell_id, 'ipconfig', ['/all'])
-stdout, stderr, return_code = winrm.get_command_output(shell_id, command_id)
-winrm.cleanup_command(shell_id, command_id)
-winrm.close_shell(shell_id)
+shell_id = p.open_shell()
+command_id = p.run_command(shell_id, 'ipconfig', ['/all'])
+std_out, std_err, status_code = p.get_command_output(shell_id, command_id)
+p.cleanup_command(shell_id, command_id)
+p.close_shell(shell_id)
+```
+
+### Enable Basic Auth (Insecure)
+```
+winrm set winrm/config/client/auth @{Basic="true"}
+winrm set winrm/config/service/auth @{Basic="true"}
+winrm set winrm/config/service @{AllowUnencrypted="true"}
 ```
 
 ## Contribute
