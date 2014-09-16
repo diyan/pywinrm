@@ -111,6 +111,13 @@ winrm set winrm/config/service/auth @{Basic="true"}
 winrm set winrm/config/service @{AllowUnencrypted="true"}
 ```
 
-## Contribute
+### Contributors (alphabetically)
+
+- Alessandro Pilotti
+- David Cournapeau
+- Gema Gomez
+- Matt Clark
+- Patrick Dunnigan
+
 
 Want to help - send a pull request. I will accept good pull requests for sure.
