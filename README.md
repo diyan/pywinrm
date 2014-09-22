@@ -12,6 +12,8 @@ For more information on WinRM, please visit
 ## Requirements
 * Linux, Mac OS X or Windows
 * CPython 2.6, 2.7, 3.2, 3.3 or PyPy 1.9
+* [xmltodict](https://pypi.python.org/pypi/xmltodict)
+* [isodate](https://pypi.python.org/pypi/isodate)
 * [python-kerberos](http://pypi.python.org/pypi/kerberos) is optional
 
 ## Installation
