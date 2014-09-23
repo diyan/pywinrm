@@ -52,7 +52,6 @@ class Session(object):
         if msg.startswith("#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part (the first line)
             msg_xml = msg[11:]
-            print(">%s<" % msg_xml)
             try:
                 # remove the namespaces from the xml for easier processing
                 msg_xml = self.strip_namespace(msg_xml)
