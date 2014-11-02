@@ -25,7 +25,8 @@ class WinRMTransportError(Exception):
         self.message = message
 
     def __str__(self):
-        return '{0} {1}. {2}'.format(self.code, re.sub('Error$', '', self.__class__.__name__), self.message)
+        return '{0} {1}. {2}'.format(self.code, re.sub(
+            'Error$', '', self.__class__.__name__), self.message)
 
     def __repr__(self):
         return "{0}(code={1}, transport='{2}', message='{3}')".format(

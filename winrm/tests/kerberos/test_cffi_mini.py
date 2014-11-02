@@ -106,7 +106,7 @@ C = ffi.verify(
     #include <gssapi/gssapi_generic.h>
     #include <gssapi/gssapi_krb5.h>
     """,
-    #include_dirs=['/usr/include/gssapi'],  # This is not required
+    # include_dirs=['/usr/include/gssapi'],  # This is not required
     libraries=['gssapi_krb5'])
 
 
@@ -122,13 +122,14 @@ class CredentialsCacheNotFound(GSSError):
     pass
 
 
-#TODO find better name
+# TODO find better name
 class ServerNotFoundInKerberosDatabase(GSSError):
     pass
 
 
 class KerberosServerNotFound(GSSError):
-    """Usually have following message: Cannot resolve servers for KDC in realm 'SOME.REALM'"""
+    """Usually have following message: Cannot resolve servers for KDC in realm
+    'SOME.REALM'"""
     pass
 
 
@@ -154,7 +155,8 @@ def validate_gss_status(major_value, minor_value):
         minor_status_p, major_value, C.GSS_C_GSS_CODE, mech_type,
         message_ctx_p, status_str_buf)
     if major_status != 0:
-        raise GSSInternalError('Failed to get GSS major display status for last API call')
+        raise GSSInternalError(
+            'Failed to get GSS major display status for last API call')
     major_status_str = _gss_buffer_to_str(status_str_buf)
 
     mech_type = ffi.new('gss_OID', [C.GSS_C_NULL_OID])
@@ -162,12 +164,14 @@ def validate_gss_status(major_value, minor_value):
         minor_status_p, minor_value, C.GSS_C_MECH_CODE, mech_type,
         message_ctx_p, status_str_buf)
     if major_status != 0:
-        raise GSSInternalError('Failed to get GSS minor display status for last API call')
+        raise GSSInternalError(
+            'Failed to get GSS minor display status for last API call')
     minor_status_str = _gss_buffer_to_str(status_str_buf)
     # TODO investigate how to de-allocate memory
     # TODO replace hardcoded integers into constants/flags from cffi
     if major_value == 851968 and minor_value == 2529639107:
-        #TODO In addition to minor_value check we need to check that kerberos client is installed.
+        # TODO In addition to minor_value check we need to check that kerberos
+        # client is installed.
         raise CredentialsCacheNotFound(
             minor_status_str
             + '. Make sure that Kerberos Linux Client was installed. '
@@ -180,17 +184,22 @@ def validate_gss_status(major_value, minor_value):
             + '. Make sure that Kerberos Server is reachable over network. '
             + 'Try use ping or telnet tools in order to check that.')
     else:
-        #__main__.GSSError: (('An unsupported mechanism was requested', 65536), ('Unknown error', 0))
-        #__main__.GSSError: (('A required output parameter could not be written', 34078720), ('Unknown error', 0))
-        raise GSSError((major_status_str, major_value), (minor_status_str, minor_value))
+        # __main__.GSSError: (('An unsupported mechanism was requested', 65536)
+        #  ,('Unknown error', 0))
+        # __main__.GSSError: (('A required output parameter could not be
+        # written', 34078720), ('Unknown error', 0))
+        raise GSSError((major_status_str, major_value), (
+            minor_status_str, minor_value))
 
 
 def authenticate_gss_client_init(service, principal):
     if not service:
-        raise GSSError('Service was not provided. Please specify service in "service@server-host" format')
+        raise GSSError('Service was not provided. Please specify '
+                       'service in "service@server-host" format')
 
     if not principal:
-        raise GSSError('Principal was not provided. Please specify principal in "username@realm" format')
+        raise GSSError('Principal was not provided. Please specify '
+                       'principal in "username@realm" format')
 
     minor_status_p = ffi.new('OM_uint32 *')
 
@@ -198,28 +207,32 @@ def authenticate_gss_client_init(service, principal):
     out_server_name_p = ffi.new('gss_name_t *')
     major_status = C.gss_import_name(
         minor_status_p, service_buf,
-        C.GSS_C_NT_HOSTBASED_SERVICE, # ffi.cast('gss_OID', C.GSS_C_NO_OID),
+        C.GSS_C_NT_HOSTBASED_SERVICE,  # ffi.cast('gss_OID', C.GSS_C_NO_OID),
         out_server_name_p)
     validate_gss_status(major_status, minor_status_p[0])
 
-    gss_ctx_id_p = ffi.new('gss_ctx_id_t *')
-    #gss_flags = C.GSS_C_MUTUAL_FLAG | C.GSS_C_SEQUENCE_FLAG | C.GSS_C_CONF_FLAG | C.GSS_C_INTEG_FLAG
+    # gss_flags = C.GSS_C_MUTUAL_FLAG | C.GSS_C_SEQUENCE_FLAG |
+    # C.GSS_C_CONF_FLAG | C.GSS_C_INTEG_FLAG
     gss_flags = 0
     input_token = ffi.new('gss_buffer_t')
     output_token = ffi.new('gss_buffer_t')
     ret_flags = ffi.new('OM_uint32 *')
 
     major_status = C.gss_init_sec_context(
-        minor_status_p, ffi.NULL, ffi.cast('gss_ctx_id_t *', C.GSS_C_NO_CONTEXT), out_server_name_p[0],
+        minor_status_p, ffi.NULL, ffi.cast(
+            'gss_ctx_id_t *', C.GSS_C_NO_CONTEXT), out_server_name_p[0],
         ffi.cast('gss_OID', C.GSS_C_NO_OID),
         gss_flags,
         0,
-        ffi.NULL, #ffi.cast('gss_channel_bindings_t', C.GSS_C_NO_CHANNEL_BINDINGS),
+        # ffi.cast('gss_channel_bindings_t', C.GSS_C_NO_CHANNEL_BINDINGS),
+        ffi.NULL,
         input_token,
-        ffi.NULL, #ffi.cast('gss_OID *', C.GSS_C_NO_OID),
+        # ffi.cast('gss_OID *', C.GSS_C_NO_OID),
+        ffi.NULL,
         output_token,
         ret_flags,
-        ffi.NULL) #ffi.cast('OM_uint32 *', C.GSS_C_INDEFINITE))
+        # ffi.cast('OM_uint32 *', C.GSS_C_INDEFINITE))
+        ffi.NULL)
     validate_gss_status(major_status, minor_status_p[0])
 
 if __name__ == '__main__':
@@ -227,5 +240,6 @@ if __name__ == '__main__':
     krb_principal = os.environ.get('WINRM_KRB_PRINCIPAL', 'username@realm')
 
     # FIXME: Investigate how to pass server name and fix following error
-    #__main__.GSSError: (('A required output parameter could not be written', 34078720), ('Unknown error', 0))
+    # __main__.GSSError: (('A required output parameter could not be written',
+    # 34078720), ('Unknown error', 0))
     authenticate_gss_client_init(krb_service, krb_principal)
