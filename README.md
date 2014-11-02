@@ -4,7 +4,7 @@ pywinrm is a Python client for Windows Remote Management (WinRM).
 This allows you to invoke commands on target Windows machines from any machine
 that can run Python.
 
-WinRM allows you to call native objects in Windows.  This includes, but is not
+WinRM allows you to call native objects in Windows. These include, but are not
 limited to, running batch scripts, powershell scripts and fetching WMI variables.
 For more information on WinRM, please visit
 [Microsoft's WinRM site](http://msdn.microsoft.com/en-us/library/aa384426.aspx).
@@ -20,7 +20,7 @@ For more information on WinRM, please visit
 $ pip install http://github.com/diyan/pywinrm/archive/master.zip
 ```
 
-### To use Kerberos authentication you need optional dependency
+### To use Kerberos authentication you need these optional dependencies
 
 ```bash
 $ sudo apt-get install python-dev libkrb5-dev
@@ -28,7 +28,7 @@ $ pip install kerberos
 ```
 
 ## Example Usage
-### Run process on remote host
+### Run a process on a remote host
 ```python
 import winrm
 
@@ -49,8 +49,8 @@ Windows IP Configuration
 
 ```
 
-NOTE pywirnm with try guess correct endpoint url from various formats:
-  
+NOTE: pywirnm will try and guess the correct endpoint url from the following formats:
+
  - windows-host -> http://windows-host:5985/wsman
  - windows-host:1111 -> http://windows-host:1111/wsman
  - http://windows-host -> http://windows-host:5985/wsman
@@ -102,8 +102,8 @@ p.close_shell(shell_id)
 
 ### Enable WinRM on remote host
 
-- Enable basic WinRM authentication (good only for troubleshooting, for hosts in domain better to use Kerberos authentication)
-- Allow unencrypted message passing over WinRM (not secure for hosts in domain but this feature is not implemented so far)
+- Enable basic WinRM authentication (Good only for troubleshooting. For hosts in a domain it is better to use Kerberos authentication.)
+- Allow unencrypted message passing over WinRM (not secure for hosts in a domain but this feature was not yet implemented.)
 
 ```
 winrm set winrm/config/client/auth @{Basic="true"}
