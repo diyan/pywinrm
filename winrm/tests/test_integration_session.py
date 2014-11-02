@@ -1,5 +1,4 @@
 import pytest
-from winrm import Session
 xfail = pytest.mark.xfail
 
 

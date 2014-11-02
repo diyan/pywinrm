@@ -1,5 +1,6 @@
 import os
-from ctypes import cdll, Structure, c_size_t, c_void_p, c_uint32, c_char_p, cast, byref, c_int, POINTER, create_string_buffer
+from ctypes import (cdll, Structure, c_size_t, c_void_p,
+                    c_uint32, c_char_p, cast, byref)
 C = cdll.LoadLibrary('libgssapi_krb5.so')
 mech = C.GSS_C_NT_HOSTBASED_SERVICE
 
@@ -46,8 +47,8 @@ class gss_name_t(Structure):
 
 
 # TODO this does not work
-#GSS_C_NT_HOSTBASED_SERVICE = gss_OID(10, cast(c_char_p('\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04'), c_void_p))
-#GSS_C_NT_HOSTBASED_SERVICE = gss_OID(10, cast(create_string_buffer('\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04', 10), c_void_p))
+# GSS_C_NT_HOSTBASED_SERVICE = gss_OID(10, cast(c_char_p('\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04'), c_void_p))  # NOQA
+# GSS_C_NT_HOSTBASED_SERVICE = gss_OID(10, cast(create_string_buffer('\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04', 10), c_void_p))  # NOQA
 
 """
 /*
@@ -83,13 +84,14 @@ class CredentialsCacheNotFound(GSSError):
     pass
 
 
-#TODO find better name
+# TODO find better name
 class ServerNotFoundInKerberosDatabase(GSSError):
     pass
 
 
 class KerberosServerNotFound(GSSError):
-    """Usually have following message: Cannot resolve servers for KDC in realm 'SOME.REALM'"""
+    """Usually have following message: Cannot resolve servers for KDC in realm
+    'SOME.REALM'"""
     pass
 
 
@@ -100,22 +102,24 @@ def validate_gss_status(major_value, minor_value):
     minor_status = c_uint32()
     message_ctx = c_uint32()
     status_str_buf = gss_buffer_t()
-    mech_type = gss_OID(0, None)#?
+    mech_type = gss_OID(0, None)  # ?
     major_status = C.gss_display_status(
         byref(minor_status), major_value, GSS_C_GSS_CODE, mech_type,
         byref(message_ctx), status_str_buf)
     if major_status != 0:
-        raise GSSInternalError('Failed to get GSS major display status for last API call')
-    major_status_str = _gss_buffer_to_str(status_str_buf)
+        raise GSSInternalError(
+            'Failed to get GSS major display status for last API call')
     raise NotImplementedError()
 
 
 def authenticate_gss_client_init(service, principal):
     if not service:
-        raise GSSError('Service was not provided. Please specify service in "service@server-host" format')
+        raise GSSError('Service was not provided. Please specify '
+                       'service in "service@server-host" format')
 
     if not principal:
-        raise GSSError('Principal was not provided. Please specify principal in "username@realm" format')
+        raise GSSError('Principal was not provided. Please specify '
+                       'principal in "username@realm" format')
 
     minor_status = c_uint32()
 
@@ -123,7 +127,8 @@ def authenticate_gss_client_init(service, principal):
     out_server_name = gss_name_t()
 
     major_status = C.gss_import_name(
-        byref(minor_status), service_buf, gss_OID(0, None), #GSS_C_NT_HOSTBASED_SERVICE,
+        # GSS_C_NT_HOSTBASED_SERVICE,
+        byref(minor_status), service_buf, gss_OID(0, None),
         byref(out_server_name))
     validate_gss_status(major_status, minor_status.value)
 
@@ -133,7 +138,9 @@ if __name__ == '__main__':
     krb_principal = os.environ.get('WINRM_KRB_PRINCIPAL', 'username@realm')
 
     # FIXME: Investigate how to pass server name and fix following error
-    # NOTE cffi helped write binding for both gss_import_name and gss_display_status with some type checks;
+    # NOTE cffi helped write binding for both gss_import_name and
+    # gss_display_status with some type checks;
     #   while ctypes looks like a walking on mining field
-    #__main__.GSSInternalError: Failed to get GSS major display status for last API call
+    # __main__.GSSInternalError: Failed to get GSS major display status for
+    # last API call
     authenticate_gss_client_init(krb_service, krb_principal)

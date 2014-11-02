@@ -1,5 +1,5 @@
+# flake8: noqa
 import os
-import json
 import uuid
 import xmltodict
 from pytest import skip, fixture
