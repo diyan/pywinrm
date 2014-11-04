@@ -25,6 +25,9 @@ setup(
     packages=('winrm', 'winrm.tests'),
     package_data={'winrm.tests': ['*.ps1']},
     install_requires=['xmltodict', 'isodate'],
+    scripts=[
+        'bin/winrm'
+        ],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',

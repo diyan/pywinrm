@@ -4,7 +4,6 @@ import xml.etree.ElementTree as ET
 
 from winrm.protocol import Protocol
 
-
 class Response(object):
     """Response from a remote command execution"""
     def __init__(self, args):
@@ -33,11 +32,12 @@ class Session(object):
         self.protocol.close_shell(shell_id)
         return rs
 
-    def run_ps(self, script):
+    def run_ps(self, script, args=()):
         """base64 encodes a Powershell script and executes the powershell
         encoded script command
         """
-
+        if args:
+            script = self.insert_ps_args(script, args)
         # must use utf16 little endian on windows
         base64_script = base64.b64encode(script.encode("utf_16_le"))
         rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script))
@@ -46,6 +46,11 @@ class Session(object):
             # readable
             rs.std_err = self.clean_error_msg(rs.std_err)
         return rs
+
+    def insert_ps_args(self, script, args=()):
+        """Insert powershell arguments in head of script
+        """
+        return '$args = @("' + '","'.join(args) + '")\n' + script
 
     def clean_error_msg(self, msg):
         """converts a Powershell CLIXML message to a more human readable string
@@ -107,3 +112,4 @@ class Session(object):
         if not path:
             path = 'wsman'
         return '{0}://{1}:{2}/{3}'.format(scheme, host, port, path.lstrip('/'))
+
