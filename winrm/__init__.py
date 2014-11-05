@@ -18,11 +18,11 @@ class Response(object):
 
 class Session(object):
     # TODO implement context manager methods
-    def __init__(self, target, auth, transport='plaintext'):
+    def __init__(self, target, auth, **kwargs):
         username, password = auth
-        self.url = self._build_url(target, transport)
-        self.protocol = Protocol(self.url, transport=transport,
-                                 username=username, password=password)
+        self.url = self._build_url(target, kwargs.get('transport', 'plaintext'))
+        self.protocol = Protocol(self.url,
+                                 username=username, password=password, **kwargs)
 
     def run_cmd(self, command, args=()):
         # TODO optimize perf. Do not call open/close shell every time
