@@ -145,13 +145,17 @@ def main():
 
     try:
         response = run(args.command, args.hostname, **kwargs)
+        # result includes newline, use stdout.write to avoid
+        # adding additional newlines
+        sys.stdout.write(response.std_out)
+        # always write std_out since erronous powershell
+        # is put in std_out
+
         if response.status_code != 0:
             sys.stdout.write(response.std_err)
             sys.exit(response.status_code)
 
-        # result includes newline, use stdout.write to avoid
-        # adding additional newline
-        sys.stdout.write(response.std_out)
+
     except Exception, e:
         handle_expection(e)
 
