@@ -64,7 +64,9 @@ EOF
 from __future__ import print_function
 
 import argparse
+import codecs
 import getpass
+import locale
 import logging
 import os
 import sys
@@ -106,7 +108,7 @@ def main():
     parser.add_argument('-a', '--args', action='append', default=[])
     parser.add_argument('hostname', help='[user@]hostname')
 
-    parser.add_argument('command', nargs='?')
+    parser.add_argument('command', nargs='?', type=lambda s: unicode(s, locale.getpreferredencoding()))
 
     args = parser.parse_args()
     if '@' in args.hostname:
@@ -122,6 +124,7 @@ def main():
         setup_verbose_logging()
 
     if not sys.stdin.isatty():
+        sys.stdin = codecs.getreader(locale.getpreferredencoding())(sys.stdin);
         args.command = sys.stdin.read()
 
     # avoid the interpreter argument when using a script file
