@@ -4,6 +4,25 @@ import xml.etree.ElementTree as ET
 
 from winrm.protocol import Protocol
 
+def run(command, hostname,
+        auth=(),
+        interpreter='cmd',
+        args=()):
+    """Runs a remote command.
+    Returns :class:`Response` object.
+
+    :param command: command to execute
+    :param host: host to execute on
+    :param auth: (optional) Auth tuple to enable Auth.
+    :param args: (optional) Tuple of command arguments.
+    :param interpreter: (optional) Interpreter to use cmd or ps. Set to 'cmd' by default.
+    """
+    session = Session(hostname, auth)
+    if interpreter == 'ps':
+        return session.run_ps(command, args)
+    else:
+        return session.run_cmd(command, args)
+
 class Response(object):
     """Response from a remote command execution"""
     def __init__(self, args):

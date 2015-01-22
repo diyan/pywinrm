@@ -83,16 +83,6 @@ def setup_verbose_logging():
     log.setLevel(logging.INFO)
     log.addHandler(logging.StreamHandler())
 
-def run(command, hostname,
-        auth=(),
-        interpreter='cmd',
-        args=()):
-    session = winrm.Session(hostname, auth)
-    if interpreter == 'ps':
-        return session.run_ps(command, args)
-    else:
-        return session.run_cmd(command, args)
-
 def handle_expection(e):
     error = e.__class__
     if error == WinRMTransportError:
@@ -154,7 +144,7 @@ def main():
     }
 
     try:
-        response = run(args.command, args.hostname, **kwargs)
+        response = winrm.run(args.command, args.hostname, **kwargs)
         # result includes newline, use stdout.write to avoid
         # adding additional newlines
         sys.stdout.write(response.std_out)
