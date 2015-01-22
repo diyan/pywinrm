@@ -30,13 +30,13 @@ $ ./winrm -t ps -p password Administrator@192.168.123.231 1+1
 
 it is also easy to run powershell scripts
 ```
-$ ./winrm -t ps -p password Administrator@10.0.0.10 < whereis.ps1
+$ ./winrm -p password Administrator@10.0.0.10 < whereis.ps1
 ...
 ```
 
 even with arguments
 ```
-$ ./winrm -t ps -p password --args notepad Administrator@10.0.0.10 < whereis.ps1
+$ ./winrm -p password --args notepad Administrator@10.0.0.10 < whereis.ps1
 Notepad|C:\Windows\system32\notepad.exe
 ```
 
@@ -112,7 +112,7 @@ def main():
     parser.add_argument('-l', '--login-name')
     parser.add_argument('-p', '--password')
 
-    parser.add_argument('-t', '--interpreter', default='cmd', choices=('cmd', 'ps'))
+    parser.add_argument('-t', '--interpreter', choices=('cmd', 'ps'))
     parser.add_argument('-a', '--args', action='append', default=[])
     parser.add_argument('hostname', help='[user@]hostname')
 
@@ -133,6 +133,16 @@ def main():
 
     if not sys.stdin.isatty():
         args.command = sys.stdin.read()
+
+    # avoid the interpreter argument when using a script file
+    if args.interpreter == None:
+        try:
+            stdin_filename = os.readlink('/proc/self/fd/0')
+            root, ext = os.path.splitext(stdin_filename)
+            if 'ps' in ext:
+                args.interpreter = 'ps'
+        except OSError:
+            pass
 
     if not args.command:
         parser.error('command argument required')
