@@ -111,11 +111,24 @@ winrm set winrm/config/service/auth @{Basic="true"}
 winrm set winrm/config/service @{AllowUnencrypted="true"}
 ```
 
+### Developing Pywinrm
+
+Run all tests
+```
+$ py.test
+```
+
+Run specific test
+```
+$ py.test winrm/tests/test_cli.py
+```
+
 ### Contributors (alphabetically)
 
 - Alessandro Pilotti
 - David Cournapeau
 - Gema Gomez
+- Jakob Aarøe Dam
 - Matt Clark
 - Patrick Dunnigan
 

@@ -1,64 +1,58 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
 """
 winrm - Remote command execution on Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-winrm (client) is a command-line interface to to execute remote commands
+winrm (client) is a command-line interface to execute remote commands
 on Windows through the WinRM protocol.
 
-Examples:
+Usage examples:
 
-Get the hostname of the windows computer
+Get the hostname of the windows computer:
 ```
-$ ./winrm -p password Administrator@10.0.0.10 hostname
-windows-hostname
+$ winrm -p password Administrator@10.0.0.10 hostname
 ```
-
 winrm also takes commands from stdin
 ```
-$ ./winrm -p password Administrator@10.0.0.10 <<\EOF
+$ winrm -p password Administrator@10.0.0.10 <<\EOF
 hostname
 EOF
-windows-hostname
 ```
 
 it is easy to run powershell commands
 ```
-$ ./winrm -t ps -p password Administrator@192.168.123.231 1+1
-2
+$ winrm -t ps -p password Administrator@192.168.123.231 1+1
 ```
 
 it is also easy to run powershell scripts
 ```
-$ ./winrm -p password Administrator@10.0.0.10 < whereis.ps1
-...
+$ winrm -p password Administrator@10.0.0.10 < whereis.ps1
 ```
 
 even with arguments
 ```
-$ ./winrm -p password --args notepad Administrator@10.0.0.10 < whereis.ps1
-Notepad|C:\Windows\system32\notepad.exe
+$ winrm -p password -a notepad -a wordpad Administrator@10.0.0.10 < whereis.ps1
 ```
 
 TODO: Multiline commands doesn't work
 ```
-$ ./winrm -p password Administrator@10.0.0.10 <<\EOF
+$ winrm -p password Administrator@10.0.0.10 <<\EOF
 echo 1
 echo 2
 EOF
-1
 ```
 
 Works for powershell though
 ```
-$ ./winrm -t ps -p password Administrator@10.0.0.10 <<\EOF
+$ winrm -t ps -p password Administrator@10.0.0.10 <<\EOF
 echo 1
 echo 2
 EOF
 1
 2
 ```
-
 """
 
 from __future__ import print_function
@@ -72,9 +66,8 @@ import os
 import sys
 import traceback
 
-import winrm
-
-from winrm.exceptions import (
+from . import run
+from .exceptions import (
     WinRMTransportError,
     UnauthorizedError
 )
@@ -82,7 +75,7 @@ from winrm.exceptions import (
 log = logging.getLogger('winrm')
 
 def setup_verbose_logging():
-    log.setLevel(logging.INFO)
+    log.setLevel(logging.DEBUG)
     log.addHandler(logging.StreamHandler())
 
 def handle_expection(e):
@@ -97,20 +90,21 @@ def handle_expection(e):
     log.info(traceback.format_exc())
     sys.exit(1)
 
-def main():
-    parser = argparse.ArgumentParser(description='Run commands on remote Windows using WinRM')
+def get_parser():
+    parser = argparse.ArgumentParser(description="Execute remote commands through the WinRM protocol.")
 
-    parser.add_argument('-v', '--verbose', action="store_true")
+    parser.add_argument('-a', '--arg', default=[], action='append', help='inject script argument in head of script')
+    parser.add_argument('-t', '--interpreter', choices=('cmd', 'ps'))
     parser.add_argument('-l', '--login-name')
     parser.add_argument('-p', '--password')
+    parser.add_argument('-v', '--verbose', action="store_true")
 
-    parser.add_argument('-t', '--interpreter', choices=('cmd', 'ps'))
-    parser.add_argument('-a', '--args', action='append', default=[])
     parser.add_argument('hostname', help='[user@]hostname')
-
     parser.add_argument('command', nargs='?', type=lambda s: unicode(s, locale.getpreferredencoding()))
 
-    args = parser.parse_args()
+    return parser
+
+def process_args(args, parser):
     if '@' in args.hostname:
         args.login_name,args.hostname = args.hostname.split('@')
 
@@ -124,11 +118,15 @@ def main():
         setup_verbose_logging()
 
     if not sys.stdin.isatty():
-        sys.stdin = codecs.getreader(locale.getpreferredencoding())(sys.stdin);
-        args.command = sys.stdin.read()
+        try:
+            sys.stdin = codecs.getreader(locale.getpreferredencoding())(sys.stdin);
+            args.command = sys.stdin.read()
+        except IOError:
+            pass
 
     # avoid the interpreter argument when using a script file
     if args.interpreter == None:
+        args.interpreter = 'cmd'
         try:
             stdin_filename = os.readlink('/proc/self/fd/0')
             root, ext = os.path.splitext(stdin_filename)
@@ -140,6 +138,15 @@ def main():
     if not args.command:
         parser.error('command argument required')
 
+def get_args():
+    parser = get_parser()
+    args = parser.parse_args()
+    process_args(args, parser)
+    return args
+
+def main():
+    args = get_args()
+
     kwargs = {
         'auth': (args.login_name, args.password),
         'args': args.args,
@@ -147,17 +154,17 @@ def main():
     }
 
     try:
-        response = winrm.run(args.command, args.hostname, **kwargs)
-        # result includes newline, use stdout.write to avoid
-        # adding additional newlines
-        sys.stdout.write(response.std_out)
-        # always write std_out since erronous powershell
-        # is put in std_out
-
-        if response.status_code != 0:
-            sys.stdout.write(response.std_err)
+        response = run(args.command, args.hostname, **kwargs)
+        if response.status_code == 0:
+            sys.stdout.write(response.std_out)
+            # Running errounous powershell on the windows server
+            # doesn't go into std_err?!?
+            # Try any erronous command, e.g., ()
+            # Therefore, we also write std_err on success
+            sys.stderr.write(response.std_err)
+        else:
+            sys.stderr.write(response.std_err)
             sys.exit(response.status_code)
-
 
     except Exception, e:
         handle_expection(e)
