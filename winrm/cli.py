@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 """
 winrm - Remote command execution on Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -16,14 +15,12 @@ $ winrm -p password Administrator@10.0.0.10 hostname
 ```
 winrm also takes commands from stdin
 ```
-$ winrm -p password Administrator@10.0.0.10 <<\EOF
-hostname
-EOF
+$ winrm Administrator@10.0.0.10 <<< ipconfig
 ```
 
 it is easy to run powershell commands
 ```
-$ winrm -t ps -p password Administrator@192.168.123.231 1+1
+$ winrm -i ps -p password Administrator@192.168.123.231 1+1
 ```
 
 it is also easy to run powershell scripts
@@ -46,7 +43,7 @@ EOF
 
 Works for powershell though
 ```
-$ winrm -t ps -p password Administrator@10.0.0.10 <<\EOF
+$ winrm -i ps -p password Administrator@10.0.0.10 <<\EOF
 echo 1
 echo 2
 EOF
@@ -93,10 +90,11 @@ def handle_expection(e):
 def get_parser():
     parser = argparse.ArgumentParser(description="Execute remote commands through the WinRM protocol.")
 
-    parser.add_argument('-a', '--arg', default=[], action='append', help='inject script argument in head of script')
-    parser.add_argument('-t', '--interpreter', choices=('cmd', 'ps'))
+    parser.add_argument('-a', '--args', default=[], action='append', help='inject script argument in head of script')
+    parser.add_argument('-i', '--interpreter', choices=('cmd', 'ps'))
     parser.add_argument('-l', '--login-name')
     parser.add_argument('-p', '--password')
+    parser.add_argument('-t', '--transport', default='plaintext', choices=('plaintext', 'kerberos', 'ssl'))
     parser.add_argument('-v', '--verbose', action="store_true")
 
     parser.add_argument('hostname', help='[user@]hostname')
@@ -150,7 +148,8 @@ def main():
     kwargs = {
         'auth': (args.login_name, args.password),
         'args': args.args,
-        'interpreter': args.interpreter
+        'interpreter': args.interpreter,
+        'transport': args.transport
     }
 
     try:

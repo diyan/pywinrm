@@ -7,6 +7,7 @@ from winrm.protocol import Protocol
 def run(command, hostname,
         auth=(),
         interpreter='cmd',
+        transport='plaintext',
         args=()):
     """Runs a remote command.
     Returns :class:`Response` object.
@@ -17,7 +18,7 @@ def run(command, hostname,
     :param args: (optional) Tuple of command arguments.
     :param interpreter: (optional) Interpreter to use cmd or ps. Set to 'cmd' by default.
     """
-    session = Session(hostname, auth)
+    session = Session(hostname, auth, transport)
     if interpreter == 'ps':
         return session.run_ps(command, args)
     else:
