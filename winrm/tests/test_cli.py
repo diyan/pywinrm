@@ -22,7 +22,7 @@ def test_get_args():
     assert args.hostname == '0.0.0.0'
 
 def test_get_args_ps():
-    cmd = 'winrm -v -p password -v -t ps 0.0.0.0 1+1'
+    cmd = 'winrm -v -p password -v -i ps 0.0.0.0 1+1'
     sys.argv = cmd.split()
     args = cli.get_args()
 
@@ -33,7 +33,7 @@ def test_get_args_ps():
     assert args.hostname == '0.0.0.0'
 
 def test_ps_script_with_successful_response(capsys):
-    cmd = 'winrm -v -p password -v -t ps --args 1 administrator@0.0.0.0'
+    cmd = 'winrm -v -p password -v -i ps --args 1 administrator@0.0.0.0'
     script = open(os.path.join(HERE, 'sample_script.ps1'))
 
     # stdout, stderr, return code
@@ -53,7 +53,7 @@ def test_ps_script_with_successful_response(capsys):
     assert out == '2'
 
 def test_ps_with_erronous_response(capsys):
-    cmd = 'winrm -v -p password -v -t ps administrator@0.0.0.0 ()'
+    cmd = 'winrm -v -p password -v -i ps administrator@0.0.0.0 ()'
     sys.argv = cmd.split()
 
     response_args = '', 'What a stupid command!', 1
