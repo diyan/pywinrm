@@ -9,33 +9,39 @@ on Windows through the WinRM protocol.
 
 Usage examples:
 
-Get the hostname of the windows computer:
+get the hostname of the windows computer
 ```
-$ winrm -p password Administrator@10.0.0.10 hostname
+$ winrm -p password administrator@10.0.0.10 hostname
 ```
+
+with kerberos
+```
+$ winrm -t kerberos administrator\example.com@s.example.com hostname
+```
+
 winrm also takes commands from stdin
 ```
-$ winrm Administrator@10.0.0.10 <<< ipconfig
+$ winrm administrator@10.0.0.10 <<< ipconfig
 ```
 
 it is easy to run powershell commands
 ```
-$ winrm -i ps -p password Administrator@192.168.123.231 1+1
+$ winrm -i ps -p password administrator@192.168.123.231 1+1
 ```
 
 it is also easy to run powershell scripts
 ```
-$ winrm -p password Administrator@10.0.0.10 < whereis.ps1
+$ winrm -p password administrator@10.0.0.10 < whereis.ps1
 ```
 
 even with arguments
 ```
-$ winrm -p password -a notepad -a wordpad Administrator@10.0.0.10 < whereis.ps1
+$ winrm -p password -a notepad -a wordpad administrator@10.0.0.10 < whereis.ps1
 ```
 
 TODO: Multiline commands doesn't work
 ```
-$ winrm -p password Administrator@10.0.0.10 <<\EOF
+$ winrm -p password administrator@10.0.0.10 <<\EOF
 echo 1
 echo 2
 EOF
@@ -43,7 +49,7 @@ EOF
 
 Works for powershell though
 ```
-$ winrm -i ps -p password Administrator@10.0.0.10 <<\EOF
+$ winrm -i ps -p password administrator@10.0.0.10 <<\EOF
 echo 1
 echo 2
 EOF
@@ -68,6 +74,9 @@ from .exceptions import (
     WinRMTransportError,
     UnauthorizedError
 )
+from .transport import HAVE_KERBEROS
+if HAVE_KERBEROS:
+    import kerberos
 
 log = logging.getLogger('winrm')
 
@@ -75,12 +84,23 @@ def setup_verbose_logging():
     log.setLevel(logging.DEBUG)
     log.addHandler(logging.StreamHandler())
 
+def handle_kerberos_exception(e):
+    try:
+        if e.args[1][0] == 'No Kerberos credentials available':
+            print('No Kerberos credentials available. Try `kinit user@domain`', file=sys.stderr)
+        else:
+            print(str(e), file=sys.stderr)
+    except:
+        print(str(e), file=sys.stderr)
+
 def handle_expection(e):
     error = e.__class__
     if error == WinRMTransportError:
         print('Server is not responding: {}'.format(e), file=sys.stderr)
     elif error == UnauthorizedError:
         print('Permission denied: {}'.format(e), file=sys.stderr)
+    elif HAVE_KERBEROS and error == kerberos.GSSError:
+        handle_kerberos_exception(e)
     else:
         print(str(e), file=sys.stderr)
 
@@ -109,7 +129,7 @@ def process_args(args, parser):
     if not args.login_name:
         args.login_name = os.environ['USER']
 
-    if not args.password:
+    if not args.password and args.transport != 'kerberos':
         args.password = getpass.getpass()
 
     if args.verbose:
