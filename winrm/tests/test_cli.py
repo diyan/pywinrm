@@ -47,7 +47,7 @@ def test_ps_script_with_successful_response(capsys):
             with mock.patch('sys.stdin', script):
                 cli.main()
 
-    mock_method.assert_called_with(u'1+1', ['1'])
+    mock_method.assert_called_with('1+1', ['1'])
 
     out, err = capsys.readouterr()
     assert out == '2'
@@ -65,8 +65,7 @@ def test_ps_with_erronous_response(capsys):
         # cancel exit on the error
         with mock.patch('sys.exit'):
             cli.main()
+    mock_method.assert_called_with('()', [])
 
-    mock_method.assert_called_with(u'()', [])
-    
     out, err = capsys.readouterr()
     assert err == 'What a stupid command!'
