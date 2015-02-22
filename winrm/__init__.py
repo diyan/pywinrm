@@ -8,6 +8,7 @@ def run(command, hostname,
         auth=(),
         interpreter='cmd',
         transport='plaintext',
+        ostreams=(),
         args=()):
     """Runs a remote command.
     Returns :class:`Response` object.
@@ -20,9 +21,9 @@ def run(command, hostname,
     """
     session = Session(hostname, auth, transport)
     if interpreter == 'ps':
-        return session.run_ps(command, args)
+        return session.run_ps(command, args, ostreams)
     else:
-        return session.run_cmd(command, args)
+        return session.run_cmd(command, args, ostreams)
 
 class Response(object):
     """Response from a remote command execution"""
