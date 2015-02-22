@@ -5,7 +5,21 @@ import xml.etree.ElementTree as ET
 from isodate.isoduration import duration_isoformat
 import xmltodict
 from winrm.transport import HttpPlaintext, HttpKerberos, HttpSSL
+import cStringIO
 
+class BufferedSplitStream(object):
+    def __init__(self, ostream):
+        self.ostream = ostream
+        self.buffer = cStringIO.StringIO()
+
+    def write(self, str):
+        if self.ostream:
+            self.ostream.write(str)
+            self.ostream.flush()
+        self.buffer.write(str)
+
+    def getvalue(self):
+        return self.buffer.getvalue()
 
 class Protocol(object):
     """
@@ -261,25 +275,33 @@ class Protocol(object):
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
-    def get_command_output(self, shell_id, command_id):
+    def get_command_output(self, shell_id, command_id, ostreams=()):
         """
         Get the Output of the given shell and command
         @param string shell_id: The shell id on the remote machine.  See #open_shell
         @param string command_id: The command id on the remote machine.  See #run_command
+        @param ostreams: A tuple of stdout and stderr streams to use
+         for the output of the remote machine. If not given, will
+         just return the output in the first two parts of the tuple.
         #@return [Hash] Returns a Hash with a key :exitcode and :data.  Data is an Array of Hashes where the cooresponding key
         #   is either :stdout or :stderr.  The reason it is in an Array so so we can get the output in the order it ocurrs on
         #   the console.
         """
-        stdout_buffer, stderr_buffer = [], []
+        def get_buffered_split_streams(ostreams):
+            if ostreams <> ():
+                stdout_stream, stderr_stream = ostreams
+                return BufferedSplitStream(stdout_stream), BufferedSplitStream(stderr_stream)
+            else:
+                return BufferedSplitStream(None), BufferedSplitStream(None)
+
+        stdout_stream, stderr_stream = get_buffered_split_streams(ostreams)
         command_done = False
         while not command_done:
-            stdout, stderr, return_code, command_done = \
-                self._raw_get_command_output(shell_id, command_id)
-            stdout_buffer.append(stdout)
-            stderr_buffer.append(stderr)
-        return ''.join(stdout_buffer), ''.join(stderr_buffer), return_code
+            return_code, command_done = \
+                self._raw_get_command_output(shell_id, command_id, stdout_stream, stderr_stream)
+        return stdout_stream.getvalue(), stderr_stream.getvalue(), return_code
 
-    def _raw_get_command_output(self, shell_id, command_id):
+    def _raw_get_command_output(self, shell_id, command_id, stdout_stream, stderr_stream):
         rq = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive',
@@ -293,14 +315,13 @@ class Protocol(object):
         rs = self.send_message(xmltodict.unparse(rq))
         root = ET.fromstring(rs)
         stream_nodes = [node for node in root.findall('.//*') if node.tag.endswith('Stream')]
-        stdout = stderr = ''
         return_code = -1
         for stream_node in stream_nodes:
             if stream_node.text:
                 if stream_node.attrib['Name'] == 'stdout':
-                    stdout += str(base64.b64decode(stream_node.text.encode('ascii')))
+                    stdout_stream.write(str(base64.b64decode(stream_node.text.encode('ascii'))))
                 elif stream_node.attrib['Name'] == 'stderr':
-                    stderr += str(base64.b64decode(stream_node.text.encode('ascii')))
+                    stderr_stream.write(str(base64.b64decode(stream_node.text.encode('ascii'))))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
@@ -315,4 +336,4 @@ class Protocol(object):
         if command_done:
             return_code = int(next(node for node in root.findall('.//*') if node.tag.endswith('ExitCode')).text)
 
-        return stdout, stderr, return_code, command_done
+        return return_code, command_done

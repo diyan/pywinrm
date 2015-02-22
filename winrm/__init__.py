@@ -4,7 +4,6 @@ import xml.etree.ElementTree as ET
 
 from winrm.protocol import Protocol
 
-
 class Response(object):
     """Response from a remote command execution"""
     def __init__(self, args):
@@ -23,22 +22,22 @@ class Session(object):
         self.url = self._build_url(target, transport)
         self.protocol = Protocol(self.url, transport=transport, username=username, password=password)
 
-    def run_cmd(self, command, args=()):
-        #TODO optimize perf. Do not call open/close shell every time
+    def run_cmd(self, command, args=(), ostreams=()):
+        # TODO optimize perf. Do not call open/close shell every time
         shell_id = self.protocol.open_shell()
         command_id = self.protocol.run_command(shell_id, command, args)
-        rs = Response(self.protocol.get_command_output(shell_id, command_id))
+        rs = Response(self.protocol.get_command_output(shell_id, command_id, ostreams))
         self.protocol.cleanup_command(shell_id, command_id)
         self.protocol.close_shell(shell_id)
         return rs
 
-
-    def run_ps(self, script):
-        """base64 encodes a Powershell script and executes the powershell encoded script command"""
-
+    def run_ps(self, script, ostreams=()):
+        """base64 encodes a Powershell script and executes the powershell
+        encoded script command
+        """
         # must use utf16 little endian on windows
         base64_script = base64.b64encode(script.encode("utf_16_le"))
-        rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script))
+        rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script), ostreams)
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human readable
             rs.std_err = self.clean_error_msg(rs.std_err)
