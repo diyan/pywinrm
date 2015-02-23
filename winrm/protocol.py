@@ -32,7 +32,8 @@ class Protocol(object):
 
     def __init__(self, endpoint, transport='plaintext', username=None,
                  password=None, realm=None, service=None, keytab=None,
-                 ca_trust_path=None, cert_pem=None, cert_key_pem=None):
+                 ca_trust_path=None, cert_pem=None, cert_key_pem=None,
+                 ostreams=()):
         """
         @param string endpoint: the WinRM webservice endpoint
         @param string transport: transport type, one of 'kerberos' (default), 'ssl', 'plaintext'  # NOQA
@@ -44,6 +45,7 @@ class Protocol(object):
         @param string ca_trust_path: Certification Authority trust path
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
+        @param ostreams: A tuple of stdout and stderr streams to use for streaming the output of the remote machine.
         """
         self.endpoint = endpoint
         self.timeout = Protocol.DEFAULT_TIMEOUT
@@ -64,6 +66,15 @@ class Protocol(object):
         self.service = service
         self.keytab = keytab
         self.ca_trust_path = ca_trust_path
+
+        def get_buffered_split_streams(ostreams):
+            if ostreams <> ():
+                stdout_stream, stderr_stream = ostreams
+                return BufferedSplitStream(stdout_stream), BufferedSplitStream(stderr_stream)
+            else:
+                return BufferedSplitStream(None), BufferedSplitStream(None)
+
+        self.stdout_stream, self.stderr_stream = get_buffered_split_streams(ostreams)
 
     def set_timeout(self, seconds):
         """ Operation timeout, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
@@ -305,37 +316,25 @@ class Protocol(object):
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
-    def get_command_output(self, shell_id, command_id, ostreams=()):
+    def get_command_output(self, shell_id, command_id):
         """
         Get the Output of the given shell and command
         @param string shell_id: The shell id on the remote machine.
          See #open_shell
         @param string command_id: The command id on the remote machine.
          See #run_command
-        @param ostreams: A tuple of stdout and stderr streams to use
-         for the output of the remote machine. If not given, will
-         just return the output in the first two parts of the tuple.
         #@return [Hash] Returns a Hash with a key :exitcode and :data.
          Data is an Array of Hashes where the cooresponding key
         #   is either :stdout or :stderr.  The reason it is in an Array so so
          we can get the output in the order it ocurrs on
         #   the console.
         """
-        def get_buffered_split_streams(ostreams):
-            if ostreams <> ():
-                stdout_stream, stderr_stream = ostreams
-                return BufferedSplitStream(stdout_stream), BufferedSplitStream(stderr_stream)
-            else:
-                return BufferedSplitStream(None), BufferedSplitStream(None)
-
-        stdout_stream, stderr_stream = get_buffered_split_streams(ostreams)
         command_done = False
         while not command_done:
-            return_code, command_done = \
-                self._raw_get_command_output(shell_id, command_id, stdout_stream, stderr_stream)
-        return stdout_stream.getvalue(), stderr_stream.getvalue(), return_code
+            return_code, command_done = self._raw_get_command_output(shell_id, command_id)
+        return self.stdout_stream.getvalue(), self.stderr_stream.getvalue(), return_code
 
-    def _raw_get_command_output(self, shell_id, command_id, stdout_stream, stderr_stream):
+    def _raw_get_command_output(self, shell_id, command_id):
         rq = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive',  # NOQA
@@ -355,10 +354,10 @@ class Protocol(object):
         for stream_node in stream_nodes:
             if stream_node.text:
                 if stream_node.attrib['Name'] == 'stdout':
-                    stdout_stream.write(str(base64.b64decode(
+                    self.stdout_stream.write(str(base64.b64decode(
                         stream_node.text.encode('ascii'))))
                 elif stream_node.attrib['Name'] == 'stderr':
-                    stderr_stream.write(str(base64.b64decode(
+                    self.stderr_stream.write(str(base64.b64decode(
                         stream_node.text.encode('ascii'))))
 
         # We may need to get additional output if the stream has not finished.
