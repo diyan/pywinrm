@@ -61,7 +61,7 @@ class Session(object):
             script = self.insert_ps_args(script, args)
         # must use utf16 little endian on windows
         base64_script = base64.b64encode(script.encode("utf_16_le"))
-        rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script), ostreams)
+        rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script), ostreams=ostreams)
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
