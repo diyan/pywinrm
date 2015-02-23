@@ -7,7 +7,7 @@ import xmltodict
 from winrm.transport import HttpPlaintext, HttpKerberos, HttpSSL
 import cStringIO
 
-class BufferedSplitStream(object):
+class SplitStreamBuffer(object):
     def __init__(self, ostream):
         self.ostream = ostream
         self.buffer = cStringIO.StringIO()
@@ -18,8 +18,11 @@ class BufferedSplitStream(object):
             self.ostream.flush()
         self.buffer.write(str)
 
-    def getvalue(self):
-        return self.buffer.getvalue()
+    def flush_buffer(self):
+        result = self.buffer.getvalue()
+        self.buffer.close()
+        self.buffer = cStringIO.StringIO()
+        return result
 
 class Protocol(object):
     """This is the main class that does the SOAP request/response logic. There
@@ -70,11 +73,11 @@ class Protocol(object):
         def get_buffered_split_streams(ostreams):
             if ostreams <> ():
                 stdout_stream, stderr_stream = ostreams
-                return BufferedSplitStream(stdout_stream), BufferedSplitStream(stderr_stream)
+                return SplitStreamBuffer(stdout_stream), SplitStreamBuffer(stderr_stream)
             else:
-                return BufferedSplitStream(None), BufferedSplitStream(None)
+                return SplitStreamBuffer(None), SplitStreamBuffer(None)
 
-        self.stdout_stream, self.stderr_stream = get_buffered_split_streams(ostreams)
+        self.stdout_buffer, self.stderr_buffer = get_buffered_split_streams(ostreams)
 
     def set_timeout(self, seconds):
         """ Operation timeout, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
@@ -332,7 +335,7 @@ class Protocol(object):
         command_done = False
         while not command_done:
             return_code, command_done = self._raw_get_command_output(shell_id, command_id)
-        return self.stdout_stream.getvalue(), self.stderr_stream.getvalue(), return_code
+        return self.stdout_buffer.flush_buffer(), self.stderr_buffer.flush_buffer(), return_code
 
     def _raw_get_command_output(self, shell_id, command_id):
         rq = {'env:Envelope': self._get_soap_header(
@@ -354,10 +357,10 @@ class Protocol(object):
         for stream_node in stream_nodes:
             if stream_node.text:
                 if stream_node.attrib['Name'] == 'stdout':
-                    self.stdout_stream.write(str(base64.b64decode(
+                    self.stdout_buffer.write(str(base64.b64decode(
                         stream_node.text.encode('ascii'))))
                 elif stream_node.attrib['Name'] == 'stderr':
-                    self.stderr_stream.write(str(base64.b64decode(
+                    self.stderr_buffer.write(str(base64.b64decode(
                         stream_node.text.encode('ascii'))))
 
         # We may need to get additional output if the stream has not finished.
