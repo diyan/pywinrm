@@ -169,21 +169,13 @@ def main():
         'auth': (args.login_name, args.password),
         'args': args.args,
         'interpreter': args.interpreter,
+        'ostreams': (sys.stdout, sys.stderr),
         'transport': args.transport
     }
 
     try:
         response = run(args.command, args.hostname, **kwargs)
-        if response.status_code == 0:
-            sys.stdout.write(response.std_out)
-            # Running errounous powershell on the windows server
-            # doesn't go into std_err?!?
-            # Try any erronous command, e.g., ()
-            # Therefore, we also write std_err on success
-            sys.stderr.write(response.std_err)
-        else:
-            sys.stderr.write(response.std_err)
-            sys.exit(response.status_code)
+        sys.exit(response.status_code)
 
     except Exception, e:
         handle_expection(e)

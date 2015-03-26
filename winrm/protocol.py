@@ -5,7 +5,24 @@ import xml.etree.ElementTree as ET
 from isodate.isoduration import duration_isoformat
 import xmltodict
 from winrm.transport import HttpPlaintext, HttpKerberos, HttpSSL
+import cStringIO
 
+class SplitStreamBuffer(object):
+    def __init__(self, ostream):
+        self.ostream = ostream
+        self.buffer = cStringIO.StringIO()
+
+    def write(self, str):
+        if self.ostream:
+            self.ostream.write(str)
+            self.ostream.flush()
+        self.buffer.write(str)
+
+    def flush_buffer(self):
+        result = self.buffer.getvalue()
+        self.buffer.close()
+        self.buffer = cStringIO.StringIO()
+        return result
 
 class Protocol(object):
     """This is the main class that does the SOAP request/response logic. There
@@ -18,7 +35,8 @@ class Protocol(object):
 
     def __init__(self, endpoint, transport='plaintext', username=None,
                  password=None, realm=None, service=None, keytab=None,
-                 ca_trust_path=None, cert_pem=None, cert_key_pem=None):
+                 ca_trust_path=None, cert_pem=None, cert_key_pem=None,
+                 ostreams=()):
         """
         @param string endpoint: the WinRM webservice endpoint
         @param string transport: transport type, one of 'kerberos' (default), 'ssl', 'plaintext'  # NOQA
@@ -30,6 +48,7 @@ class Protocol(object):
         @param string ca_trust_path: Certification Authority trust path
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
+        @param ostreams: A tuple of stdout and stderr streams to use for streaming the output of the remote machine.
         """
         self.endpoint = endpoint
         self.timeout = Protocol.DEFAULT_TIMEOUT
@@ -50,6 +69,15 @@ class Protocol(object):
         self.service = service
         self.keytab = keytab
         self.ca_trust_path = ca_trust_path
+
+        def get_buffered_split_streams(ostreams):
+            if ostreams <> ():
+                stdout_stream, stderr_stream = ostreams
+                return SplitStreamBuffer(stdout_stream), SplitStreamBuffer(stderr_stream)
+            else:
+                return SplitStreamBuffer(None), SplitStreamBuffer(None)
+
+        self.stdout_buffer, self.stderr_buffer = get_buffered_split_streams(ostreams)
 
     def set_timeout(self, seconds):
         """ Operation timeout, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
@@ -304,14 +332,10 @@ class Protocol(object):
          we can get the output in the order it ocurrs on
         #   the console.
         """
-        stdout_buffer, stderr_buffer = [], []
         command_done = False
         while not command_done:
-            stdout, stderr, return_code, command_done = \
-                self._raw_get_command_output(shell_id, command_id)
-            stdout_buffer.append(stdout)
-            stderr_buffer.append(stderr)
-        return ''.join(stdout_buffer), ''.join(stderr_buffer), return_code
+            return_code, command_done = self._raw_get_command_output(shell_id, command_id)
+        return self.stdout_buffer.flush_buffer(), self.stderr_buffer.flush_buffer(), return_code
 
     def _raw_get_command_output(self, shell_id, command_id):
         rq = {'env:Envelope': self._get_soap_header(
@@ -329,16 +353,15 @@ class Protocol(object):
         root = ET.fromstring(rs)
         stream_nodes = [node for node in root.findall('.//*')
                         if node.tag.endswith('Stream')]
-        stdout = stderr = ''
         return_code = -1
         for stream_node in stream_nodes:
             if stream_node.text:
                 if stream_node.attrib['Name'] == 'stdout':
-                    stdout += str(base64.b64decode(
-                        stream_node.text.encode('ascii')))
+                    self.stdout_buffer.write(str(base64.b64decode(
+                        stream_node.text.encode('ascii'))))
                 elif stream_node.attrib['Name'] == 'stderr':
-                    stderr += str(base64.b64decode(
-                        stream_node.text.encode('ascii')))
+                    self.stderr_buffer.write(str(base64.b64decode(
+                        stream_node.text.encode('ascii'))))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
@@ -356,4 +379,4 @@ class Protocol(object):
             return_code = int(next(node for node in root.findall('.//*')
                                    if node.tag.endswith('ExitCode')).text)
 
-        return stdout, stderr, return_code, command_done
+        return return_code, command_done

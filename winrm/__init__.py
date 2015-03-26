@@ -8,6 +8,7 @@ def run(command, hostname,
         auth=(),
         interpreter='cmd',
         transport='plaintext',
+        ostreams=(),
         args=()):
     """Runs a remote command.
     Returns :class:`Response` object.
@@ -18,7 +19,7 @@ def run(command, hostname,
     :param args: (optional) Tuple of command arguments.
     :param interpreter: (optional) Interpreter to use cmd or ps. Set to 'cmd' by default.
     """
-    session = Session(hostname, auth, transport)
+    session = Session(hostname, auth, transport, ostreams)
     if interpreter == 'ps':
         return session.run_ps(command, args)
     else:
@@ -37,11 +38,12 @@ class Response(object):
 
 class Session(object):
     # TODO implement context manager methods
-    def __init__(self, target, auth, transport='plaintext'):
+    def __init__(self, target, auth, transport='plaintext', ostreams=()):
         username, password = auth
         self.url = self._build_url(target, transport)
         self.protocol = Protocol(self.url, transport=transport,
-                                 username=username, password=password)
+                                 username=username, password=password,
+                                 ostreams=ostreams)
 
     def run_cmd(self, command, args=()):
         # TODO optimize perf. Do not call open/close shell every time
@@ -132,4 +134,3 @@ class Session(object):
         if not path:
             path = 'wsman'
         return '{0}://{1}:{2}/{3}'.format(scheme, host, port, path.lstrip('/'))
-
