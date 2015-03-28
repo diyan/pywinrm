@@ -155,7 +155,7 @@ class Protocol(object):
                 # TODO: research this a bit http://msdn.microsoft.com/en-us/library/cc251561(v=PROT.13).aspx  # NOQA
                 # 'cfg:MaxTimeoutms': 600
                 # Operation timeout in ISO8601 format, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
-                'w:OperationTimeout': 'PT{}S'.format(int(self.timeout)),
+                'w:OperationTimeout': 'PT{0}S'.format(int(self.timeout)),
                 'w:ResourceURI': {
                     '@mustUnderstand': 'true',
                     '#text': resource_uri
