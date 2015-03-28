@@ -1,8 +1,6 @@
 import base64
-from datetime import timedelta
 import uuid
 import xml.etree.ElementTree as ET
-from isodate.isoduration import duration_isoformat
 import xmltodict
 from winrm.transport import HttpPlaintext, HttpKerberos, HttpSSL
 
@@ -12,7 +10,7 @@ class Protocol(object):
     are a few helper classes, but pretty much everything comes through here
     first.
     """
-    DEFAULT_TIMEOUT = 'PT60S'
+    DEFAULT_TIMEOUT = 60
     DEFAULT_MAX_ENV_SIZE = 153600
     DEFAULT_LOCALE = 'en-US'
 
@@ -50,14 +48,6 @@ class Protocol(object):
         self.service = service
         self.keytab = keytab
         self.ca_trust_path = ca_trust_path
-
-    def set_timeout(self, seconds):
-        """ Operation timeout, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
-        @param int seconds: the number of seconds to set the timeout to.
-         It will be converted to an ISO8601 format.
-        """
-        # in original library there is an alias - op_timeout method
-        return duration_isoformat(timedelta(seconds))
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,
@@ -164,7 +154,8 @@ class Protocol(object):
                 },
                 # TODO: research this a bit http://msdn.microsoft.com/en-us/library/cc251561(v=PROT.13).aspx  # NOQA
                 # 'cfg:MaxTimeoutms': 600
-                'w:OperationTimeout': 'PT60S',
+                # Operation timeout in ISO8601 format, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
+                'w:OperationTimeout': 'PT{}S'.format(int(self.timeout)),
                 'w:ResourceURI': {
                     '@mustUnderstand': 'true',
                     '#text': resource_uri
