@@ -1,3 +1,5 @@
 [run]
 omit =
-    */tests*
+    setup.py
+    tests/*
+    env/*
