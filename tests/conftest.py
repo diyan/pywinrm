@@ -1,9 +1,12 @@
-# flake8: noqa
 import os
 import uuid
+
 import xmltodict
 from pytest import skip, fixture
 from mock import patch
+import httpretty
+
+from winrm import Protocol
 
 
 open_shell_request = """\
@@ -169,6 +172,37 @@ run_cmd_response = """\
     </s:Body>
 </s:Envelope>"""
 
+run_ps_request = """\
+<?xml version="1.0" encoding="utf-8" ?>\n
+<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell">
+    <env:Body>
+        <rsp:CommandLine>
+            <rsp:Command>powershell -encodedcommand b\'aABvAHMAdABuAGEAbQBlAA==\'</rsp:Command>
+        </rsp:CommandLine>
+    </env:Body>
+    <env:Header>
+        <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+        <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
+        <a:ReplyTo>
+            <a:Address mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+        </a:ReplyTo>
+        <a:To>http://windows-host:5985/wsman</a:To>
+        <w:Locale xml:lang="en-US" mustUnderstand="false"></w:Locale>
+        <w:SelectorSet>
+            <w:Selector Name="ShellId">11111111-1111-1111-1111-111111111113</w:Selector>
+        </w:SelectorSet>
+        <w:MaxEnvelopeSize mustUnderstand="true">153600</w:MaxEnvelopeSize>
+        <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+        <p:DataLocale xml:lang="en-US" mustUnderstand="false"></p:DataLocale>
+        <w:OperationTimeout>PT60S</w:OperationTimeout>
+        <w:OptionSet>
+            <w:Option Name="WINRS_CONSOLEMODE_STDIN">TRUE</w:Option>
+            <w:Option Name="WINRS_SKIP_CMD_SHELL">FALSE</w:Option>
+        </w:OptionSet>
+    </env:Header>
+</env:Envelope>
+"""
+
 cleanup_cmd_request = """\
 <?xml version="1.0" encoding="utf-8"?>
 <env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
@@ -275,46 +309,46 @@ def xml_str_compare(first, second):
     return first_dict == second_dict
 
 
-class TransportStub(object):
-    def send_message(self, message):
-        if xml_str_compare(message, open_shell_request):
-            return open_shell_response
-        elif xml_str_compare(message, close_shell_request):
-            return close_shell_response
-        elif xml_str_compare(
-                message, run_cmd_with_args_request) or xml_str_compare(
-                message, run_cmd_wo_args_request):
-            return run_cmd_response
-        elif xml_str_compare(message, cleanup_cmd_request):
-            return cleanup_cmd_response
-        elif xml_str_compare(message, get_cmd_output_request):
-            return get_cmd_output_response
-        else:
-            raise Exception('Message was not expected')
+def transport_stub_callback(request, uri, headers):
+    message = request.body
+    if xml_str_compare(message, open_shell_request):
+        rs = open_shell_response
+    elif xml_str_compare(message, close_shell_request):
+        rs = close_shell_response
+    elif xml_str_compare(
+            message, run_cmd_with_args_request) or xml_str_compare(
+            message, run_cmd_wo_args_request):
+        rs = run_cmd_response
+    elif xml_str_compare(message, cleanup_cmd_request):
+        rs = cleanup_cmd_response
+    elif xml_str_compare(message, get_cmd_output_request):
+        rs = get_cmd_output_response
+    elif xml_str_compare(message, run_ps_request):
+        rs = run_cmd_response
+    else:
+        raise Exception('Message was not expected')
+    return 200, {'server': 'stub'}, rs
 
 
-@fixture(scope='module')
+@fixture(scope='function')
 def protocol_fake(request):
+    httpretty.reset()
+    httpretty.enable()
+    httpretty.register_uri(
+        method=httpretty.POST, uri='http://windows-host:5985/wsman',
+        body=transport_stub_callback)
+
     uuid4_patcher = patch('uuid.uuid4')
     uuid4_mock = uuid4_patcher.start()
     uuid4_mock.return_value = uuid.UUID(
         '11111111-1111-1111-1111-111111111111')
 
-    from winrm.protocol import Protocol
-
-    protocol_fake = Protocol(
-        endpoint='http://windows-host:5985/wsman',
-        transport='plaintext',
-        username='john.smith',
-        password='secret')
-
-    protocol_fake.transport = TransportStub()
-
-    def uuid4_patch_stop():
+    def teardown():
+        httpretty.disable()
         uuid4_patcher.stop()
 
-    request.addfinalizer(uuid4_patch_stop)
-    return protocol_fake
+    request.addfinalizer(teardown)
+    return Protocol(endpoint='http://windows-host:5985/wsman')
 
 
 @fixture(scope='module')
