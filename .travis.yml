@@ -5,14 +5,15 @@ python:
   - 2.7
   - 3.2
   - 3.3
+  - 3.4
   - pypy
 install:
   - sudo apt-get install libffi-dev
   - pip install cffi coveralls
   - pip install -r requirements.txt
 script:
-  #TODO enable pep8 checking
-  #py.test -v --pep8 winrm --cov winrm --cov-report term-missing winrm/tests/
-  - py.test -v --cov winrm --cov-report term-missing winrm/tests/
+  # TODO enable pep8 checking
+  # py.test -v --pep8=winrm --cov=winrm --cov-report=term-missing winrm/tests/
+  - py.test -v --cov=winrm --cov-report=term-missing winrm/tests/
 after_success:
   - coveralls
