@@ -6,6 +6,7 @@ Thumbs.db
 # Unit test / coverage reports
 .coverage
 .cache
+htmlcov/
 
 # JetBrains PyCharm configuration and working files
 .idea
@@ -22,5 +23,3 @@ Thumbs.db
 __pycache__
 ~temp/
 *~
-
-/winrm/tests/config.json
