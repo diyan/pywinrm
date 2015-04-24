@@ -173,11 +173,11 @@ run_cmd_response = """\
 </s:Envelope>"""
 
 run_ps_request = """\
-<?xml version="1.0" encoding="utf-8" ?>\n
+<?xml version="1.0" encoding="utf-8" ?>
 <env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell">
     <env:Body>
         <rsp:CommandLine>
-            <rsp:Command>powershell -encodedcommand b\'aABvAHMAdABuAGEAbQBlAA==\'</rsp:Command>
+            <rsp:Command>powershell -encodedcommand aABvAHMAdABuAGEAbQBlAA==</rsp:Command>
         </rsp:CommandLine>
     </env:Body>
     <env:Header>
