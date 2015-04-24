@@ -35,8 +35,8 @@ init:
   - if not exist %PYTHON%\\Scripts\\pip.exe curl https://bootstrap.pypa.io/get-pip.py | python
 
 install:
-  - "%WITH_COMPILER% pip install coveralls"
   - winrm set winrm/config/service @{AllowUnencrypted="true"}
+  - "%WITH_COMPILER% pip install cffi coveralls"
   - pip install -r requirements.txt
 
 build: off  # Do not run MSBuild, build stuff at install step
