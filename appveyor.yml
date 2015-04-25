@@ -45,7 +45,7 @@ build_script:
   - echo build_script
 
 test_script:
-  - set WINRM_ENDPOINT='http://localhost' && py.test -v --cov-report=term-missing --cov=.
+  - set WINRM_ENDPOINT=http://localhost && py.test -v --cov-report=term-missing --cov=.
 
 after_test:
   - echo after_test
