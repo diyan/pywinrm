@@ -1,7 +1,10 @@
-from base64 import b64decode
+"""Contains client side logic of WinRM SOAP protocol implementation"""
+import base64
 import uuid
+
 import xml.etree.ElementTree as ET
 import xmltodict
+
 from winrm.transport import Transport
 
 
@@ -30,7 +33,6 @@ class Protocol(object):
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
         """
-        self.endpoint = endpoint
         self.timeout = Protocol.DEFAULT_TIMEOUT
         self.max_env_sz = Protocol.DEFAULT_MAX_ENV_SIZE
         self.locale = Protocol.DEFAULT_LOCALE
@@ -74,10 +76,10 @@ class Protocol(object):
          instance on the remote machine.
         @rtype string
         """
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Create')}
-        header = rq['env:Envelope']['env:Header']
+        header = req['env:Envelope']['env:Header']
         header['w:OptionSet'] = {
             'w:Option': [
                 {
@@ -91,7 +93,7 @@ class Protocol(object):
             ]
         }
 
-        shell = rq['env:Envelope'].setdefault(
+        shell = req['env:Envelope'].setdefault(
             'env:Body', {}).setdefault('rsp:Shell', {})
         shell['rsp:InputStreams'] = i_stream
         shell['rsp:OutputStreams'] = o_stream
@@ -110,10 +112,10 @@ class Protocol(object):
             for key, value in env_vars.items():
                 env['rsp:Variable'] = {'@Name': key, '#text': value}
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        #rs = xmltodict.parse(rs)
-        #return rs['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
-        root = ET.fromstring(rs)
+        res = self.send_message(xmltodict.unparse(req))
+        #res = xmltodict.parse(res)
+        #return res['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
+        root = ET.fromstring(res)
         return next(
             node for node in root.findall('.//*')
             if node.get('Name') == 'ShellId').text
@@ -197,17 +199,17 @@ class Protocol(object):
         @rtype bool
         """
         message_id = uuid.uuid4()
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete',
             shell_id=shell_id,
             message_id=message_id)}
 
         # SOAP message requires empty env:Body
-        rq['env:Envelope'].setdefault('env:Body', {})
+        req['env:Envelope'].setdefault('env:Body', {})
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        root = ET.fromstring(rs)
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
         relates_to = next(
             node for node in root.findall('.//*')
             if node.tag.endswith('RelatesTo')).text
@@ -230,11 +232,11 @@ class Protocol(object):
          This is the ID we need to query in order to get output.
         @rtype string
         """
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command',  # NOQA
             shell_id=shell_id)}
-        header = rq['env:Envelope']['env:Header']
+        header = req['env:Envelope']['env:Header']
         header['w:OptionSet'] = {
             'w:Option': [
                 {
@@ -247,14 +249,14 @@ class Protocol(object):
                 }
             ]
         }
-        cmd_line = rq['env:Envelope'].setdefault(
+        cmd_line = req['env:Envelope'].setdefault(
             'env:Body', {}).setdefault('rsp:CommandLine', {})
         cmd_line['rsp:Command'] = {'#text': command}
         if arguments:
             cmd_line['rsp:Arguments'] = ' '.join(arguments)
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        root = ET.fromstring(rs)
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
         command_id = next(
             node for node in root.findall('.//*')
             if node.tag.endswith('CommandId')).text
@@ -272,20 +274,20 @@ class Protocol(object):
         @rtype bool
         """
         message_id = uuid.uuid4()
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal',  # NOQA
             shell_id=shell_id,
             message_id=message_id)}
 
         # Signal the Command references to terminate (close stdout/stderr)
-        signal = rq['env:Envelope'].setdefault(
+        signal = req['env:Envelope'].setdefault(
             'env:Body', {}).setdefault('rsp:Signal', {})
         signal['@CommandId'] = command_id
         signal['rsp:Code'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate'  # NOQA
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        root = ET.fromstring(rs)
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
         relates_to = next(
             node for node in root.findall('.//*')
             if node.tag.endswith('RelatesTo')).text
@@ -315,18 +317,18 @@ class Protocol(object):
         return ''.join(stdout_buffer), ''.join(stderr_buffer), return_code
 
     def _raw_get_command_output(self, shell_id, command_id):
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive',  # NOQA
             shell_id=shell_id)}
 
-        stream = rq['env:Envelope'].setdefault('env:Body', {}).setdefault(
+        stream = req['env:Envelope'].setdefault('env:Body', {}).setdefault(
             'rsp:Receive', {}).setdefault('rsp:DesiredStream', {})
         stream['@CommandId'] = command_id
         stream['#text'] = 'stdout stderr'
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        root = ET.fromstring(rs)
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
         stream_nodes = [
             node for node in root.findall('.//*')
             if node.tag.endswith('Stream')]
@@ -336,9 +338,9 @@ class Protocol(object):
             if not stream_node.text:
                 continue
             if stream_node.attrib['Name'] == 'stdout':
-                stdout += str(b64decode(stream_node.text.encode('ascii')))
+                stdout += str(base64.b64decode(stream_node.text.encode('ascii')))
             elif stream_node.attrib['Name'] == 'stderr':
-                stderr += str(b64decode(stream_node.text.encode('ascii')))
+                stderr += str(base64.b64decode(stream_node.text.encode('ascii')))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
