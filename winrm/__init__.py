@@ -1,5 +1,6 @@
+from __future__ import unicode_literals
 import re
-import base64
+from base64 import b64encode
 import xml.etree.ElementTree as ET
 
 from winrm.protocol import Protocol
@@ -37,10 +38,9 @@ class Session(object):
         """base64 encodes a Powershell script and executes the powershell
         encoded script command
         """
-
         # must use utf16 little endian on windows
-        base64_script = base64.b64encode(script.encode("utf_16_le"))
-        rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script))
+        encoded_ps = b64encode(script.encode('utf_16_le')).decode('ascii')
+        rs = self.run_cmd('powershell -encodedcommand {0}'.format(encoded_ps))
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
