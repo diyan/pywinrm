@@ -100,16 +100,56 @@ p.cleanup_command(shell_id, command_id)
 p.close_shell(shell_id)
 ```
 
-### Enable WinRM on remote host
+## Client-side and server-side configuration
 
-- Enable basic WinRM authentication (Good only for troubleshooting. For hosts in a domain it is better to use Kerberos authentication.)
-- Allow unencrypted message passing over WinRM (not secure for hosts in a domain but this feature was not yet implemented.)
+### Server-side. Configure WinRM service on Windows host
+
+NOTE You may want to use [ievms](https://xdissent.github.com/ievms) to get free Windows VM up and running:
+
+```bash
+$ curl -s https://raw.githubusercontent.com/xdissent/ievms/master/ievms.sh | env IEVMS_VERSIONS="9" bash
+```
+Enable WinRM service on remote host/VM:
 
 ```
-winrm set winrm/config/client/auth @{Basic="true"}
-winrm set winrm/config/service/auth @{Basic="true"}
-winrm set winrm/config/service @{AllowUnencrypted="true"}
+C:\> winrm quickconfig
 ```
+
+Allow basic WinRM authentication for service:
+
+```
+C:\> winrm set winrm/config/service/auth @{Basic="true"}
+C:\> winrm set winrm/config/service @{AllowUnencrypted="true"}
+```
+
+NOTES:
+
+- Basic auth will work only if unencrypted data transfer will be allowed on the server side
+- For hosts in domain it's safer to use Kerberos authentication, not Basic
+- Unencrypted data transfer vulnerable to man-in-the-middle attack and could be used only in secure environments like VPN tunnel
+- Message encryption is not yet implemented in pywinrm
+
+### Client-side. Configure WinRM client on Windows host
+
+It make sense to configure native WinRM client on same Windows host/VM and make sure it works.
+
+Allow basic WinRM authentication for client:
+
+```
+C:\> winrm set winrm/config/client/auth @{Basic="true"}
+C:\> winrm set winrm/config/client @{AllowUnencrypted="true"}
+```
+Make sure that WinRM works on localhost with basic authentication and unencrypted messages:
+
+```
+C:\> winrs -r:localhost -u:IEUser -p:Passw0rd! -unencrypted hostname
+IE9Win7
+```
+
+
+### More details on how to configure WinRM
+
+- https://support.microsoft.com/en-us/kb/555966
 
 ### Contributors (alphabetically)
 
