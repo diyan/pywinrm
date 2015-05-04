@@ -9,14 +9,13 @@ if is_py2:
 else:
     from urllib.parse import urlsplit, urlunsplit
 
-from winrm.exceptions import WinRMTransportError, UnauthorizedError
+from winrm.exceptions import BasicAuthDisabledError, InvalidCredentialsError, \
+    WinRMError
 
 import requests
 import requests.auth
-from requests.structures import CaseInsensitiveDict
 from requests.hooks import default_hooks
 from requests.adapters import HTTPAdapter
-from requests.models import PreparedRequest
 
 HAVE_KERBEROS = False
 try:
@@ -214,12 +213,12 @@ if HAVE_NTLM:
 class MultiAuth(requests.auth.AuthBase):
 
     def __init__(self, session=None):
-        self.auth_map = CaseInsensitiveDict()
+        self.auth_map = {}
         self.current_auth = None
         self.session = weakref.ref(session) if session else None
 
     def add_auth(self, scheme, auth_instance):
-        auth_instances = self.auth_map.setdefault(scheme, [])
+        auth_instances = self.auth_map.setdefault(scheme.lower(), [])
         auth_instances.append(auth_instance)
 
     def handle_401(self, response, **kwargs):
@@ -334,8 +333,16 @@ class Transport(object):
             response_text = response.text
             return response_text
         except requests.HTTPError as ex:
-            if ex.response and ex.response.status_code == 401:
-                raise UnauthorizedError(transport='requests', message=ex.msg)
+            if ex.response.status_code == 401:
+                server_auth = ex.response.headers['WWW-Authenticate'].lower()
+                client_auth = list(self.session.auth.auth_map.keys())
+                # Client can do only the Basic auth but server can not
+                if 'basic' not in server_auth and len(client_auth) == 1 \
+                        and client_auth[0] == 'basic':
+                    raise BasicAuthDisabledError()
+                # Both client and server can do a Basic auth
+                if 'basic' in server_auth and 'basic' in client_auth:
+                    raise InvalidCredentialsError()
             if ex.response:
                 response_text = ex.response.content
             else:
@@ -348,4 +355,4 @@ class Transport(object):
             error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
             #if ex.msg:
             #    error_message += ', {0}'.format(ex.msg)
-            raise WinRMTransportError('http', error_message)
+            raise WinRMError('http', error_message)
