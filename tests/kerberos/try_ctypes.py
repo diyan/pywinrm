@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import os
 from ctypes import (cdll, Structure, c_size_t, c_void_p,
                     c_uint32, c_char_p, cast, byref)

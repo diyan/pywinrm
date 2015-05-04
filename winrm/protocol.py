@@ -1,4 +1,5 @@
 """Contains client side logic of WinRM SOAP protocol implementation"""
+from __future__ import unicode_literals
 import base64
 import uuid
 

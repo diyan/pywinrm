@@ -1,5 +1,5 @@
+from __future__ import unicode_literals
 from contextlib import contextmanager
-import logging
 import re
 import sys
 import weakref
@@ -8,9 +8,6 @@ if is_py2:
     from urlparse import urlsplit, urlunsplit
 else:
     from urllib.parse import urlsplit, urlunsplit
-
-from winrm.exceptions import BasicAuthDisabledError, InvalidCredentialsError, \
-    WinRMError
 
 import requests
 import requests.auth
@@ -31,6 +28,9 @@ try:
     HAVE_NTLM = True
 except ImportError:
     pass
+
+from winrm.exceptions import BasicAuthDisabledError, InvalidCredentialsError, \
+    WinRMError
 
 __all__ = ['Transport']
 
