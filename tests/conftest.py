@@ -354,10 +354,10 @@ def protocol_fake(request):
 
 @fixture(scope='module')
 def protocol_real():
-    endpoint = os.environ.get('WINRM_ENDPOINT', 'http://192.168.1.14:5985/wsman')
+    endpoint = os.environ.get('WINRM_ENDPOINT', None)
     transport = os.environ.get('WINRM_TRANSPORT', None)
-    username = os.environ.get('WINRM_USERNAME', 'IEUser')
-    password = os.environ.get('WINRM_PASSWORD', 'Passw0rd!')
+    username = os.environ.get('WINRM_USERNAME', None)
+    password = os.environ.get('WINRM_PASSWORD', None)
     if endpoint:
         # TODO consider replace json with yaml for integration test settings
         # TODO json does not support comments
