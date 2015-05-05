@@ -23,7 +23,7 @@ setup(
     url='http://github.com/diyan/pywinrm/',
     license='MIT license',
     packages=('winrm', 'tests'),
-    package_data={'winrm.tests': ['*.ps1']},
+    package_data={'tests': ['*.ps1']},
     install_requires=['xmltodict', 'requests'],
     classifiers=[
         'Development Status :: 4 - Beta',
