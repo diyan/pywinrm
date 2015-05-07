@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from isodate.isoduration import duration_isoformat
 import xmltodict
 from winrm.transport import HttpPlaintext, HttpKerberos, HttpSSL
+import sys
 
 
 class Protocol(object):
@@ -105,7 +106,7 @@ class Protocol(object):
             # TODO: research Lifetime a bit more:
             # http://msdn.microsoft.com/en-us/library/cc251546(v=PROT.13).aspx
             # if lifetime:
-            #    shell['rsp:Lifetime'] = iso8601_duration.sec_to_dur(lifetime)
+            # shell['rsp:Lifetime'] = iso8601_duration.sec_to_dur(lifetime)
             # TODO: make it so the input is given in milliseconds and converted
             # to xs:duration
         if idle_timeout:
@@ -114,7 +115,6 @@ class Protocol(object):
             env = shell.setdefault('rsp:Environment', {})
             for key, value in env_vars.items():
                 env['rsp:Variable'] = {'@Name': key, '#text': value}
-
         rs = self.send_message(xmltodict.unparse(rq))
         # rs = xmltodict.parse(rs)
         # return rs['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']  # NOQA
@@ -247,7 +247,7 @@ class Protocol(object):
                 }
             ]
         }
-        cmd_line = rq['env:Envelope'].setdefault('env:Body', {})\
+        cmd_line = rq['env:Envelope'].setdefault('env:Body', {}) \
             .setdefault('rsp:CommandLine', {})
         cmd_line['rsp:Command'] = {'#text': command}
         if arguments:
@@ -291,13 +291,15 @@ class Protocol(object):
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
-    def get_command_output(self, shell_id, command_id):
+    def get_command_output(self, shell_id, command_id, out_stream=None, err_stream=None):
         """
         Get the Output of the given shell and command
         @param string shell_id: The shell id on the remote machine.
          See #open_shell
         @param string command_id: The command id on the remote machine.
          See #run_command
+        @param stream out_stream: The stream of which the std_out would be directed to. (optional)
+        @param stream err_stream: The stream of which the std_err would be directed to. (optional)
         #@return [Hash] Returns a Hash with a key :exitcode and :data.
          Data is an Array of Hashes where the cooresponding key
         #   is either :stdout or :stderr.  The reason it is in an Array so so
@@ -307,20 +309,20 @@ class Protocol(object):
         stdout_buffer, stderr_buffer = [], []
         command_done = False
         while not command_done:
-            stdout, stderr, return_code, command_done = \
-                self._raw_get_command_output(shell_id, command_id)
+            stdout, stderr, return_code, command_done = self._raw_get_command_output(shell_id, command_id, out_stream,
+                                                                                     err_stream)
             stdout_buffer.append(stdout)
             stderr_buffer.append(stderr)
         return ''.join(stdout_buffer), ''.join(stderr_buffer), return_code
 
-    def _raw_get_command_output(self, shell_id, command_id):
+    def _raw_get_command_output(self, shell_id, command_id, out_stream=None, err_stream=None):
         rq = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive',  # NOQA
             shell_id=shell_id)}
 
         stream = rq['env:Envelope'].setdefault(
-            'env:Body', {}).setdefault('rsp:Receive', {})\
+            'env:Body', {}).setdefault('rsp:Receive', {}) \
             .setdefault('rsp:DesiredStream', {})
         stream['@CommandId'] = command_id
         stream['#text'] = 'stdout stderr'
@@ -333,12 +335,15 @@ class Protocol(object):
         return_code = -1
         for stream_node in stream_nodes:
             if stream_node.text:
+                content = str(base64.b64decode(stream_node.text.encode('ascii')))
                 if stream_node.attrib['Name'] == 'stdout':
-                    stdout += str(base64.b64decode(
-                        stream_node.text.encode('ascii')))
+                    if out_stream:
+                        out_stream.write(content)
+                    stdout += content
                 elif stream_node.attrib['Name'] == 'stderr':
-                    stderr += str(base64.b64decode(
-                        stream_node.text.encode('ascii')))
+                    if err_stream:
+                        err_stream.write(content)
+                    stderr += content
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
