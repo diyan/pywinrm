@@ -49,7 +49,7 @@ Windows IP Configuration
 
 ```
 
-NOTE: pywirnm will try and guess the correct endpoint url from the following formats:
+NOTE: pywinrm will try and guess the correct endpoint url from the following formats:
 
  - windows-host -> http://windows-host:5985/wsman
  - windows-host:1111 -> http://windows-host:1111/wsman
