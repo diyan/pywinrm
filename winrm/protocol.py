@@ -15,6 +15,7 @@ class Protocol(object):
     DEFAULT_TIMEOUT = 'PT60S'
     DEFAULT_MAX_ENV_SIZE = 153600
     DEFAULT_LOCALE = 'en-US'
+    MAX_ENVELOPE_SIZE = 10*1024*1024
 
     def __init__(self, endpoint, transport='plaintext', username=None,
                  password=None, realm=None, service=None, keytab=None,
@@ -115,7 +116,11 @@ class Protocol(object):
             for key, value in env_vars.items():
                 env['rsp:Variable'] = {'@Name': key, '#text': value}
 
-        rs = self.send_message(xmltodict.unparse(rq))
+        message = xmltodict.unparse(rq)
+        if len(message) >= self.MAX_ENVELOPE_SIZE:
+            raise Exception("pywinrm MAX_ENVELOPE_SIZE exceeded")
+
+        rs = self.send_message(message)
         # rs = xmltodict.parse(rs)
         # return rs['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']  # NOQA
         root = ET.fromstring(rs)
@@ -151,7 +156,7 @@ class Protocol(object):
                 },
                 'w:MaxEnvelopeSize': {
                     '@mustUnderstand': 'true',
-                    '#text': '153600'
+                    '#text': str(self.MAX_ENVELOPE_SIZE)
                 },
                 'a:MessageID': 'uuid:{0}'.format(message_id),
                 'w:Locale': {
