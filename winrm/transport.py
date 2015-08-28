@@ -2,10 +2,10 @@ import sys
 
 from winrm.exceptions import WinRMTransportError, UnauthorizedError
 
-
 HAVE_KERBEROS = False
 try:
     import kerberos
+
     HAVE_KERBEROS = True
 except ImportError:
     pass
@@ -107,6 +107,17 @@ class HttpPlaintext(HttpTransport):
                             ' Code {0}'.format(ex.code)
             if ex.msg:
                 error_message += ', {0}'.format(ex.msg)
+
+            import xml.etree.ElementTree as ET
+
+            root = ET.fromstring(response_text)
+            ns = {'s': "http://www.w3.org/2003/05/soap-envelope",
+                  'a': "http://schemas.xmlsoap.org/ws/2004/08/addressing",
+                  'w': "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd"}
+
+            for text in root.findall('s:Body/s:Fault/s:Reason/s:Text', ns):
+                error_message += "\n%s" % text.text
+
             raise WinRMTransportError('http', error_message)
         except URLError as ex:
             raise WinRMTransportError('http', ex.reason)
@@ -127,6 +138,7 @@ class HTTPSClientAuthHandler(HTTPSHandler):
 
 class HttpSSL(HttpPlaintext):
     """Uses SSL to secure the transport"""
+
     def __init__(self, endpoint, username, password, ca_trust_path=None,
                  disable_sspi=True, basic_auth_only=True,
                  cert_pem=None, cert_key_pem=None):
@@ -161,6 +173,7 @@ class KerberosTicket:
     """ Implementation based on:
     http://ncoghlan_devs-python-notes.readthedocs.org/en/latest/python_kerberos.html  # NOQA
     """
+
     def __init__(self, service):
         ignored_code, krb_context = kerberos.authGSSClientInit(service)
         kerberos.authGSSClientStep(krb_context, '')
