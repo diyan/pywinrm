@@ -187,7 +187,7 @@ class Protocol(object):
     def send_message(self, message):
         # TODO add message_id vs relates_to checking
         # TODO port error handling code
-        return self.transport.send_message(message)
+        return self.transport.send_message(message.encode("utf-8"))
 
     def close_shell(self, shell_id):
         """
@@ -335,10 +335,10 @@ class Protocol(object):
             if stream_node.text:
                 if stream_node.attrib['Name'] == 'stdout':
                     stdout += str(base64.b64decode(
-                        stream_node.text.encode('ascii')))
+                        stream_node.text).decode('utf-8'))
                 elif stream_node.attrib['Name'] == 'stderr':
                     stderr += str(base64.b64decode(
-                        stream_node.text.encode('ascii')))
+                        stream_node.text).decode('utf-8'))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
