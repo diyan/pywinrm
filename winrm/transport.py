@@ -143,8 +143,7 @@ class HTTPSClientAuthHandler(HTTPSHandler):
         HTTPSHandler.__init__(self)
         self.cert = cert
         self.key = key
-        if sslcontext:
-            self._context = sslcontext
+        self._context = sslcontext
 
     def https_open(self, req):
         return self.do_open(self.getConnection, req, context=self._context)
