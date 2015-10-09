@@ -32,6 +32,19 @@ else:
     from urllib.parse import urlparse
     from http.client import HTTPSConnection
 
+# the built-in basic auth handler waits for a 401 before sending creds, doubling all the requests
+class ForcedBasicAuthHandler(HTTPBasicAuthHandler):
+    def http_request(self, req):
+        url = req.get_full_url()
+        user, password = self.passwd.find_user_password(None, url)
+        if password:
+            base64_user_pass = ('%s:%s' % (user, password)).encode('base64').strip()
+            auth_header_value = 'Basic %s' % base64_user_pass
+            req.add_unredirected_header(self.auth_header, auth_header_value)
+        return req
+
+    https_request = http_request
+
 
 class HttpTransport(object):
     def __init__(self, endpoint, username, password):
@@ -75,7 +88,7 @@ class HttpPlaintext(HttpTransport):
         password_manager = HTTPPasswordMgrWithDefaultRealm()
         password_manager.add_password(
             None, self.endpoint, self.username, self.password)
-        auth_manager = HTTPBasicAuthHandler(password_manager)
+        auth_manager = ForcedBasicAuthHandler(password_manager)
         handlers = [auth_manager]
         root_handler = kwargs.get('root_handler')
         if root_handler:
