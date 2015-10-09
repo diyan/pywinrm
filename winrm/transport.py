@@ -10,6 +10,13 @@ try:
 except ImportError:
     pass
 
+HAVE_SSLCONTEXT = False
+try:
+    from ssl import SSLContext, CERT_NONE, create_default_context
+    HAVE_SSLCONTEXT = True
+except ImportError:
+    pass
+
 is_py2 = sys.version[0] == '2'
 if is_py2:
     from urllib2 import (Request, URLError, HTTPError, HTTPBasicAuthHandler,
@@ -64,13 +71,16 @@ class HttpPlaintext(HttpTransport):
         self._headers = {'Content-Type': 'application/soap+xml;charset=UTF-8',
                          'User-Agent': 'Python WinRM client'}
 
-    def _setup_opener(self):
+    def _setup_opener(self, **kwargs):
         password_manager = HTTPPasswordMgrWithDefaultRealm()
         password_manager.add_password(
             None, self.endpoint, self.username, self.password)
         auth_manager = HTTPBasicAuthHandler(password_manager)
-        opener = build_opener(auth_manager)
-        install_opener(opener)
+        handlers = [auth_manager]
+        root_handler = kwargs.get('root_handler')
+        if root_handler:
+            handlers.insert(0, root_handler)
+        self.opener = build_opener(*handlers)
 
     def send_message(self, message):
         headers = self._headers.copy()
@@ -78,8 +88,11 @@ class HttpPlaintext(HttpTransport):
 
         self._setup_opener()
         request = Request(self.endpoint, data=message, headers=headers)
+
         try:
-            response = urlopen(request, timeout=self.timeout)
+            # install_opener is ignored in > 2.7.9 when an SSLContext is passed to urlopen, so
+            # we'll have to call open manually with our stored opener chain
+            response = self.opener.open(request, timeout=self.timeout)
             # Version 1.1 of WinRM adds the namespaces in the document instead
             # of the envelope so we have to
             # add them ourselves here. This should have no affect version 2.
@@ -129,11 +142,12 @@ class HttpSSL(HttpPlaintext):
     """Uses SSL to secure the transport"""
     def __init__(self, endpoint, username, password, ca_trust_path=None,
                  disable_sspi=True, basic_auth_only=True,
-                 cert_pem=None, cert_key_pem=None):
+                 cert_pem=None, cert_key_pem=None, server_cert_validation='validate'):
         super(HttpSSL, self).__init__(endpoint, username, password)
 
         self._cert_pem = cert_pem
         self._cert_key_pem = cert_key_pem
+        self._server_cert_validation = server_cert_validation
 
         # Ruby
         # @httpcli.set_auth(endpoint, user, pass)
@@ -149,12 +163,23 @@ class HttpSSL(HttpPlaintext):
                 "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"  # NOQA
 
     def _setup_opener(self):
-        if not self._cert_pem:
-            super(HttpSSL, self)._setup_opener()
+        if HAVE_SSLCONTEXT and self._server_cert_validation == 'ignore':
+            sslcontext = create_default_context()
+            sslcontext.check_hostname = False
+            sslcontext.verify_mode = CERT_NONE
         else:
-            opener = build_opener(HTTPSClientAuthHandler(
+            sslcontext = None
+
+        https_transport_handler = HTTPSHandler(context=sslcontext) if sslcontext else None
+
+        if not self._cert_pem:
+            super(HttpSSL, self)._setup_opener(root_handler=https_transport_handler)
+        else:
+            handlers = (HTTPSClientAuthHandler(
                 self._cert_pem, self._cert_key_pem))
-            install_opener(opener)
+            if sslcontext:
+                handlers.insert(0, https_transport_handler)
+            self.opener = build_opener(*handlers)
 
 
 class KerberosTicket:
@@ -193,7 +218,7 @@ class KerberosTicket:
 
 
 class HttpKerberos(HttpTransport):
-    def __init__(self, endpoint, realm=None, service='HTTP', keytab=None):
+    def __init__(self, endpoint, realm=None, service='HTTP', keytab=None, server_cert_validation='validate'):
         """
         Uses Kerberos/GSS-API to authenticate and encrypt messages
         @param string endpoint: the WinRM webservice endpoint
@@ -205,8 +230,19 @@ class HttpKerberos(HttpTransport):
             raise WinRMTransportError('kerberos is not installed')
 
         super(HttpKerberos, self).__init__(endpoint, None, None)
+        parsed_url = urlparse(endpoint)
         self.krb_service = '{0}@{1}'.format(
-            service, urlparse(endpoint).hostname)
+            service, parsed_url.hostname)
+        self.scheme = parsed_url.scheme
+        self._server_cert_validation = server_cert_validation
+
+        if HAVE_SSLCONTEXT and server_cert_validation == 'ignore':
+            self.sslcontext = create_default_context()
+            self.sslcontext.check_hostname = False
+            self.sslcontext.verify_mode = CERT_NONE
+        else:
+            self.sslcontext = None
+
         # self.krb_ticket = KerberosTicket(krb_service)
 
     def set_auth(self, username, password):
@@ -224,7 +260,12 @@ class HttpKerberos(HttpTransport):
 
         request = Request(self.endpoint, data=message, headers=headers)
         try:
-            response = urlopen(request, timeout=self.timeout)
+            urlopen_kwargs = dict(timeout=self.timeout)
+            # it's an error to pass context to non-SSLContext aware urlopen (pre-2.7.9), so don't...
+            if(self.scheme=='https' and self.sslcontext):
+                urlopen_kwargs['context'] = self.sslcontext
+
+            response = urlopen(request, **urlopen_kwargs)
             krb_ticket.verify_response(response.headers['WWW-Authenticate'])
             response_text = response.read()
             return response_text

@@ -18,7 +18,8 @@ class Protocol(object):
 
     def __init__(self, endpoint, transport='plaintext', username=None,
                  password=None, realm=None, service=None, keytab=None,
-                 ca_trust_path=None, cert_pem=None, cert_key_pem=None):
+                 ca_trust_path=None, cert_pem=None, cert_key_pem=None,
+                 server_cert_validation='validate'):
         """
         @param string endpoint: the WinRM webservice endpoint
         @param string transport: transport type, one of 'kerberos' (default), 'ssl', 'plaintext'  # NOQA
@@ -35,14 +36,16 @@ class Protocol(object):
         self.timeout = Protocol.DEFAULT_TIMEOUT
         self.max_env_sz = Protocol.DEFAULT_MAX_ENV_SIZE
         self.locale = Protocol.DEFAULT_LOCALE
+
         if transport == 'plaintext':
             self.transport = HttpPlaintext(endpoint, username, password)
         elif transport == 'kerberos':
-            self.transport = HttpKerberos(endpoint)
+            self.transport = HttpKerberos(endpoint, server_cert_validation=server_cert_validation)
         elif transport == 'ssl':
             self.transport = HttpSSL(endpoint, username, password,
                                      cert_pem=cert_pem,
-                                     cert_key_pem=cert_key_pem)
+                                     cert_key_pem=cert_key_pem,
+                                     server_cert_validation=server_cert_validation)
         else:
             raise NotImplementedError()
         self.username = username
