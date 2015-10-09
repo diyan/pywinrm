@@ -114,10 +114,17 @@ winrm set winrm/config/service @{AllowUnencrypted="true"}
 ### Contributors (alphabetically)
 
 - Alessandro Pilotti
+- Chris Church
 - David Cournapeau
 - Gema Gomez
+- Jijo Varghese
+- Juan J. Martinez
+- Lukas Bednar
+- Manuel Sabban
 - Matt Clark
+- Nir Cohen
+- Matt Davis
 - Patrick Dunnigan
-
+- Reina Abolofia
 
 Want to help - send a pull request. I will accept good pull requests for sure.
