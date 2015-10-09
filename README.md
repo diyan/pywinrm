@@ -17,7 +17,7 @@ For more information on WinRM, please visit
 ## Installation
 ### To install pywinrm, simply
 ```bash
-$ pip install http://github.com/diyan/pywinrm/archive/master.zip
+$ pip install pywinrm
 ```
 
 ### To use Kerberos authentication you need these optional dependencies
