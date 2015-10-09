@@ -227,7 +227,7 @@ class HttpKerberos(HttpTransport):
         @param string keytab: the path to a keytab file if you are using one
         """
         if not HAVE_KERBEROS:
-            raise WinRMTransportError('kerberos is not installed')
+            raise WinRMTransportError('kerberos', 'kerberos is not installed')
 
         super(HttpKerberos, self).__init__(endpoint, None, None)
         parsed_url = urlparse(endpoint)
