@@ -139,16 +139,20 @@ class HttpPlaintext(HttpTransport):
 
 
 class HTTPSClientAuthHandler(HTTPSHandler):
-    def __init__(self, cert, key):
+    def __init__(self, cert, key, sslcontext=None):
         HTTPSHandler.__init__(self)
         self.cert = cert
         self.key = key
+        self._context = sslcontext
 
     def https_open(self, req):
-        return self.do_open(self.getConnection, req)
+        return self.do_open(self.getConnection, req, context=self._context)
 
-    def getConnection(self, host, timeout=300):
-        return HTTPSConnection(host, key_file=self.key, cert_file=self.cert)
+    def getConnection(self, host, timeout=300, context=None):
+        https_kwargs = dict(key_file=self.key, cert_file=self.cert)
+        if HAVE_SSLCONTEXT and self._context:
+            https_kwargs['context'] = self._context
+        return HTTPSConnection(host, **https_kwargs)
 
 
 class HttpSSL(HttpPlaintext):
@@ -188,11 +192,8 @@ class HttpSSL(HttpPlaintext):
         if not self._cert_pem:
             super(HttpSSL, self)._setup_opener(root_handler=https_transport_handler)
         else:
-            handlers = (HTTPSClientAuthHandler(
-                self._cert_pem, self._cert_key_pem))
-            if sslcontext:
-                handlers.insert(0, https_transport_handler)
-            self.opener = build_opener(*handlers)
+            handler = HTTPSClientAuthHandler(self._cert_pem, self._cert_key_pem, sslcontext)
+            self.opener = build_opener(handler)
 
 
 class KerberosTicket:
