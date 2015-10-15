@@ -12,7 +12,7 @@ class Protocol(object):
     are a few helper classes, but pretty much everything comes through here
     first.
     """
-    DEFAULT_TIMEOUT = 'PT60S'
+    DEFAULT_TIMEOUT = 60
     DEFAULT_MAX_ENV_SIZE = 153600
     DEFAULT_LOCALE = 'en-US'
 
@@ -33,7 +33,7 @@ class Protocol(object):
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
         """
         self.endpoint = endpoint
-        self.timeout = Protocol.DEFAULT_TIMEOUT
+        self.set_timeout(self.DEFAULT_TIMEOUT)
         self.max_env_sz = Protocol.DEFAULT_MAX_ENV_SIZE
         self.locale = Protocol.DEFAULT_LOCALE
 
@@ -60,7 +60,7 @@ class Protocol(object):
          It will be converted to an ISO8601 format.
         """
         # in original library there is an alias - op_timeout method
-        return duration_isoformat(timedelta(seconds))
+        self.timeout = duration_isoformat(timedelta(seconds=seconds))
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,
@@ -167,7 +167,7 @@ class Protocol(object):
                 },
                 # TODO: research this a bit http://msdn.microsoft.com/en-us/library/cc251561(v=PROT.13).aspx  # NOQA
                 # 'cfg:MaxTimeoutms': 600
-                'w:OperationTimeout': 'PT60S',
+                'w:OperationTimeout': self.timeout,
                 'w:ResourceURI': {
                     '@mustUnderstand': 'true',
                     '#text': resource_uri

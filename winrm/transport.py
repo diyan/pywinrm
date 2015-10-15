@@ -47,13 +47,18 @@ class ForcedBasicAuthHandler(HTTPBasicAuthHandler):
 
 
 class HttpTransport(object):
+    # Set this to an unreasonable amount for now because WinRM has timeouts
+    DEFAULT_TIMEOUT = 3600
+
     def __init__(self, endpoint, username, password):
         self.endpoint = endpoint
         self.username = username
         self.password = password
         self.user_agent = 'Python WinRM client'
-        # Set this to an unreasonable amount for now because WinRM has timeouts
-        self.timeout = 3600
+        self.timeout = self.DEFAULT_TIMEOUT
+
+    def set_timeout(self, timeout):
+        self.timeout = timeout
 
     def basic_auth_only(self):
         # here we should remove handler for any authentication handlers other
@@ -147,8 +152,8 @@ class HTTPSClientAuthHandler(HTTPSHandler):
     def https_open(self, req):
         return self.do_open(self.getConnection, req)
 
-    def getConnection(self, host, timeout=300):
-        return HTTPSConnection(host, key_file=self.key, cert_file=self.cert)
+    def getConnection(self, host, timeout):
+        return HTTPSConnection(host, key_file=self.key, cert_file=self.cert, timeout=timeout)
 
 
 class HttpSSL(HttpPlaintext):
