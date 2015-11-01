@@ -1,6 +1,6 @@
 # Changelog
 
-### Version 0.1.0
+### Version 0.1.1
 - Force basic auth header to avoid additional HTTP request and reduce latency
 - Python 2.7.9+. Allow server cert validation to be ignored using SSLContext.verify_mode
 - Tests. Enable Python 3.4 on Travis CI
