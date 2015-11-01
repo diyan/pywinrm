@@ -1,6 +1,6 @@
 from distutils.core import setup
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 project_name = 'pywinrm'
 
 # PyPi supports only reStructuredText, so pandoc should be installed
