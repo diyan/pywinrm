@@ -7,6 +7,7 @@ from winrm.protocol import Protocol
 
 class Response(object):
     """Response from a remote command execution"""
+
     def __init__(self, args):
         self.std_out, self.std_err, self.status_code = args
 
@@ -24,23 +25,25 @@ class Session(object):
         self.protocol = Protocol(self.url, transport=transport,
                                  username=username, password=password)
 
-    def run_cmd(self, command, args=()):
+    def run_cmd(self, command, args=(), out_stream=None, err_stream=None):
         # TODO optimize perf. Do not call open/close shell every time
         shell_id = self.protocol.open_shell()
         command_id = self.protocol.run_command(shell_id, command, args)
-        rs = Response(self.protocol.get_command_output(shell_id, command_id))
+        rs = Response(self.protocol.get_command_output(shell_id, command_id, out_stream, err_stream))
         self.protocol.cleanup_command(shell_id, command_id)
         self.protocol.close_shell(shell_id)
         return rs
 
-    def run_ps(self, script):
+    def run_ps(self, script, out_stream=None, err_stream=None):
         """base64 encodes a Powershell script and executes the powershell
         encoded script command
         """
 
         # must use utf16 little endian on windows
         base64_script = base64.b64encode(script.encode("utf_16_le"))
-        rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script))
+        rs = self.run_cmd("powershell  -OutputFormat {0} -encodedcommand {1}".format("TEXT", base64_script),
+                          out_stream=out_stream, err_stream=err_stream)
+
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
@@ -94,7 +97,8 @@ class Session(object):
     @staticmethod
     def _build_url(target, transport):
         match = re.match(
-            '(?i)^((?P<scheme>http[s]?)://)?(?P<host>[0-9a-z-_.]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?', target)  # NOQA
+            '(?i)^((?P<scheme>http[s]?)://)?(?P<host>[0-9a-z-_.]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?',
+            target)  # NOQA
         scheme = match.group('scheme')
         if not scheme:
             # TODO do we have anything other than HTTP/HTTPS
