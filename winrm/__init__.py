@@ -94,7 +94,7 @@ class Session(object):
     @staticmethod
     def _build_url(target, transport):
         match = re.match(
-            '(?i)^((?P<scheme>http[s]?)://)?(?P<host>[0-9a-z-_.]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?', target)  # NOQA
+            '(?i)^((?P<scheme>http[s]?)://)?(?P<host>\[([0-9A-Fa-f:]+)]|[0-9a-z-_.]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?', target)  # NOQA
         scheme = match.group('scheme')
         if not scheme:
             # TODO do we have anything other than HTTP/HTTPS
