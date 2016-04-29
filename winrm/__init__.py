@@ -1,9 +1,14 @@
+from __future__ import unicode_literals
 import re
-import base64
+from base64 import b64encode
 import xml.etree.ElementTree as ET
 
 from winrm.protocol import Protocol
 
+# feature support attributes for multi-version clients
+FEATURE_SUPPORTED_AUTHTYPES=['basic', 'certificate', 'ntlm', 'kerberos', 'plaintext', 'ssl']
+FEATURE_READ_TIMEOUT=True
+FEATURE_OPERATION_TIMEOUT=True
 
 class Response(object):
     """Response from a remote command execution"""
@@ -37,20 +42,19 @@ class Session(object):
         """base64 encodes a Powershell script and executes the powershell
         encoded script command
         """
-
         # must use utf16 little endian on windows
-        base64_script = base64.b64encode(script.encode("utf_16_le"))
-        rs = self.run_cmd("powershell -encodedcommand %s" % (base64_script))
+        encoded_ps = b64encode(script.encode('utf_16_le')).decode('ascii')
+        rs = self.run_cmd('powershell -encodedcommand {0}'.format(encoded_ps))
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
-            rs.std_err = self.clean_error_msg(rs.std_err)
+            rs.std_err = self._clean_error_msg(rs.std_err)
         return rs
 
-    def clean_error_msg(self, msg):
+    def _clean_error_msg(self, msg):
         """converts a Powershell CLIXML message to a more human readable string
         """
-
+        # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
         if msg.startswith("#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
@@ -58,7 +62,7 @@ class Session(object):
             msg_xml = msg[11:]
             try:
                 # remove the namespaces from the xml for easier processing
-                msg_xml = self.strip_namespace(msg_xml)
+                msg_xml = self._strip_namespace(msg_xml)
                 root = ET.fromstring(msg_xml)
                 # the S node is the error message, find all S nodes
                 nodes = root.findall("./S")
@@ -70,6 +74,7 @@ class Session(object):
             except Exception as e:
                 # if any of the above fails, the msg was not true xml
                 # print a warning and return the orignal string
+                # TODO do not print, raise user defined error instead
                 print("Warning: there was a problem converting the Powershell"
                       " error message: %s" % (e))
             else:
@@ -80,7 +85,7 @@ class Session(object):
                     msg = new_msg.strip()
         return msg
 
-    def strip_namespace(self, xml):
+    def _strip_namespace(self, xml):
         """strips any namespaces from an xml string"""
         try:
             p = re.compile("xmlns=*[\"\"][^\"\"]*[\"\"]")

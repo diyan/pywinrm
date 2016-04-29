@@ -1,28 +1,36 @@
+"""Contains client side logic of WinRM SOAP protocol implementation"""
+from __future__ import unicode_literals
 import base64
-from datetime import timedelta
 import uuid
-import xml.etree.ElementTree as ET
-from isodate.isoduration import duration_isoformat
-import xmltodict
-from winrm.transport import HttpPlaintext, HttpKerberos, HttpSSL
 
+import xml.etree.ElementTree as ET
+import xmltodict
+
+from winrm.transport import Transport
+from winrm.exceptions import WinRMError, WinRMOperationTimeoutError
 
 class Protocol(object):
     """This is the main class that does the SOAP request/response logic. There
     are a few helper classes, but pretty much everything comes through here
     first.
     """
-    DEFAULT_TIMEOUT = 'PT60S'
+    DEFAULT_READ_TIMEOUT_SEC = 30
+    DEFAULT_OPERATION_TIMEOUT_SEC = 20
     DEFAULT_MAX_ENV_SIZE = 153600
     DEFAULT_LOCALE = 'en-US'
 
-    def __init__(self, endpoint, transport='plaintext', username=None,
-                 password=None, realm=None, service=None, keytab=None,
-                 ca_trust_path=None, cert_pem=None, cert_key_pem=None,
-                 server_cert_validation='validate'):
+    def __init__(
+            self, endpoint, transport='plaintext', username=None,
+            password=None, realm=None, service=None, keytab=None,
+            ca_trust_path=None, cert_pem=None, cert_key_pem=None,
+            server_cert_validation='validate',
+            kerberos_delegation=False,
+            read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
+            operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
+        ):
         """
         @param string endpoint: the WinRM webservice endpoint
-        @param string transport: transport type, one of 'kerberos' (default), 'ssl', 'plaintext'  # NOQA
+        @param string transport: transport type, one of 'plaintext' (default), 'kerberos', 'ssl'  # NOQA
         @param string username: username
         @param string password: password
         @param string realm: the Kerberos realm we are authenticating to
@@ -31,36 +39,36 @@ class Protocol(object):
         @param string ca_trust_path: Certification Authority trust path
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
+        @param string server_cert_validation: whether server certificate should be validated on Python versions that suppport it; one of 'validate' (default), 'ignore' #NOQA
+        @param bool kerberos_delegation: if True, TGT is sent to target server to allow multiple hops  # NOQA
+        @param int read_timeout_sec: maximum seconds to wait before an HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long. # NOQA
+        @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
         """
-        self.endpoint = endpoint
-        self.timeout = Protocol.DEFAULT_TIMEOUT
+
+        if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
+            raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")
+
+        self.read_timeout_sec = read_timeout_sec
+        self.operation_timeout_sec = operation_timeout_sec
         self.max_env_sz = Protocol.DEFAULT_MAX_ENV_SIZE
         self.locale = Protocol.DEFAULT_LOCALE
 
-        if transport == 'plaintext':
-            self.transport = HttpPlaintext(endpoint, username, password)
-        elif transport == 'kerberos':
-            self.transport = HttpKerberos(endpoint, server_cert_validation=server_cert_validation)
-        elif transport == 'ssl':
-            self.transport = HttpSSL(endpoint, username, password,
-                                     cert_pem=cert_pem,
-                                     cert_key_pem=cert_key_pem,
-                                     server_cert_validation=server_cert_validation)
-        else:
-            raise NotImplementedError()
+        self.transport = Transport(
+            endpoint=endpoint, username=username, password=password,
+            realm=realm, service=service, keytab=keytab,
+            ca_trust_path=ca_trust_path, cert_pem=cert_pem,
+            cert_key_pem=cert_key_pem, read_timeout_sec=self.read_timeout_sec,
+            server_cert_validation=server_cert_validation,
+            kerberos_delegation=kerberos_delegation,
+            auth_method=transport)
+
         self.username = username
         self.password = password
         self.service = service
         self.keytab = keytab
         self.ca_trust_path = ca_trust_path
-
-    def set_timeout(self, seconds):
-        """ Operation timeout, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
-        @param int seconds: the number of seconds to set the timeout to.
-         It will be converted to an ISO8601 format.
-        """
-        # in original library there is an alias - op_timeout method
-        return duration_isoformat(timedelta(seconds))
+        self.server_cert_validation = server_cert_validation
+        self.kerberos_delegation = kerberos_delegation
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,
@@ -75,14 +83,14 @@ class Protocol(object):
         @param dict env_vars: environment variables to set for the shell. For
          instance: {'PATH': '%PATH%;c:/Program Files (x86)/Git/bin/', 'CYGWIN':
           'nontsec codepage:utf8'}
-        @returns The ShellId from the SOAP response.  This is our open shell
+        @returns The ShellId from the SOAP response. This is our open shell
          instance on the remote machine.
         @rtype string
         """
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Create')}
-        header = rq['env:Envelope']['env:Header']
+        header = req['env:Envelope']['env:Header']
         header['w:OptionSet'] = {
             'w:Option': [
                 {
@@ -96,21 +104,18 @@ class Protocol(object):
             ]
         }
 
-        shell = rq['env:Envelope'].setdefault(
+        shell = req['env:Envelope'].setdefault(
             'env:Body', {}).setdefault('rsp:Shell', {})
         shell['rsp:InputStreams'] = i_stream
         shell['rsp:OutputStreams'] = o_stream
 
         if working_directory:
-            # TODO ensure that rsp:WorkingDirectory should be nested within
-            # rsp:Shell
+            # TODO ensure that rsp:WorkingDirectory should be nested within rsp:Shell  # NOQA
             shell['rsp:WorkingDirectory'] = working_directory
-            # TODO: research Lifetime a bit more:
-            # http://msdn.microsoft.com/en-us/library/cc251546(v=PROT.13).aspx
-            # if lifetime:
+            # TODO check Lifetime param: http://msdn.microsoft.com/en-us/library/cc251546(v=PROT.13).aspx  # NOQA
+            #if lifetime:
             #    shell['rsp:Lifetime'] = iso8601_duration.sec_to_dur(lifetime)
-            # TODO: make it so the input is given in milliseconds and converted
-            # to xs:duration
+        # TODO make it so the input is given in milliseconds and converted to xs:duration  # NOQA
         if idle_timeout:
             shell['rsp:IdleTimeOut'] = idle_timeout
         if env_vars:
@@ -118,16 +123,18 @@ class Protocol(object):
             for key, value in env_vars.items():
                 env['rsp:Variable'] = {'@Name': key, '#text': value}
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        # rs = xmltodict.parse(rs)
-        # return rs['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']  # NOQA
-        root = ET.fromstring(rs)
-        return next(node for node in root.findall('.//*')
-                    if node.get('Name') == 'ShellId').text
+        res = self.send_message(xmltodict.unparse(req))
+        #res = xmltodict.parse(res)
+        #return res['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
+        root = ET.fromstring(res)
+        return next(
+            node for node in root.findall('.//*')
+            if node.get('Name') == 'ShellId').text
 
     # Helper method for building SOAP Header
-    def _get_soap_header(self, action=None, resource_uri=None, shell_id=None,
-                         message_id=None):
+    def _get_soap_header(
+            self, action=None, resource_uri=None, shell_id=None,
+            message_id=None):
         if not message_id:
             message_id = uuid.uuid4()
         header = {
@@ -167,7 +174,8 @@ class Protocol(object):
                 },
                 # TODO: research this a bit http://msdn.microsoft.com/en-us/library/cc251561(v=PROT.13).aspx  # NOQA
                 # 'cfg:MaxTimeoutms': 600
-                'w:OperationTimeout': 'PT60S',
+                # Operation timeout in ISO8601 format, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
+                'w:OperationTimeout': 'PT{0}S'.format(int(self.operation_timeout_sec)),
                 'w:ResourceURI': {
                     '@mustUnderstand': 'true',
                     '#text': resource_uri
@@ -202,24 +210,26 @@ class Protocol(object):
         @rtype bool
         """
         message_id = uuid.uuid4()
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete',
             shell_id=shell_id,
             message_id=message_id)}
 
         # SOAP message requires empty env:Body
-        rq['env:Envelope'].setdefault('env:Body', {})
+        req['env:Envelope'].setdefault('env:Body', {})
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        root = ET.fromstring(rs)
-        relates_to = next(node for node in root.findall('.//*')
-                          if node.tag.endswith('RelatesTo')).text
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        relates_to = next(
+            node for node in root.findall('.//*')
+            if node.tag.endswith('RelatesTo')).text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
-    def run_command(self, shell_id, command, arguments=(),
-                    console_mode_stdin=True, skip_cmd_shell=False):
+    def run_command(
+            self, shell_id, command, arguments=(), console_mode_stdin=True,
+            skip_cmd_shell=False):
         """
         Run a command on a machine with an open shell
         @param string shell_id: The shell id on the remote machine.
@@ -233,11 +243,11 @@ class Protocol(object):
          This is the ID we need to query in order to get output.
         @rtype string
         """
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command',  # NOQA
             shell_id=shell_id)}
-        header = rq['env:Envelope']['env:Header']
+        header = req['env:Envelope']['env:Header']
         header['w:OptionSet'] = {
             'w:Option': [
                 {
@@ -250,16 +260,17 @@ class Protocol(object):
                 }
             ]
         }
-        cmd_line = rq['env:Envelope'].setdefault('env:Body', {})\
-            .setdefault('rsp:CommandLine', {})
+        cmd_line = req['env:Envelope'].setdefault(
+            'env:Body', {}).setdefault('rsp:CommandLine', {})
         cmd_line['rsp:Command'] = {'#text': command}
         if arguments:
             cmd_line['rsp:Arguments'] = ' '.join(arguments)
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        root = ET.fromstring(rs)
-        command_id = next(node for node in root.findall('.//*')
-                          if node.tag.endswith('CommandId')).text
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        command_id = next(
+            node for node in root.findall('.//*')
+            if node.tag.endswith('CommandId')).text
         return command_id
 
     def cleanup_command(self, shell_id, command_id):
@@ -274,23 +285,23 @@ class Protocol(object):
         @rtype bool
         """
         message_id = uuid.uuid4()
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal',  # NOQA
             shell_id=shell_id,
             message_id=message_id)}
 
         # Signal the Command references to terminate (close stdout/stderr)
-        signal = rq['env:Envelope'].setdefault(
+        signal = req['env:Envelope'].setdefault(
             'env:Body', {}).setdefault('rsp:Signal', {})
         signal['@CommandId'] = command_id
-        signal['rsp:Code'] = \
-            'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate'  # NOQA
+        signal['rsp:Code'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate'  # NOQA
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        root = ET.fromstring(rs)
-        relates_to = next(node for node in root.findall('.//*')
-                          if node.tag.endswith('RelatesTo')).text
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        relates_to = next(
+            node for node in root.findall('.//*')
+            if node.tag.endswith('RelatesTo')).text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
@@ -310,53 +321,57 @@ class Protocol(object):
         stdout_buffer, stderr_buffer = [], []
         command_done = False
         while not command_done:
-            stdout, stderr, return_code, command_done = \
-                self._raw_get_command_output(shell_id, command_id)
-            stdout_buffer.append(stdout)
-            stderr_buffer.append(stderr)
+            try:
+                stdout, stderr, return_code, command_done = \
+                    self._raw_get_command_output(shell_id, command_id)
+                stdout_buffer.append(stdout)
+                stderr_buffer.append(stderr)
+            except WinRMOperationTimeoutError as e:
+                # this is an expected error when waiting for a long-running process, just silently retry
+                pass
         return ''.join(stdout_buffer), ''.join(stderr_buffer), return_code
 
     def _raw_get_command_output(self, shell_id, command_id):
-        rq = {'env:Envelope': self._get_soap_header(
+        req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive',  # NOQA
             shell_id=shell_id)}
 
-        stream = rq['env:Envelope'].setdefault(
-            'env:Body', {}).setdefault('rsp:Receive', {})\
-            .setdefault('rsp:DesiredStream', {})
+        stream = req['env:Envelope'].setdefault('env:Body', {}).setdefault(
+            'rsp:Receive', {}).setdefault('rsp:DesiredStream', {})
         stream['@CommandId'] = command_id
         stream['#text'] = 'stdout stderr'
 
-        rs = self.send_message(xmltodict.unparse(rq))
-        root = ET.fromstring(rs)
-        stream_nodes = [node for node in root.findall('.//*')
-                        if node.tag.endswith('Stream')]
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        stream_nodes = [
+            node for node in root.findall('.//*')
+            if node.tag.endswith('Stream')]
         stdout = stderr = ''
         return_code = -1
         for stream_node in stream_nodes:
-            if stream_node.text:
-                if stream_node.attrib['Name'] == 'stdout':
-                    stdout += str(base64.b64decode(
-                        stream_node.text.encode('ascii')))
-                elif stream_node.attrib['Name'] == 'stderr':
-                    stderr += str(base64.b64decode(
-                        stream_node.text.encode('ascii')))
+            if not stream_node.text:
+                continue
+            if stream_node.attrib['Name'] == 'stdout':
+                stdout += str(base64.b64decode(stream_node.text.encode('ascii')))
+            elif stream_node.attrib['Name'] == 'stderr':
+                stderr += str(base64.b64decode(stream_node.text.encode('ascii')))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
         # @example
         #   from...
-        #   <rsp:CommandState CommandId="..." State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Running"/>  # NOQA
+        #   <rsp:CommandState CommandId="..." State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Running"/>
         #   to...
-        #   <rsp:CommandState CommandId="..." State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">  # NOQA
+        #   <rsp:CommandState CommandId="..." State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
         #     <rsp:ExitCode>0</rsp:ExitCode>
         #   </rsp:CommandState>
-        command_done = len([node for node in root.findall('.//*')
-                           if node.get('State', '').endswith(
-                            'CommandState/Done')]) == 1
+        command_done = len([
+            node for node in root.findall('.//*')
+            if node.get('State', '').endswith('CommandState/Done')]) == 1
         if command_done:
-            return_code = int(next(node for node in root.findall('.//*')
-                                   if node.tag.endswith('ExitCode')).text)
+            return_code = int(
+                next(node for node in root.findall('.//*')
+                     if node.tag.endswith('ExitCode')).text)
 
         return stdout, stderr, return_code, command_done
