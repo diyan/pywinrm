@@ -1,310 +1,185 @@
+from __future__ import unicode_literals
+from contextlib import contextmanager
+import re
 import sys
+import os
+import weakref
+import distutils
 
-from winrm.exceptions import WinRMTransportError, UnauthorizedError
+is_py2 = sys.version[0] == '2'
 
+if is_py2:
+    from urlparse import urlsplit, urlunsplit
+    # use six for this instead?
+    unicode_type = type(u'')
+else:
+    from urllib.parse import urlsplit, urlunsplit
+    # use six for this instead?
+    unicode_type = type(u'')
+
+import requests
+import requests.auth
+import warnings
+from requests.hooks import default_hooks
+from requests.adapters import HTTPAdapter
 
 HAVE_KERBEROS = False
 try:
-    import kerberos
+    from requests_kerberos import HTTPKerberosAuth, REQUIRED, OPTIONAL, DISABLED
     HAVE_KERBEROS = True
 except ImportError:
     pass
 
-HAVE_SSLCONTEXT = False
+HAVE_NTLM = False
 try:
-    from ssl import SSLContext, CERT_NONE, create_default_context
-    HAVE_SSLCONTEXT = True
-except ImportError:
+    from requests_ntlm import HttpNtlmAuth
+    HAVE_NTLM = True
+except ImportError as ie:
     pass
 
-is_py2 = sys.version[0] == '2'
-if is_py2:
-    from urllib2 import (Request, URLError, HTTPError, HTTPBasicAuthHandler,
-                         HTTPPasswordMgrWithDefaultRealm, HTTPSHandler)
-    from urllib2 import urlopen, build_opener, install_opener
-    from urlparse import urlparse
-    from httplib import HTTPSConnection
-else:
-    from urllib.request import (Request, URLError, HTTPError,
-                                HTTPBasicAuthHandler,
-                                HTTPPasswordMgrWithDefaultRealm, HTTPSHandler)
-    from urllib.request import urlopen, build_opener, install_opener
-    from urllib.parse import urlparse
-    from http.client import HTTPSConnection
+from winrm.exceptions import BasicAuthDisabledError, InvalidCredentialsError, \
+    WinRMError, WinRMOperationTimeoutError
 
-# the built-in basic auth handler waits for a 401 before sending creds, doubling all the requests
-class ForcedBasicAuthHandler(HTTPBasicAuthHandler):
-    def http_request(self, req):
-        url = req.get_full_url()
-        user, password = self.passwd.find_user_password(None, url)
-        if password:
-            base64_user_pass = ('%s:%s' % (user, password)).encode('base64').strip()
-            auth_header_value = 'Basic %s' % base64_user_pass
-            req.add_unredirected_header(self.auth_header, auth_header_value)
-        return req
+__all__ = ['Transport']
 
-    https_request = http_request
+import ssl
 
-
-class HttpTransport(object):
-    def __init__(self, endpoint, username, password):
+class Transport(object):
+    
+    def __init__(
+            self, endpoint, username=None, password=None, realm=None,
+            service=None, keytab=None, ca_trust_path=None, cert_pem=None,
+            cert_key_pem=None, read_timeout_sec=None, server_cert_validation='validate',
+            kerberos_delegation=False,
+            auth_method='auto'):
         self.endpoint = endpoint
         self.username = username
         self.password = password
-        self.user_agent = 'Python WinRM client'
-        # Set this to an unreasonable amount for now because WinRM has timeouts
-        self.timeout = 3600
+        self.realm = realm
+        self.service = service
+        self.keytab = keytab
+        self.ca_trust_path = ca_trust_path
+        self.cert_pem = cert_pem
+        self.cert_key_pem = cert_key_pem
+        self.read_timeout_sec = read_timeout_sec
+        self.server_cert_validation = server_cert_validation
+        if self.server_cert_validation not in [None, 'validate', 'ignore']:
+            raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
 
-    def basic_auth_only(self):
-        # here we should remove handler for any authentication handlers other
-        # than basic
-        # but maybe leave original credentials
+        # defensively parse this to a bool
+        if isinstance(kerberos_delegation, bool):
+            self.kerberos_delegation = kerberos_delegation
+        else:
+            self.kerberos_delegation = bool(distutils.util.strtobool(str(kerberos_delegation)))
 
-        # auths = @httpcli.www_auth.instance_variable_get('@authenticator')
-        # auths.delete_if {|i| i.scheme !~ /basic/i}
-        # drop all variables in auths if they not contains "basic" as
-        # insensitive.
-        pass
+        self.auth_method = auth_method
+        self.default_headers = {
+            'Content-Type': 'application/soap+xml;charset=UTF-8',
+            'User-Agent': 'Python WinRM client',
+        }
 
-    def no_sspi_auth(self):
-        # here we should remove handler for Negotiate/NTLM negotiation
-        # but maybe leave original credentials
-        pass
+        if self.server_cert_validation == 'ignore':
+            # if we're explicitly ignoring validation, try to suppress requests' vendored urllib3 InsecureRequestWarning
+            try:
+                from requests.packages.urllib3.exceptions import InsecureRequestWarning
+                warnings.simplefilter('ignore', category=InsecureRequestWarning)
+            except:
+                # oh well, we tried...
+                pass
 
+        # validate credential requirements for various auth types
+        if self.auth_method != 'kerberos':
+            if self.auth_method == 'certificate' or (
+                            self.auth_method == 'ssl' and (self.cert_pem or self.cert_key_pem)):
+                if not self.cert_pem or not self.cert_key_pem:
+                    raise InvalidCredentialsError("both cert_pem and cert_key_pem must be specified for cert auth")
+                if not os.path.exists(self.cert_pem):
+                    raise InvalidCredentialsError("cert_pem file not found (%s)" % self.cert_pem)
+                if not os.path.exists(self.cert_key_pem):
+                    raise InvalidCredentialsError("cert_key_pem file not found (%s)" % self.cert_key_pem)
 
-class HttpPlaintext(HttpTransport):
-    def __init__(self, endpoint, username='', password='', disable_sspi=True,
-                 basic_auth_only=True):
-        super(HttpPlaintext, self).__init__(endpoint, username, password)
-        if disable_sspi:
-            self.no_sspi_auth()
-        if basic_auth_only:
-            self.basic_auth_only()
+            else:
+                if not self.username:
+                    raise InvalidCredentialsError("auth method %s requires a username" % self.auth_method)
+                if not self.password:
+                    raise InvalidCredentialsError("auth method %s requires a password" % self.auth_method)
 
-        self._headers = {'Content-Type': 'application/soap+xml;charset=UTF-8',
-                         'User-Agent': 'Python WinRM client'}
+        self.session = None
 
-    def _setup_opener(self, **kwargs):
-        password_manager = HTTPPasswordMgrWithDefaultRealm()
-        password_manager.add_password(
-            None, self.endpoint, self.username, self.password)
-        auth_manager = ForcedBasicAuthHandler(password_manager)
-        handlers = [auth_manager]
-        root_handler = kwargs.get('root_handler')
-        if root_handler:
-            handlers.insert(0, root_handler)
-        self.opener = build_opener(*handlers)
+    def build_session(self):
+        session = requests.Session()
+
+        session.verify = self.server_cert_validation == 'validate'
+
+        # configure proxies from HTTP/HTTPS_PROXY envvars
+        session.trust_env = True
+        settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
+                                                      verify=None, cert=None)
+
+        # we're only applying proxies from env, other settings are ignored
+        session.proxies = settings['proxies']
+
+        if self.auth_method == 'kerberos':
+            if not HAVE_KERBEROS:
+                raise WinRMError("requested auth method is kerberos, but requests_kerberos is not installed")
+            # TODO: do argspec sniffing on extensions to ensure we're not setting bogus kwargs on older versions
+            session.auth = HTTPKerberosAuth(mutual_authentication=REQUIRED, delegate=self.kerberos_delegation,
+                                            force_preemptive=True, principal=self.username, hostname_override=self.realm)
+        elif self.auth_method in ['certificate','ssl']:
+            if self.auth_method == 'ssl' and not self.cert_pem and not self.cert_key_pem:
+                # 'ssl' was overloaded for HTTPS with optional certificate auth,
+                # fall back to basic auth if no cert specified
+                session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
+            else:
+                session.cert = (self.cert_pem, self.cert_key_pem)
+                session.headers['Authorization'] = \
+                    "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"
+        elif self.auth_method == 'ntlm':
+            if not HAVE_NTLM:
+                raise WinRMError("requested auth method is ntlm, but requests_ntlm is not installed")
+            session.auth = HttpNtlmAuth(username=self.username, password=self.password)
+        # TODO: ssl is not exactly right here- should really be client_cert
+        elif self.auth_method in ['basic','plaintext']:
+            session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
+
+        else:
+            raise WinRMError("unsupported auth method: %s" % self.auth_method)
+
+        session.headers.update(self.default_headers)
+
+        return session
 
     def send_message(self, message):
-        headers = self._headers.copy()
-        headers['Content-Length'] = len(message)
-
-        self._setup_opener()
-        request = Request(self.endpoint, data=message, headers=headers)
-
-        try:
-            # install_opener is ignored in > 2.7.9 when an SSLContext is passed to urlopen, so
-            # we'll have to call open manually with our stored opener chain
-            response = self.opener.open(request, timeout=self.timeout)
-            # Version 1.1 of WinRM adds the namespaces in the document instead
-            # of the envelope so we have to
-            # add them ourselves here. This should have no affect version 2.
-            response_text = response.read()
-            return response_text
-            # doc = ElementTree.fromstring(response.read())
-            # Ruby
-            # doc = Nokogiri::XML(resp.http_body.content)
-            # doc.collect_namespaces.each_pair do |k,v|
-            #    doc.root.add_namespace((k.split(/:/).last),v)
-            #    unless doc.namespaces.has_key?(k)
-            # end
-            # return doc
-            # return doc
-        except HTTPError as ex:
-            if ex.code == 401:
-                raise UnauthorizedError(transport='plaintext', message=ex.msg)
-            response_text = ex.read()
-            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
-            # should handle this 500 error and retry receiving command output.
-            if 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and 'Code="2150858793"' in response_text:  # NOQA
-                # TODO raise TimeoutError here instead of just return text
-                return response_text
-            error_message = 'Bad HTTP response returned from server. ' \
-                            ' Code {0}'.format(ex.code)
-            if ex.msg:
-                error_message += ', {0}'.format(ex.msg)
-            raise WinRMTransportError('http', error_message)
-        except URLError as ex:
-            raise WinRMTransportError('http', ex.reason)
-
-
-class HTTPSClientAuthHandler(HTTPSHandler):
-    def __init__(self, cert, key, sslcontext=None):
-        HTTPSHandler.__init__(self)
-        self.cert = cert
-        self.key = key
-        self._context = sslcontext
-
-    def https_open(self, req):
-        return self.do_open(self.getConnection, req, context=self._context)
-
-    def getConnection(self, host, timeout=300, context=None):
-        https_kwargs = dict(key_file=self.key, cert_file=self.cert)
-        if HAVE_SSLCONTEXT and self._context:
-            https_kwargs['context'] = self._context
-        return HTTPSConnection(host, **https_kwargs)
-
-
-class HttpSSL(HttpPlaintext):
-    """Uses SSL to secure the transport"""
-    def __init__(self, endpoint, username, password, ca_trust_path=None,
-                 disable_sspi=True, basic_auth_only=True,
-                 cert_pem=None, cert_key_pem=None, server_cert_validation='validate'):
-        super(HttpSSL, self).__init__(endpoint, username, password)
-
-        self._cert_pem = cert_pem
-        self._cert_key_pem = cert_key_pem
-        self._server_cert_validation = server_cert_validation
-
-        # Ruby
-        # @httpcli.set_auth(endpoint, user, pass)
-        # @httpcli.ssl_config.set_trust_ca(ca_trust_path)
-        # unless ca_trust_path.nil?
-        if disable_sspi:
-            self.no_sspi_auth()
-        if basic_auth_only:
-            self.basic_auth_only()
-
-        if self._cert_pem:
-            self._headers['Authorization'] = \
-                "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"  # NOQA
-
-    def _setup_opener(self):
-        if HAVE_SSLCONTEXT and self._server_cert_validation == 'ignore':
-            sslcontext = create_default_context()
-            sslcontext.check_hostname = False
-            sslcontext.verify_mode = CERT_NONE
-        else:
-            sslcontext = None
-
-        https_transport_handler = HTTPSHandler(context=sslcontext) if sslcontext else None
-
-        if not self._cert_pem:
-            super(HttpSSL, self)._setup_opener(root_handler=https_transport_handler)
-        else:
-            handler = HTTPSClientAuthHandler(self._cert_pem, self._cert_key_pem, sslcontext)
-            self.opener = build_opener(handler)
-
-
-class KerberosTicket:
-    """ Implementation based on:
-    http://ncoghlan_devs-python-notes.readthedocs.org/en/latest/python_kerberos.html  # NOQA
-    """
-    def __init__(self, service):
-        ignored_code, krb_context = kerberos.authGSSClientInit(service)
-        kerberos.authGSSClientStep(krb_context, '')
-        # TODO authGSSClientStep may raise following error:
-        # GSSError: (('Unspecified GSS failure.
-        # Minor code may provide more information', 851968),
-        # ("Credentials cache file '/tmp/krb5cc_1000' not found", -1765328189))
-        self._krb_context = krb_context
-        gss_response = kerberos.authGSSClientResponse(krb_context)
-        self.auth_header = 'Negotiate {0}'.format(gss_response)
-
-    def verify_response(self, auth_header):
-        # Handle comma-separated lists of authentication fields
-        for field in auth_header.split(','):
-            kind, ignored_space, details = field.strip().partition(' ')
-            if kind.lower() == 'negotiate':
-                auth_details = details.strip()
-                break
-        else:
-            raise ValueError('Negotiate not found in {0}'.format(auth_header))
-            # Finish the Kerberos handshake
-        krb_context = self._krb_context
-        if krb_context is None:
-            raise RuntimeError('Ticket already used for verification')
-        self._krb_context = None
-        kerberos.authGSSClientStep(krb_context, auth_details)
-        # print('User {0} authenticated successfully using Kerberos
-        # authentication'.format(kerberos.authGSSClientUserName(krb_context)))
-        kerberos.authGSSClientClean(krb_context)
-
-
-class HttpKerberos(HttpTransport):
-    def __init__(self, endpoint, realm=None, service='HTTP', keytab=None, server_cert_validation='validate'):
-        """
-        Uses Kerberos/GSS-API to authenticate and encrypt messages
-        @param string endpoint: the WinRM webservice endpoint
-        @param string realm: the Kerberos realm we are authenticating to
-        @param string service: the service name, default is HTTP
-        @param string keytab: the path to a keytab file if you are using one
-        """
-        if not HAVE_KERBEROS:
-            raise WinRMTransportError('kerberos', 'kerberos is not installed')
-
-        super(HttpKerberos, self).__init__(endpoint, None, None)
-        parsed_url = urlparse(endpoint)
-        self.krb_service = '{0}@{1}'.format(
-            service, parsed_url.hostname)
-        self.scheme = parsed_url.scheme
-        self._server_cert_validation = server_cert_validation
-
-        if HAVE_SSLCONTEXT and server_cert_validation == 'ignore':
-            self.sslcontext = create_default_context()
-            self.sslcontext.check_hostname = False
-            self.sslcontext.verify_mode = CERT_NONE
-        else:
-            self.sslcontext = None
-
-        # self.krb_ticket = KerberosTicket(krb_service)
-
-    def set_auth(self, username, password):
-        raise NotImplementedError
-
-    def send_message(self, message):
-        # TODO current implementation does negotiation on each HTTP request
-        # which is not efficient
         # TODO support kerberos session with message encryption
-        krb_ticket = KerberosTicket(self.krb_service)
-        headers = {'Authorization': krb_ticket.auth_header,
-                   'Connection': 'Keep-Alive',
-                   'Content-Type': 'application/soap+xml;charset=UTF-8',
-                   'User-Agent': 'Python WinRM client'}
 
-        request = Request(self.endpoint, data=message, headers=headers)
+        if not self.session:
+            self.session = self.build_session()
+
+        # urllib3 fails on SSL retries with unicode buffers- must send it a byte string
+        # see https://github.com/shazow/urllib3/issues/717
+        if isinstance(message, unicode_type):
+            message = message.encode('utf-8')
+
+        request = requests.Request('POST', self.endpoint, data=message)
+        prepared_request = self.session.prepare_request(request)
+
         try:
-            urlopen_kwargs = dict(timeout=self.timeout)
-            # it's an error to pass context to non-SSLContext aware urlopen (pre-2.7.9), so don't...
-            if(self.scheme=='https' and self.sslcontext):
-                urlopen_kwargs['context'] = self.sslcontext
-
-            response = urlopen(request, **urlopen_kwargs)
-            krb_ticket.verify_response(response.headers['WWW-Authenticate'])
-            response_text = response.read()
+            response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
+            response_text = response.text
+            response.raise_for_status()
             return response_text
-        except HTTPError as ex:
-            response_text = ex.read()
+        except requests.HTTPError as ex:
+            if ex.response.status_code == 401:
+                raise InvalidCredentialsError("the specified credentials were rejected by the server")
+            if ex.response.content:
+                response_text = ex.response.content
+            else:
+                response_text = ''
             # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
             # should handle this 500 error and retry receiving command output.
-            if 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and 'Code="2150858793"' in response_text:  # NOQA
-                return response_text
-            # if ex.code == 401 and ex.headers['WWW-Authenticate'] == \
-            #    'Negotiate, Basic realm="WSMAN"':
-            error_message = 'Kerberos-based authentication was failed. ' \
-                            'Code {0}'.format(ex.code)
-            if ex.msg:
-                error_message += ', {0}'.format(ex.msg)
-            raise WinRMTransportError('kerberos', error_message)
-        except URLError as ex:
-            raise WinRMTransportError('kerberos', ex.reason)
+            if b'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and b'Code="2150858793"' in response_text:
+                raise WinRMOperationTimeoutError()
 
-    def _winrm_encrypt(self, string):
-        """
-        @returns the encrypted request string
-        @rtype string
-        """
-        raise NotImplementedError
+            error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
 
-    def _winrm_decrypt(self, string):
-        raise NotImplementedError
+            raise WinRMError('http', error_message)
