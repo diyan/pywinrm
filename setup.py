@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 __version__ = '0.2.0'
 project_name = 'pywinrm'
@@ -10,7 +10,6 @@ try:
     long_description = pypandoc.convert('README.md', 'rst')
 except ImportError:
     long_description = ''
-
 
 setup(
     name=project_name,
@@ -40,6 +39,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: System :: Clustering',
