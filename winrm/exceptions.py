@@ -6,7 +6,7 @@ class WinRMError(Exception):
     code = 500
 
 class WinRMTransportError(Exception):
-    """Unused- only here for backcompat on things that import it"""
+    """WinRM errors specific to transport-level problems (unexpcted HTTP error codes, etc)"""
     code = 500
 
 class WinRMOperationTimeoutError(Exception):

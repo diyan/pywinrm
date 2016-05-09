@@ -38,7 +38,7 @@ except ImportError as ie:
     pass
 
 from winrm.exceptions import BasicAuthDisabledError, InvalidCredentialsError, \
-    WinRMError, WinRMOperationTimeoutError
+    WinRMError, WinRMTransportError, WinRMOperationTimeoutError
 
 __all__ = ['Transport']
 
@@ -185,4 +185,4 @@ class Transport(object):
 
             error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
 
-            raise WinRMError('http', error_message)
+            raise WinRMTransportError('http', error_message)
