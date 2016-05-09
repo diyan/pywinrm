@@ -81,14 +81,15 @@ class Transport(object):
             'User-Agent': 'Python WinRM client',
         }
 
-        if self.server_cert_validation == 'ignore':
-            # if we're explicitly ignoring validation, try to suppress requests' vendored urllib3 InsecureRequestWarning
-            try:
-                from requests.packages.urllib3.exceptions import InsecureRequestWarning
+        # try to suppress user-unfriendly warnings from requests' vendored urllib3
+        try:
+            from requests.packages.urllib3.exceptions import InsecurePlatformWarning, SNIMissingWarning, InsecureRequestWarning
+            warnings.simplefilter('ignore', category=InsecurePlatformWarning)
+            warnings.simplefilter('ignore', category=SNIMissingWarning)
+            # if we're explicitly ignoring validation, try to suppress InsecureRequestWarning, since the user opted-in
+            if self.server_cert_validation == 'ignore':
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
-            except:
-                # oh well, we tried...
-                pass
+        except: pass # oh well, we tried...
 
         # validate credential requirements for various auth types
         if self.auth_method != 'kerberos':
