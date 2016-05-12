@@ -5,7 +5,10 @@ import xml.etree.ElementTree as ET
 
 from winrm.protocol import Protocol
 
-# feature support attributes for multi-version clients
+# Feature support attributes for multi-version clients.
+# These values can be easily checked for with hasattr(winrm, "FEATURE_X"),
+# "'auth_type' in winrm.FEATURE_SUPPORTED_AUTHTYPES", etc for clients to sniff features
+# supported by a particular version of pywinrm
 FEATURE_SUPPORTED_AUTHTYPES=['basic', 'certificate', 'ntlm', 'kerberos', 'plaintext', 'ssl']
 FEATURE_READ_TIMEOUT=True
 FEATURE_OPERATION_TIMEOUT=True

@@ -23,7 +23,7 @@ setup(
     license='MIT license',
     packages=('winrm', 'winrm.tests'),
     package_data={'winrm.tests': ['*.ps1']},
-    install_requires=['xmltodict', 'isodate', 'requests>=2.9.1', 'requests_ntlm>=0.3.0'],
+    install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0'],
     extras_require = dict(kerberos=['requests_kerberos>=0.9.0']),
     classifiers=[
         'Development Status :: 4 - Beta',
