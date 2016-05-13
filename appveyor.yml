@@ -29,16 +29,20 @@ environment:
       PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "64"
 init:
-  # Override default Python version/architecture
-  - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
-  - python -c "import platform; print('Python', platform.python_version(), platform.architecture()[0])"
-  - if not exist %PYTHON%\\Scripts\\pip.exe curl https://bootstrap.pypa.io/get-pip.py | python
+  - ps: |
+      $ErrorActionPreference = "Stop"
+      # Override default Python version/architecture
+      $env:PATH="$env:PYTHON;$env:PYTHON\Scripts;$env:PATH"
+      python -c "import platform; print('Python', platform.python_version(), platform.architecture()[0])"
+      if(!(Test-Path $($env:PYTHON)\Scripts\pip.exe)) { $(curl https://bootstrap.pypa.io/get-pip.py).Content | python }
 
 install:
-  - winrm set winrm/config/service/auth @{Basic="true"}
-  - winrm set winrm/config/service @{AllowUnencrypted="true"}
-  - "%WITH_COMPILER% pip install cffi coveralls"
-  - pip install -r requirements.txt
+  - ps: |
+      Set-Item WSMan:\localhost\Service\Auth\Basic $true
+      Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
+      $env:WITH_COMPILER pip install cffi coveralls
+      pip install .[kerberos]
+      pip install -r requirements-test.txt
 
 build: off  # Do not run MSBuild, build stuff at install step
 

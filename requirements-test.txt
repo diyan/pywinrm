@@ -1,0 +1,5 @@
+# this assumes the base requirements have been satisfied via setup.py
+pytest
+pytest-cov
+pytest-pep8
+mock
