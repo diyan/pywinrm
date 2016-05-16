@@ -11,6 +11,8 @@ python:
 install:
   #- sudo apt-get install libffi-dev
   #- pip install cffi coveralls
+  # upgrade pip to ensure we've got a new enough version that allows installation from local source
+  - curl https://bootstrap.pypa.io/get-pip.py | python
   - pip install coveralls
   - pip install diyan/pywinrm/[kerberos]
   - pip install -r requirements-test.txt
