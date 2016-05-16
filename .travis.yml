@@ -16,7 +16,7 @@ install:
   - pip --version
   - pwd
   - pip install coveralls
-  - pip install diyan/pywinrm/[kerberos]
+  - pip install .[kerberos]
   - pip install -r requirements-test.txt
 script:
   - py.test -v --pep8 --cov=winrm --cov-report=term-missing winrm/tests/
