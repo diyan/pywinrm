@@ -34,14 +34,16 @@ init:
       # Override default Python version/architecture
       $env:PATH="$env:PYTHON;$env:PYTHON\Scripts;$env:PATH"
       python -c "import platform; print('Python', platform.python_version(), platform.architecture()[0])"
-      if(!(Test-Path $($env:PYTHON)\Scripts\pip.exe)) { $(curl https://bootstrap.pypa.io/get-pip.py).Content | python }
+      # always install latest pip
+      $(curl -UseBasicParsing https://bootstrap.pypa.io/get-pip.py).Content | python
+      pip --version
 
 install:
   - ps: |
       Set-Item WSMan:\localhost\Service\Auth\Basic $true
       Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
-      $env:WITH_COMPILER pip install cffi coveralls
-      pip install .[kerberos]
+      Invoke-Expression $($env:WITH_COMPILER + " pip install cffi coveralls")
+      pip install .
       pip install -r requirements-test.txt
 
 build: off  # Do not run MSBuild, build stuff at install step
