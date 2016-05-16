@@ -12,7 +12,7 @@ install:
   #- sudo apt-get install libffi-dev
   #- pip install cffi coveralls
   - pip install coveralls
-  - pip install .[kerberos]
+  - pip install diyan/pywinrm/[kerberos]
   - pip install -r requirements-test.txt
 script:
   - py.test -v --pep8 --cov=winrm --cov-report=term-missing winrm/tests/
