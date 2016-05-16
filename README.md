@@ -1,4 +1,4 @@
-# pywinrm [![Build Status](https://travis-ci.org/diyan/pywinrm.png)](https://travis-ci.org/diyan/pywinrm) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/diyan/pywinrm)] [![Coverage Status](https://coveralls.io/repos/diyan/pywinrm/badge.png)](https://coveralls.io/r/diyan/pywinrm)
+# pywinrm [![Build Status](https://travis-ci.org/diyan/pywinrm.png)](https://travis-ci.org/diyan/pywinrm) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/diyan/pywinrm)](https://ci.appveyor.com/project/diyan/pywinrm) [![Coverage Status](https://coveralls.io/repos/diyan/pywinrm/badge.png)](https://coveralls.io/r/diyan/pywinrm)
 
 pywinrm is a Python client for the Windows Remote Management (WinRM) service.
 It allows you to invoke commands on target Windows machines from any machine
