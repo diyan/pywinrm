@@ -6,6 +6,8 @@ import uuid
 import xml.etree.ElementTree as ET
 import xmltodict
 
+from six import text_type, binary_type
+
 from winrm.transport import Transport
 from winrm.exceptions import WinRMError, WinRMOperationTimeoutError
 
@@ -268,7 +270,8 @@ class Protocol(object):
             'env:Body', {}).setdefault('rsp:CommandLine', {})
         cmd_line['rsp:Command'] = {'#text': command}
         if arguments:
-            cmd_line['rsp:Arguments'] = ' '.join(arguments)
+            unicode_args = [a if isinstance(a, text_type) else a.decode('utf-8') for a in arguments]
+            cmd_line['rsp:Arguments'] = u' '.join(unicode_args)
 
         res = self.send_message(xmltodict.unparse(req))
         root = ET.fromstring(res)
@@ -333,7 +336,7 @@ class Protocol(object):
             except WinRMOperationTimeoutError as e:
                 # this is an expected error when waiting for a long-running process, just silently retry
                 pass
-        return ''.join(stdout_buffer), ''.join(stderr_buffer), return_code
+        return b''.join(stdout_buffer), b''.join(stderr_buffer), return_code
 
     def _raw_get_command_output(self, shell_id, command_id):
         req = {'env:Envelope': self._get_soap_header(
@@ -351,15 +354,15 @@ class Protocol(object):
         stream_nodes = [
             node for node in root.findall('.//*')
             if node.tag.endswith('Stream')]
-        stdout = stderr = ''
+        stdout = stderr = b''
         return_code = -1
         for stream_node in stream_nodes:
             if not stream_node.text:
                 continue
             if stream_node.attrib['Name'] == 'stdout':
-                stdout += str(base64.b64decode(stream_node.text.encode('ascii')))
+                stdout += base64.b64decode(stream_node.text.encode('ascii'))
             elif stream_node.attrib['Name'] == 'stderr':
-                stderr += str(base64.b64decode(stream_node.text.encode('ascii')))
+                stderr += base64.b64decode(stream_node.text.encode('ascii'))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:

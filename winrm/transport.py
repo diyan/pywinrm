@@ -128,7 +128,9 @@ class Transport(object):
                 raise WinRMError("requested auth method is kerberos, but requests_kerberos is not installed")
             # TODO: do argspec sniffing on extensions to ensure we're not setting bogus kwargs on older versions
             session.auth = HTTPKerberosAuth(mutual_authentication=REQUIRED, delegate=self.kerberos_delegation,
-                                            force_preemptive=True, principal=self.username, hostname_override=self.kerberos_hostname_override)
+                                            force_preemptive=True, principal=self.username,
+                                            hostname_override=self.kerberos_hostname_override,
+                                            sanitize_mutual_error_response=False)
         elif self.auth_method in ['certificate','ssl']:
             if self.auth_method == 'ssl' and not self.cert_pem and not self.cert_key_pem:
                 # 'ssl' was overloaded for HTTPS with optional certificate auth,

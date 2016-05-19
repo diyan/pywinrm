@@ -324,9 +324,11 @@ def protocol_real():
     username = os.environ.get('WINRM_USERNAME', None)
     password = os.environ.get('WINRM_PASSWORD', None)
     if endpoint:
-        # TODO consider replace json with yaml for integration test settings
-        # TODO json does not support comments
-        settings = {'endpoint': endpoint}
+        settings = dict(
+            endpoint=endpoint,
+            operation_timeout_sec=5,
+            read_timeout_sec=7
+        )
         if transport:
             settings['transport'] = transport
         if username:
