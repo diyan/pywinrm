@@ -105,7 +105,7 @@ class Transport(object):
             else:
                 if not self.username:
                     raise InvalidCredentialsError("auth method %s requires a username" % self.auth_method)
-                if not self.password:
+                if self.password is None:
                     raise InvalidCredentialsError("auth method %s requires a password" % self.auth_method)
 
         self.session = None
