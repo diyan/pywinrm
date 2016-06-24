@@ -59,7 +59,7 @@ class Session(object):
         """
         # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
-        if msg.startswith("#< CLIXML\r\n"):
+        if msg.startswith(b"#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
             # (the first line)
             msg_xml = msg[11:]
