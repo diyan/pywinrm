@@ -404,7 +404,7 @@ class Protocol(object):
         send['rsp:Stream'] = {
             '@Name': 'stdin',
             '@CommandId': command_id,
-            '#text': data.encode()
+            '#text': base64.b64encode(data.encode())
         }
 
         res = self.send_message(xmltodict.unparse(req))
@@ -526,6 +526,3 @@ class Protocol(object):
             if node.tag.endswith('RelatesTo')).text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
-
-    def send_signal
-
