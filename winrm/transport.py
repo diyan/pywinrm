@@ -114,6 +114,8 @@ class Transport(object):
         session = requests.Session()
 
         session.verify = self.server_cert_validation == 'validate'
+        if session.verify and self.ca_trust_path:
+            session.verify = self.ca_trust_path
 
         # configure proxies from HTTP/HTTPS_PROXY envvars
         session.trust_env = True
@@ -145,7 +147,7 @@ class Transport(object):
                 raise WinRMError("requested auth method is ntlm, but requests_ntlm is not installed")
             session.auth = HttpNtlmAuth(username=self.username, password=self.password)
         # TODO: ssl is not exactly right here- should really be client_cert
-        elif self.auth_method in ['basic','plaintext']:
+        elif self.auth_method in ['basic', 'plaintext']:
             session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
 
         else:

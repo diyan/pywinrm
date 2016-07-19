@@ -123,7 +123,9 @@ class Protocol(object):
             #    shell['rsp:Lifetime'] = iso8601_duration.sec_to_dur(lifetime)
         # TODO make it so the input is given in milliseconds and converted to xs:duration  # NOQA
         if idle_timeout:
-            shell['rsp:IdleTimeOut'] = idle_timeout
+            shell['rsp:IdleTimeOut'] = 'PT{0}.000S'.format(idle_timeout)
+        if lifetime:
+            shell['rsp:Lifetime'] = 'PT{0}.000S'.format(lifetime)
         if env_vars:
             env = shell.setdefault('rsp:Environment', {})
             for key, value in env_vars.items():
@@ -382,3 +384,148 @@ class Protocol(object):
                      if node.tag.endswith('ExitCode')).text)
 
         return stdout, stderr, return_code, command_done
+
+    def create_shell(self, lifetime=86400, idle_timeout=86400):
+        return self.open_shell(lifetime=lifetime, idle_timeout=idle_timeout)
+
+    def execute_command(self, shell_id, command, arguments=()):
+        return self.run_command(shell_id, command, arguments)
+
+    def receive_output(self, shell_id, command_id):
+        return self._raw_get_command_output(shell_id, command_id)
+
+    def send_input(self, shell_id, command_id, data):
+        req = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
+            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send',  # NOQA
+            shell_id=shell_id)}
+        send = req['env:Envelope'].setdefault(
+            'env:Body', {}).setdefault('rsp:Send', {})
+        send['rsp:Stream'] = {
+            '@Name': 'stdin',
+            '@CommandId': command_id,
+            '#text': data.encode()
+        }
+
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        send_response = next(
+            node for node in root.findall('.//*')
+            if node.tag.endswith('SendResponse')).text
+        return send_response
+
+    def send_signal(self, shell_id, command_id, sig):
+        """
+            @param sig
+            Values: Terminate, Break, Pause, Resume, Exit, ctrl_c
+            Default: ctrl_c
+        """
+        req = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
+            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal',  # NOQA
+            shell_id=shell_id)}
+        body = req['env:Envelope'].setdefault(
+            'env:Body', {})
+        body['rsp:Signal'] = {
+            '@CommandId': command_id,
+            'rsp:Code': 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/{0}'.format(sig)
+        }
+
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        signal_response = next(
+            node for node in root.findall('.//*')
+            if node.tag.endswith('SignalResponse')).text
+        return signal_response
+
+    def terminate_operation(self, shell_id, command_id):
+        self.send_signal(shell_id, command_id, 'ctrl_c')
+
+    def enumerate_remote_contexts(self):
+        req = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell',  # NOQA
+            action='http://schemas.xmlsoap.org/ws/2004/09/enumeration/Enumerate')}
+        req['env:Envelope'].setdefault(
+            'env:Body', {}).setdefault('n:Enumerate', {})
+
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        enumerate_response = [
+            node.text for node in root.findall('.//*')
+            if node.tag.endswith('EnumerationContext')
+        ]
+        return enumerate_response
+
+    def enumerate_remote_shells(self, context_id, limit=5):
+        req = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell',  # NOQA
+            action='http://schemas.xmlsoap.org/ws/2004/09/enumeration/Pull')}
+        pull = req['env:Envelope'].setdefault(
+            'env:Body', {}).setdefault('n:Pull', {})
+        pull['n:EnumerationContext'] = context_id
+        pull['n:MaxElements'] = limit
+
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        pull_response = [
+            xmltodict.parse(ET.tostring(node)) for node in root.findall('.//*')
+            if node.tag.endswith('Shell')
+        ]
+        return pull_response
+
+    def retrieve_shell_instance(self, shell_id):
+        req = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell',  # NOQA
+            action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Get',
+            shell_id=shell_id)}
+        req['env:Envelope'].setdefault(
+            'env:Body', {})
+
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        get_response = next(
+            node for node in root.findall('.//*')
+            if node.tag.endswith('Shell'))
+        return xmltodict.parse(ET.tostring(get_response))
+
+    def delete_shell(self, shell_id):
+        self.close_shell(shell_id)
+
+    def disconnect_shell(self, shell_id, idle_timeout=86400):
+        message_id = uuid.uuid4()
+        req = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
+            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Disconnect',
+            shell_id=shell_id,
+            message_id=message_id)}
+        disconnect = req['env:Envelope'].setdefault(
+            'env:Body', {}).setdefault('rsp:Disconnect', {})
+        disconnect['rsp:IdleTimeOut'] = 'PT{0}.000S'.format(idle_timeout)
+
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        relates_to = next(
+            node for node in root.findall('.//*')
+            if node.tag.endswith('RelatesTo')).text
+        # TODO change assert into user-friendly exception
+        assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
+
+    def reconnect_shell(self, shell_id):
+        message_id = uuid.uuid4()
+        req = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
+            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Reconnect',
+            shell_id=shell_id,
+            message_id=message_id)}
+        req['env:Envelope'].setdefault('env:Body', {})
+
+        res = self.send_message(xmltodict.unparse(req))
+        root = ET.fromstring(res)
+        relates_to = next(
+            node for node in root.findall('.//*')
+            if node.tag.endswith('RelatesTo')).text
+        # TODO change assert into user-friendly exception
+        assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
+
+    def send_signal
+
