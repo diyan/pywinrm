@@ -526,6 +526,3 @@ class Protocol(object):
             if node.tag.endswith('RelatesTo')).text
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
-
-    def send_signal
-
