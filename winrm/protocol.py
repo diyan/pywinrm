@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 import base64
 import uuid
+import copy
 
 import xml.etree.ElementTree as ET
 import xmltodict
@@ -78,7 +79,7 @@ class Protocol(object):
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,
-                   codepage=437, lifetime=None, idle_timeout=None):
+                   codepage=437, lifetime=86400, idle_timeout=86400):
         """
         Create a Shell on the destination host
         @param string i_stream: Which input stream to open. Leave this alone
@@ -282,38 +283,6 @@ class Protocol(object):
             if node.tag.endswith('CommandId')).text
         return command_id
 
-    def cleanup_command(self, shell_id, command_id):
-        """
-        Clean-up after a command. @see #run_command
-        @param string shell_id: The shell id on the remote machine.
-         See #open_shell
-        @param string command_id: The command id on the remote machine.
-         See #run_command
-        @returns: This should have more error checking but it just returns true
-         for now.
-        @rtype bool
-        """
-        message_id = uuid.uuid4()
-        req = {'env:Envelope': self._get_soap_header(
-            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
-            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal',  # NOQA
-            shell_id=shell_id,
-            message_id=message_id)}
-
-        # Signal the Command references to terminate (close stdout/stderr)
-        signal = req['env:Envelope'].setdefault(
-            'env:Body', {}).setdefault('rsp:Signal', {})
-        signal['@CommandId'] = command_id
-        signal['rsp:Code'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate'  # NOQA
-
-        res = self.send_message(xmltodict.unparse(req))
-        root = ET.fromstring(res)
-        relates_to = next(
-            node for node in root.findall('.//*')
-            if node.tag.endswith('RelatesTo')).text
-        # TODO change assert into user-friendly exception
-        assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
-
     def get_command_output(self, shell_id, command_id):
         """
         Get the Output of the given shell and command
@@ -340,16 +309,19 @@ class Protocol(object):
                 pass
         return b''.join(stdout_buffer), b''.join(stderr_buffer), return_code
 
-    def _raw_get_command_output(self, shell_id, command_id):
+    def _raw_get_command_output(self, shell_id, command_id, desired_stream='stdout stderr'):
         req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive',  # NOQA
             shell_id=shell_id)}
 
-        stream = req['env:Envelope'].setdefault('env:Body', {}).setdefault(
-            'rsp:Receive', {}).setdefault('rsp:DesiredStream', {})
+        stream = req['env:Envelope']\
+            .setdefault('env:Body', {})\
+            .setdefault('rsp:Receive', {'@SequenceId': 0})\
+            .setdefault('rsp:DesiredStream', {})
         stream['@CommandId'] = command_id
-        stream['#text'] = 'stdout stderr'
+        if desired_stream:
+            stream['#text'] = desired_stream
 
         res = self.send_message(xmltodict.unparse(req))
         root = ET.fromstring(res)
@@ -385,34 +357,34 @@ class Protocol(object):
 
         return stdout, stderr, return_code, command_done
 
-    def create_shell(self, lifetime=86400, idle_timeout=86400):
-        return self.open_shell(lifetime=lifetime, idle_timeout=idle_timeout)
+    def receive_output(self, shell_id, command_id, desired_stream='stdout stderr'):
+        return self._raw_get_command_output(shell_id, command_id, desired_stream)
 
-    def execute_command(self, shell_id, command, arguments=()):
-        return self.run_command(shell_id, command, arguments)
-
-    def receive_output(self, shell_id, command_id):
-        return self._raw_get_command_output(shell_id, command_id)
-
-    def send_input(self, shell_id, command_id, data):
+    def send_input(self, shell_id, command_id, data: bytes, chunk_size=512):
         req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send',  # NOQA
             shell_id=shell_id)}
-        send = req['env:Envelope'].setdefault(
-            'env:Body', {}).setdefault('rsp:Send', {})
-        send['rsp:Stream'] = {
-            '@Name': 'stdin',
-            '@CommandId': command_id,
-            '#text': base64.b64encode(data.encode())
-        }
+        stream = req['env:Envelope']\
+            .setdefault('env:Body', {})\
+            .setdefault('rsp:Send', {})\
+            .setdefault('rsp:Stream', {
+                '@Name': 'stdin',
+                '@CommandId': command_id
+            })
 
-        res = self.send_message(xmltodict.unparse(req))
-        root = ET.fromstring(res)
-        send_response = next(
-            node for node in root.findall('.//*')
-            if node.tag.endswith('SendResponse')).text
-        return send_response
+        data_len = len(data)
+        sequence_id = 0
+
+        for i in range(0, data_len, chunk_size):
+            stream['@SequenceId'] = sequence_id
+            print(i, i + min(chunk_size, data_len - i))
+            stream['#text'] = base64.b64encode(data[i:i + min(chunk_size, data_len - i)])
+            self.send_message(xmltodict.unparse(req))
+            sequence_id += 1
+
+    def send_string(self, shell_id, command_id, string):
+        self.send_input(shell_id, command_id, string.encode())
 
     def send_signal(self, shell_id, command_id, sig):
         """
@@ -438,7 +410,7 @@ class Protocol(object):
             if node.tag.endswith('SignalResponse')).text
         return signal_response
 
-    def terminate_operation(self, shell_id, command_id):
+    def cleanup_command(self, shell_id, command_id):
         self.send_signal(shell_id, command_id, 'ctrl_c')
 
     def enumerate_remote_contexts(self):
@@ -487,9 +459,6 @@ class Protocol(object):
             node for node in root.findall('.//*')
             if node.tag.endswith('Shell'))
         return xmltodict.parse(ET.tostring(get_response))
-
-    def delete_shell(self, shell_id):
-        self.close_shell(shell_id)
 
     def disconnect_shell(self, shell_id, idle_timeout=86400):
         message_id = uuid.uuid4()
