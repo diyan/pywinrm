@@ -24,8 +24,8 @@ def test_transport_send_401(mocked_requests):
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                              auth_method='basic')
         result = test_transport.send_message('test')
-    except transport.InvalidCredentialsError as expected_exception:
-        pass
+    except transport.InvalidCredentialsError as exc:
+        expected_exception = exc
 
     assert isinstance(expected_exception, transport.InvalidCredentialsError)
     mocked_requests.stop_mock()
@@ -41,8 +41,8 @@ def test_transport_send_operation_timeout(mocked_requests):
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                              auth_method='basic')
         result = test_transport.send_message('asdfhttp://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receiveasdf')
-    except transport.WinRMOperationTimeoutError as expected_exception:
-        pass
+    except transport.WinRMOperationTimeoutError as exc:
+        expected_exception = exc
 
     assert isinstance(expected_exception, transport.WinRMOperationTimeoutError)
     mocked_requests.stop_mock()
@@ -57,8 +57,8 @@ def test_transport_send_random_error(mocked_requests):
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                              auth_method='basic')
         result = test_transport.send_message('fake_message')
-    except transport.WinRMTransportError as expected_exception:
-        pass
+    except transport.WinRMTransportError as exc:
+        expected_exception = exc
 
     assert isinstance(expected_exception, transport.WinRMTransportError)
     assert expected_exception.fault_code() == "s:Sender"
@@ -76,8 +76,8 @@ def test_transport_send_nocontent(mocked_requests):
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                              auth_method='basic')
         result = test_transport.send_message('asdfhttp://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receiveasdf')
-    except transport.WinRMTransportError as expected_exception:
-        pass
+    except transport.WinRMTransportError as exc:
+        expected_exception = exc
 
     assert isinstance(expected_exception, transport.WinRMTransportError)
     assert expected_exception.fault_code() is None
