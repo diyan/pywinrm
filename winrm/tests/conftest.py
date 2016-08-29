@@ -404,7 +404,4 @@ class MockRequests(object):
 
 @fixture(scope='module')
 def mocked_requests():
-    req_mock = MockRequests()
-    req_mock.start_mock()
-    yield req_mock
-    req_mock.stop_mock()
+    return MockRequests()
