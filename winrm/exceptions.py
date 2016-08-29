@@ -23,9 +23,33 @@ class WinRMError(Exception):
     def dict_response(self):
         try:
             return xmltodict.parse(self.winrm_response)
-        except xmltodict.expat.ExpatError:
+        except (xmltodict.expat.ExpatError, TypeError):
             pass
 
+        return None
+
+    def fault_code(self):
+        if isinstance(self.dict_response(), dict):
+            try:
+                return self.dict_response()['s:Envelope']['s:Body']['s:Fault']['s:Code']['s:Value']
+            except (KeyError, AttributeError, TypeError):
+                pass
+        return None
+
+    def fault_subcode(self):
+        if isinstance(self.dict_response(), dict):
+            try:
+                return self.dict_response()['s:Envelope']['s:Body']['s:Fault']['s:Code']['s:Subcode']['s:Value']
+            except (KeyError, AttributeError, TypeError):
+                pass
+        return None
+
+    def fault_reason(self):
+        if isinstance(self.dict_response(), dict):
+            try:
+                return self.dict_response()['s:Envelope']['s:Body']['s:Fault']['s:Reason']['s:Text']['#text']
+            except (KeyError, AttributeError, TypeError):
+                pass
         return None
 
 
