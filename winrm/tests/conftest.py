@@ -5,6 +5,7 @@ import xmltodict
 from pytest import skip, fixture
 from mock import patch
 import requests
+import six
 
 open_shell_request = """\
 <?xml version="1.0" encoding="utf-8"?>
@@ -396,6 +397,8 @@ class MockRequests(object):
         response = requests.models.Response()
         response.status_code = status_code
         response._content = text
+        if isinstance(text, six.string_types):
+            response._content = text.encode()
         return response
 
     def set_closed_session_error(self):

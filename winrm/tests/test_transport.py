@@ -6,10 +6,10 @@ def test_transport_send_success(mocked_requests):
     # Return a 200 and make sure the text is returned.
     mocked_requests.start_mock()
     mocked_requests.session_send_mock.return_value = mocked_requests.get_request_response(status_code=200,
-                                                                                          text=b'success')
+                                                                                          text='success')
     test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                          auth_method='basic')
-    result = test_transport.send_message('test')
+    result = test_transport.send_message(b'fake_message')
     assert result == 'success'
     mocked_requests.stop_mock()
 
@@ -18,12 +18,12 @@ def test_transport_send_401(mocked_requests):
     # Return a 401 and make a InvalidCredentialsError exception is raised
     mocked_requests.start_mock()
     mocked_requests.session_send_mock.return_value = mocked_requests.get_request_response(status_code=401,
-                                                                                          text=b'auth failure')
+                                                                                          text='auth failure')
     expected_exception = None
     try:
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                              auth_method='basic')
-        result = test_transport.send_message('test')
+        result = test_transport.send_message(b'fake_message')
     except transport.InvalidCredentialsError as exc:
         expected_exception = exc
 
@@ -35,12 +35,12 @@ def test_transport_send_operation_timeout(mocked_requests):
     # Make sure we can raise an Operation Timeout exception properly
     mocked_requests.start_mock()
     mocked_requests.session_send_mock.return_value = mocked_requests.get_request_response(status_code=500,
-                                                                                          text=b'Code="2150858793"')
+                                                                                          text='Code="2150858793"')
     expected_exception = None
     try:
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                              auth_method='basic')
-        result = test_transport.send_message('asdfhttp://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receiveasdf')
+        result = test_transport.send_message(b'asdfhttp://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receiveasdf')
     except transport.WinRMOperationTimeoutError as exc:
         expected_exception = exc
 
@@ -56,7 +56,7 @@ def test_transport_send_random_error(mocked_requests):
     try:
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                              auth_method='basic')
-        result = test_transport.send_message('fake_message')
+        result = test_transport.send_message(b'fake_message')
     except transport.WinRMTransportError as exc:
         expected_exception = exc
 
@@ -75,7 +75,7 @@ def test_transport_send_nocontent(mocked_requests):
     try:
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                              auth_method='basic')
-        result = test_transport.send_message('asdfhttp://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receiveasdf')
+        result = test_transport.send_message(b'asdfhttp://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receiveasdf')
     except transport.WinRMTransportError as exc:
         expected_exception = exc
 
