@@ -4,7 +4,7 @@ import uuid
 import xmltodict
 from pytest import skip, fixture
 from mock import patch
-
+import requests
 
 open_shell_request = """\
 <?xml version="1.0" encoding="utf-8"?>
@@ -258,6 +258,37 @@ get_cmd_output_response = """\
 </s:Envelope>"""
 
 
+closed_session_error = """\
+<s:Envelope xml:lang="en-US" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:e="http://schemas.xmlsoap.org/ws/2004/08/eventing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd">
+    <s:Header>
+        <a:Action>http://schemas.dmtf.org/wbem/wsman/1/wsman/fault</a:Action>
+        <a:MessageID>uuid:FF34668A-6BB7-45D2-B1BA-BB296634E657</a:MessageID>
+        <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+        <a:RelatesTo>uuid:82ba8c2e-16e5-44cc-bdf1-42ed36a38725</a:RelatesTo>
+    </s:Header>
+    <s:Body>
+        <s:Fault>
+            <s:Code>
+                <s:Value>s:Sender</s:Value>
+                <s:Subcode>
+                    <s:Value>w:InvalidSelectors</s:Value>
+                </s:Subcode>
+            </s:Code>
+            <s:Reason>
+                <s:Text xml:lang="en-US">The WS-Management service cannot process the request because the request contained invalid selectors for the resource. </s:Text>
+            </s:Reason>
+            <s:Detail>
+                <w:FaultDetail>http://schemas.dmtf.org/wbem/wsman/1/wsman/faultDetail/UnexpectedSelectors</w:FaultDetail>
+                <f:WSManFault xmlns:f="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault" Code="2150858843" Machine="windows-host">
+                    <f:Message>The request for the Windows Remote Shell with ShellId 38ADB563-7BBC-408F-A0A9-6576593E5B41 failed because the shell was not found on the server. Possible causes are: the specified ShellId is incorrect or the shell no longer exists on the server. Provide the correct ShellId or create a new shell and retry the operation. </f:Message>
+                </f:WSManFault>
+            </s:Detail>
+        </s:Fault>
+    </s:Body>
+</s:Envelope>
+"""
+
+
 def sort_dict(ordered_dict):
     items = sorted(ordered_dict.items(), key=lambda x: x[0])
     ordered_dict.clear()
@@ -341,3 +372,39 @@ def protocol_real():
         return protocol
     else:
         skip('WINRM_ENDPOINT environment variable was not set. Integration tests will be skipped')
+
+
+class MockRequests(object):
+    session = None
+    session_mock = None
+    session_send_mock = None
+
+    def start_mock(self):
+        self.session = patch('requests.Session')
+        self.session_mock = self.session.start()
+
+        # When we need to modify or inspect send, this allows us to not trigger call counters in Session() within
+        # the test.
+        self.session_send_mock = self.session_mock().send
+        self.session_mock.reset_mock()
+
+    def stop_mock(self):
+        self.session.stop()
+        self.session_mock = None
+
+    def get_request_response(self, status_code=200, text=None):
+        response = requests.models.Response()
+        response.status_code = status_code
+        response._content = text
+        return response
+
+    def set_closed_session_error(self):
+        self.session_send_mock.return_value = self.get_request_response(status_code=500, text=closed_session_error)
+
+
+@fixture(scope='module')
+def mocked_requests():
+    req_mock = MockRequests()
+    req_mock.start_mock()
+    yield req_mock
+    req_mock.stop_mock()
