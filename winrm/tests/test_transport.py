@@ -6,7 +6,7 @@ def test_transport_send_success(mocked_requests):
     # Return a 200 and make sure the text is returned.
     mocked_requests.start_mock()
     mocked_requests.session_send_mock.return_value = mocked_requests.get_request_response(status_code=200,
-                                                                                          text='success')
+                                                                                          text=b'success')
     test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
                                          auth_method='basic')
     result = test_transport.send_message('test')
@@ -18,7 +18,7 @@ def test_transport_send_401(mocked_requests):
     # Return a 401 and make a InvalidCredentialsError exception is raised
     mocked_requests.start_mock()
     mocked_requests.session_send_mock.return_value = mocked_requests.get_request_response(status_code=401,
-                                                                                          text='auth failure')
+                                                                                          text=b'auth failure')
     expected_exception = None
     try:
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
@@ -35,7 +35,7 @@ def test_transport_send_operation_timeout(mocked_requests):
     # Make sure we can raise an Operation Timeout exception properly
     mocked_requests.start_mock()
     mocked_requests.session_send_mock.return_value = mocked_requests.get_request_response(status_code=500,
-                                                                                          text='Code="2150858793"')
+                                                                                          text=b'Code="2150858793"')
     expected_exception = None
     try:
         test_transport = transport.Transport('testendpoint', username='fakeusername', password='fakepassword',
