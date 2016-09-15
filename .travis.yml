@@ -17,6 +17,7 @@ install:
   - pwd
   - pip install coveralls
   - pip install .[kerberos]
+  - pip install .[credssp]
   - pip install -r requirements-test.txt
 script:
   - py.test -v --pep8 --cov=winrm --cov-report=term-missing winrm/tests/

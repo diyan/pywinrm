@@ -14,7 +14,7 @@ For more information on WinRM, please visit
 ## Requirements
 * Linux, Mac OS X or Windows
 * CPython 2.6-2.7, 3.2-3.5 or PyPy 1.9
-* [requests-kerberos](http://pypi.python.org/pypi/requests-kerberos) is optional
+* [requests-kerberos](http://pypi.python.org/pypi/requests-kerberos) and [requests-credssp](https://github.com/jborean93/requests-credssp) is optional
 
 ## Installation
 ### To install pywinrm with support for basic, certificate, and NTLM auth, simply
@@ -32,6 +32,12 @@ $ pip install pywinrm[kerberos]
 # for RHEL/CentOS/etc:
 $ sudo yum install gcc krb5-devel krb5-workstation
 $ pip install pywinrm[kerberos]
+```
+
+### To use CredSSP authentication you need these optional depdencies
+
+```bash
+pip install pywinrm[credssp]
 ```
 
 ## Example Usage
@@ -108,6 +114,30 @@ p.cleanup_command(shell_id, command_id)
 p.close_shell(shell_id)
 ```
 
+### Valid transport options
+
+pywinrm supports various transport methods in order to authenticate with the WinRM server. The options that are supported in the `transport` parameter are;
+* `basic`: Basic auth only works for local Windows accounts not domain accounts. Credentials are base64 encoded when sending to the server.
+* `plaintext`: Same as basic auth.
+* `certificate`: Authentication is done through a certificate that is mapped to a local Windows account on the server.
+* `ssl`: When used in conjunction with `cert_pem` and `cert_key_pem` it will use a certificate as above. If not will revert to basic auth over HTTPS.
+* `kerberos`: Will use Kerberos authentication for domain accounts which only works when the client is in the same domain as the server and the required dependencies are installed. Currently a Kerberos ticket needs to be initiliased outside of pywinrm using the kinit command.
+* `ntlm`: Will use NTLM authentication for both domain and local accounts. Currently no support for NTLMv2 auth and other features included in that version (WIP).
+* `credssp`: Will use CredSSP authentication for both domain and local accounts. Allows double hop authentication. This only works over a HTTPS endpoint and not HTTP.
+
+### HTTP or HTTPS endpoint
+
+While either a HTTP or HTTPS endpoint can be used as the transport method, using HTTPS is prefered as the messages are encrypted using SSL. To use HTTPS either a self signed certificate or one from a CA can be used. You can use this [guide](http://www.joseph-streeter.com/?p=1086) to set up a HTTPS endpoint with a self signed certificate.
+
+If you still wish to use a HTTP endpoint and loose confidentiality in your messages you will need to enable unencrypted messages in the server by running the following command
+```
+# from cmd:
+winrm set winrm/config/service @{AllowUnencrypted="true"}
+```
+As a repeat this should definitely not be used as your credentials and messages will allow anybody to see what is sent over the wire.
+
+There are plans in place to allow message encryption for messages sent with Kerberos or NTLM messages in the future.
+
 ### Enabling WinRM on remote host
 Enable WinRM over HTTP and HTTPS with self-signed certificate (includes firewall rules):
 
@@ -121,22 +151,23 @@ Enable WinRM over HTTP for test usage (includes firewall rules):
 winrm quickconfig
 ```
 
-Enable WinRM basic authentication. For domain users, it is necessary to use NTLM or Kerberos authentication (both are enabled by default).
+Enable WinRM basic authentication. For domain users, it is necessary to use NTLM, Kerberos or CredSSP authentication (Kerberos and NTLM authentication are enabled by default CredSSP isn't).
 ```
 # from cmd:
 winrm set winrm/config/service/auth @{Basic="true"}
 ```
 
-Allow unencrypted message passing over WinRM (recommended only for troubleshooting and internal use)
-```
-# from cmd:
-winrm set winrm/config/service @{AllowUnencrypted="true"}
+Enable WinRM CredSSP authentication. This allows double hop support so you can authenticate with a network service when running command son the remote host. This command is run in Powershell.
+```powershell
+Enable-WSManCredSSP -Role Server -Force
+Set-Item -Path "WSMan:\localhost\Service\Auth\CredSSP" -Value $true
 ```
 
 ### Contributors (alphabetically)
 
 - Reina Abolofia
 - Lukas Bednar
+- Jordan Borean
 - Chris Church
 - Matt Clark
 - Nir Cohen

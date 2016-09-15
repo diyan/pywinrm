@@ -33,7 +33,7 @@ class Protocol(object):
         ):
         """
         @param string endpoint: the WinRM webservice endpoint
-        @param string transport: transport type, one of 'plaintext' (default), 'kerberos', 'ssl'  # NOQA
+        @param string transport: transport type, one of 'plaintext' (default), 'kerberos', 'ssl', 'ntlm', 'credssp'  # NOQA
         @param string username: username
         @param string password: password
         @param string realm: unused
