@@ -9,7 +9,7 @@ def test_run_cmd(protocol_fake):
     r = s.run_cmd('ipconfig', ['/all'])
 
     assert r.status_code == 0
-    assert 'Windows IP Configuration' in r.std_out
+    assert b'Windows IP Configuration' in r.std_out
     assert len(r.std_err) == 0
 
 

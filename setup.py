@@ -1,6 +1,6 @@
-from distutils.core import setup
+from setuptools import setup
 
-__version__ = '0.0.3'
+__version__ = '0.2.0'
 project_name = 'pywinrm'
 
 # PyPi supports only reStructuredText, so pandoc should be installed
@@ -10,7 +10,6 @@ try:
     long_description = pypandoc.convert('README.md', 'rst')
 except ImportError:
     long_description = ''
-
 
 setup(
     name=project_name,
@@ -24,7 +23,8 @@ setup(
     license='MIT license',
     packages=('winrm', 'winrm.tests'),
     package_data={'winrm.tests': ['*.ps1']},
-    install_requires=['xmltodict', 'isodate'],
+    install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
+    extras_require = dict(kerberos=['requests-kerberos>=0.10.0']),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -39,6 +39,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: System :: Clustering',

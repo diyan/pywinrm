@@ -29,7 +29,7 @@ def test_get_command_output(protocol_fake):
     std_out, std_err, status_code = protocol_fake.get_command_output(
         shell_id, command_id)
     assert status_code == 0
-    assert 'Windows IP Configuration' in std_out
+    assert b'Windows IP Configuration' in std_out
     assert len(std_err) == 0
 
     protocol_fake.cleanup_command(shell_id, command_id)

@@ -1,6 +1,0 @@
-isodate
-xmltodict
-pytest
-pytest-cov
-pytest-pep8
-mock

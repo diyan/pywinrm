@@ -18,7 +18,7 @@ open_shell_request = """\
     <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
     <w:Locale mustUnderstand="false" xml:lang="en-US" />
     <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
-    <w:OperationTimeout>PT60S</w:OperationTimeout>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
     <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
     <a:Action mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/09/transfer/Create</a:Action>
     <w:OptionSet>
@@ -68,7 +68,7 @@ close_shell_request = """\
     <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
     <w:Locale mustUnderstand="false" xml:lang="en-US" />
     <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
-    <w:OperationTimeout>PT60S</w:OperationTimeout>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
     <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
     <a:Action mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete</a:Action>
     <w:SelectorSet>
@@ -104,7 +104,7 @@ run_cmd_with_args_request = """\
     <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
     <w:Locale mustUnderstand="false" xml:lang="en-US" />
     <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
-    <w:OperationTimeout>PT60S</w:OperationTimeout>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
     <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
     <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
     <w:SelectorSet>
@@ -135,7 +135,7 @@ run_cmd_wo_args_request = """\
     <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
     <w:Locale mustUnderstand="false" xml:lang="en-US" />
     <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
-    <w:OperationTimeout>PT60S</w:OperationTimeout>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
     <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
     <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
     <w:SelectorSet>
@@ -181,7 +181,7 @@ cleanup_cmd_request = """\
     <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
     <w:Locale mustUnderstand="false" xml:lang="en-US" />
     <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
-    <w:OperationTimeout>PT60S</w:OperationTimeout>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
     <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
     <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal</a:Action>
     <w:SelectorSet>
@@ -221,7 +221,7 @@ get_cmd_output_request = """\
     <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
     <w:Locale mustUnderstand="false" xml:lang="en-US" />
     <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
-    <w:OperationTimeout>PT60S</w:OperationTimeout>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
     <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
     <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive</a:Action>
     <w:SelectorSet>
@@ -324,9 +324,11 @@ def protocol_real():
     username = os.environ.get('WINRM_USERNAME', None)
     password = os.environ.get('WINRM_PASSWORD', None)
     if endpoint:
-        # TODO consider replace json with yaml for integration test settings
-        # TODO json does not support comments
-        settings = {'endpoint': endpoint}
+        settings = dict(
+            endpoint=endpoint,
+            operation_timeout_sec=5,
+            read_timeout_sec=7
+        )
         if transport:
             settings['transport'] = transport
         if username:

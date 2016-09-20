@@ -1,0 +1,66 @@
+environment:
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    WITH_COMPILER: "cmd /E:ON /V:ON /C .\\scripts\\run_with_compiler.cmd"
+  matrix:
+    - PYTHON: "C:\\Python27"
+      PYTHON_VERSION: "2.7.9"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python27-x64"
+      PYTHON_VERSION: "2.7.9"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python33"
+      PYTHON_VERSION: "3.3.5"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python33-x64"
+      PYTHON_VERSION: "3.3.5"
+      PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python34"
+      PYTHON_VERSION: "3.4.3"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python34-x64"
+      PYTHON_VERSION: "3.4.3"
+      PYTHON_ARCH: "64"
+init:
+  - ps: |
+      $ErrorActionPreference = "Stop"
+      # Override default Python version/architecture
+      $env:PATH="$env:PYTHON;$env:PYTHON\Scripts;$env:PATH"
+      python -c "import platform; print('Python', platform.python_version(), platform.architecture()[0])"
+      # always install latest pip
+      $(curl -UseBasicParsing https://bootstrap.pypa.io/get-pip.py).Content | python
+      pip --version
+
+install:
+  - ps: |
+      Set-Item WSMan:\localhost\Service\Auth\Basic $true
+      Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
+      Invoke-Expression $($env:WITH_COMPILER + " pip install cffi coveralls")
+      pip install .
+      pip install -r requirements-test.txt
+
+build: off  # Do not run MSBuild, build stuff at install step
+
+build_script:
+  - echo build_script
+
+test_script:
+  # configure winrm envvars for tests
+  - ps: |
+      $ErrorActionPreference = "Stop"
+      $env:WINRM_USERNAME=$($env:USERNAME)
+      $env:WINRM_PASSWORD=[Microsoft.Win32.Registry]::GetValue("HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon", "DefaultPassword", '')
+      $env:WINRM_TRANSPORT="basic"
+      $env:WINRM_ENDPOINT="http://localhost:5985/wsman"
+
+      py.test -v --cov-report=term-missing --cov=.
+
+after_test:
+  - echo after_test
