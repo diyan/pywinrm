@@ -45,13 +45,28 @@ class Session(object):
         """base64 encodes a Powershell script and executes the powershell
         encoded script command
         """
-        # must use utf16 little endian on windows
-        encoded_ps = b64encode(script.encode('utf_16_le')).decode('ascii')
-        rs = self.run_cmd('powershell -encodedcommand {0}'.format(encoded_ps))
+
+        script_bytes = script.encode('utf-8')
+        packed_expression = b64encode(script_bytes).decode('ascii')
+
+        # Use a custom strategy that encodes the script as UTF-8 instead of the
+        # UTF-16-LE encoding employed by PowerShell's "-EncodedCommand". This
+        # improves performance and increases the maximum script size by
+        # reducing the size of the payload.
+        expression_template = (
+            'Invoke-Expression '
+            '$([System.Text.Encoding]::UTF8.GetString('
+                "[Convert]::FromBase64String('{0}'))"  # NOQA
+            ')'
+        )
+        command = expression_template.format(packed_expression)
+
+        rs = self.run_cmd('powershell -command "{0}"'.format(command))
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
             rs.std_err = self._clean_error_msg(rs.std_err)
+
         return rs
 
     def _clean_error_msg(self, msg):
