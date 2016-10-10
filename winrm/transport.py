@@ -4,7 +4,6 @@ import re
 import sys
 import os
 import weakref
-import distutils
 
 is_py2 = sys.version[0] == '2'
 
@@ -20,6 +19,7 @@ else:
 import requests
 import requests.auth
 import warnings
+from distutils.util import strtobool
 from requests.hooks import default_hooks
 from requests.adapters import HTTPAdapter
 
@@ -80,7 +80,7 @@ class Transport(object):
         if isinstance(kerberos_delegation, bool):
             self.kerberos_delegation = kerberos_delegation
         else:
-            self.kerberos_delegation = bool(distutils.util.strtobool(str(kerberos_delegation)))
+            self.kerberos_delegation = bool(strtobool(str(kerberos_delegation)))
 
         self.auth_method = auth_method
         self.default_headers = {

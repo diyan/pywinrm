@@ -1,5 +1,15 @@
 # Changelog
 
+### Version 0.2.1
+- Minor import bugfix for error "'module' object has no attribute 'util'" when using Kerberos delegation on older Python builds
+
+### Version 0.2.0
+- Switched core HTTP transport from urllib2 to requests
+- Added support for NTLM (via requests_ntlm)
+- Added support for kerberos delegation (via requests_kerberos)
+- Added support for explicit kerberos principals (in conjuction w/ pykerberos bugfix)
+- Timeouts are more configurable
+
 ### Version 0.1.1
 - Force basic auth header to avoid additional HTTP request and reduce latency
 - Python 2.7.9+. Allow server cert validation to be ignored using SSLContext.verify_mode
