@@ -9,7 +9,12 @@ import xmltodict
 from six import text_type, binary_type
 
 from winrm.transport import Transport
-from winrm.exceptions import WinRMError, WinRMOperationTimeoutError
+from winrm.exceptions import WinRMError, WinRMTransportError, WinRMOperationTimeoutError
+
+
+SOAP_ENVELOPE_NAMESPACE = 'http://www.w3.org/2003/05/soap-envelope'
+SOAP_ADDRESSING_NAMESPACE = 'http://schemas.xmlsoap.org/ws/2004/08/addressing'
+
 
 class Protocol(object):
     """This is the main class that does the SOAP request/response logic. There
@@ -130,6 +135,7 @@ class Protocol(object):
                 env['rsp:Variable'] = {'@Name': key, '#text': value}
 
         res = self.send_message(xmltodict.unparse(req))
+
         #res = xmltodict.parse(res)
         #return res['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
         root = ET.fromstring(res)
@@ -146,9 +152,9 @@ class Protocol(object):
         header = {
             '@xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
             '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-            '@xmlns:env': 'http://www.w3.org/2003/05/soap-envelope',
+            '@xmlns:env': SOAP_ENVELOPE_NAMESPACE,
 
-            '@xmlns:a': 'http://schemas.xmlsoap.org/ws/2004/08/addressing',
+            '@xmlns:a': SOAP_ADDRESSING_NAMESPACE,
             '@xmlns:b': 'http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd',
             '@xmlns:n': 'http://schemas.xmlsoap.org/ws/2004/09/enumeration',
             '@xmlns:x': 'http://schemas.xmlsoap.org/ws/2004/09/transfer',
@@ -204,7 +210,41 @@ class Protocol(object):
     def send_message(self, message):
         # TODO add message_id vs relates_to checking
         # TODO port error handling code
-        return self.transport.send_message(message)
+        try:
+            resp = self.transport.send_message(message)
+            return resp
+        except WinRMTransportError as ex:
+            req = ET.fromstring(message)
+            action = req.find('{%(env)s}Header/{%(a)s}Action' % dict(env=SOAP_ENVELOPE_NAMESPACE, a=SOAP_ADDRESSING_NAMESPACE))
+            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
+            # should handle this 500 error and retry receiving command output.
+            if action is not None and action.text == 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' and b'Code="2150858793"' in ex.response_text:
+                raise WinRMOperationTimeoutError()
+            else:
+                try:
+                    root = ET.fromstring(ex.response_text)
+                except:
+                    # unparsable response; it is a transport error
+                    raise ex
+
+                n = root.find('{%(env)s}Body/{%(env)s}Fault' % dict(env=SOAP_ENVELOPE_NAMESPACE))
+                if n:
+                    code_node = n.find('{%(env)s}Code/{%(env)s}Value' % dict(env=SOAP_ENVELOPE_NAMESPACE))
+                    subcode_node = n.find('{%(env)s}Code/{%(env)s}Subcode/{%(env)s}Value' % dict(env=SOAP_ENVELOPE_NAMESPACE))
+
+                    error_message_node = n.find('{%(env)s}Reason/{%(env)s}Text' % dict(env=SOAP_ENVELOPE_NAMESPACE))
+                    if code_node is not None:
+                        if subcode_node is not None:
+                            code = '{0} ({1})'.format(code_node.text, subcode_node.text)
+                        else:
+                            code = code_node.text
+                    else:
+                        code = '(none)'
+                    if error_message_node is not None:
+                        error_message = error_message_node.text
+                    else:
+                        error_message = '(none)'
+                    raise WinRMError('{0}: {1} in response to {2}'.format(code, error_message, message))
 
     def close_shell(self, shell_id):
         """
