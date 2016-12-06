@@ -37,6 +37,13 @@ try:
 except ImportError as ie:
     pass
 
+HAVE_CREDSSP = False
+try:
+    from requests_credssp import HttpCredSSPAuth
+    HAVE_CREDSSP = True
+except ImportError as ie:
+    pass
+
 from winrm.exceptions import BasicAuthDisabledError, InvalidCredentialsError, \
     WinRMError, WinRMTransportError, WinRMOperationTimeoutError
 
@@ -147,6 +154,10 @@ class Transport(object):
         # TODO: ssl is not exactly right here- should really be client_cert
         elif self.auth_method in ['basic','plaintext']:
             session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
+        elif self.auth_method == 'credssp':
+            if not HAVE_CREDSSP:
+                raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
+            session.auth = HttpCredSSPAuth(username=self.username, password=self.password)
 
         else:
             raise WinRMError("unsupported auth method: %s" % self.auth_method)
@@ -156,7 +167,7 @@ class Transport(object):
         return session
 
     def send_message(self, message):
-        # TODO support kerberos session with message encryption
+        # TODO support kerberos/ntlm session with message encryption
 
         if not self.session:
             self.session = self.build_session()

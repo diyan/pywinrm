@@ -9,7 +9,7 @@ from winrm.protocol import Protocol
 # These values can be easily checked for with hasattr(winrm, "FEATURE_X"),
 # "'auth_type' in winrm.FEATURE_SUPPORTED_AUTHTYPES", etc for clients to sniff features
 # supported by a particular version of pywinrm
-FEATURE_SUPPORTED_AUTHTYPES=['basic', 'certificate', 'ntlm', 'kerberos', 'plaintext', 'ssl']
+FEATURE_SUPPORTED_AUTHTYPES=['basic', 'certificate', 'ntlm', 'kerberos', 'plaintext', 'ssl', 'credssp']
 FEATURE_READ_TIMEOUT=True
 FEATURE_OPERATION_TIMEOUT=True
 
