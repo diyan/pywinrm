@@ -165,19 +165,20 @@ Set-Item -Path "WSMan:\localhost\Service\Auth\CredSSP" -Value $true
 
 ### Contributors (alphabetically)
 
-- Reina Abolofia
-- Lukas Bednar
-- Jordan Borean
-- Chris Church
-- Matt Clark
-- Nir Cohen
-- David Cournapeau
-- Matt Davis
-- Patrick Dunnigan
-- Gema Gomez
-- Juan J. Martinez
 - Alessandro Pilotti
-- Manuel Sabban
+- Alexey Diyan
+- Chris Church
+- David Cournapeau
+- Gema Gomez
 - Jijo Varghese
+- Jordan Borean
+- Juan J. Martinez
+- Lukas Bednar
+- Manuel Sabban
+- Matt Clark
+- Matt Davis
+- Nir Cohen
+- Patrick Dunnigan
+- Reina Abolofia
 
 Want to help - send a pull request. I will accept good pull requests for sure.
