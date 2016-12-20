@@ -30,7 +30,7 @@ $ sudo apt-get install python-dev libkrb5-dev
 $ pip install pywinrm[kerberos]
 
 # for RHEL/CentOS/etc:
-$ sudo yum install gcc krb5-devel krb5-workstation
+$ sudo yum install gcc krb5-devel krb5-workstation python-devel
 $ pip install pywinrm[kerberos]
 ```
 
