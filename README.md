@@ -177,6 +177,7 @@ Set-Item -Path "WSMan:\localhost\Service\Auth\CredSSP" -Value $true
 - Manuel Sabban
 - Matt Clark
 - Matt Davis
+- Maxim Kovgan
 - Nir Cohen
 - Patrick Dunnigan
 - Reina Abolofia
