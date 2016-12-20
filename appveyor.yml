@@ -7,19 +7,19 @@ environment:
   matrix:
     # https://www.appveyor.com/docs/installed-software/#python
     # NOTE Python 2.6 for Windows is no longer supported by the Python core team
-    - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python33"
-    - PYTHON: "C:\\Python33-x64"
-    - PYTHON: "C:\\Python34"
-    - PYTHON: "C:\\Python34-x64"
-    - PYTHON: "C:\\Python35"
-    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: Python27
+    - PYTHON: Python27-x64
+    - PYTHON: Python33
+    - PYTHON: Python33-x64
+    - PYTHON: Python34
+    - PYTHON: Python34-x64
+    - PYTHON: Python35
+    - PYTHON: Python35-x64
 init:
   - ps: |
       $ErrorActionPreference = "Stop"
       # Override default Python version/architecture
-      $env:PATH="$env:PYTHON;$env:PYTHON\Scripts;$env:PATH"
+      $env:Path="C:\$env:PYTHON;C:\$env:PYTHON\Scripts;$env:PATH"
       python -c "import platform; print('Python', platform.python_version(), platform.architecture()[0])"
       # always install latest pip
       $(curl -UseBasicParsing https://bootstrap.pypa.io/get-pip.py).Content | python
