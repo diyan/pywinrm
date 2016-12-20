@@ -8,36 +8,13 @@ environment:
     # https://www.appveyor.com/docs/installed-software/#python
     # NOTE Python 2.6 for Windows is no longer supported by the Python core team
     - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7.9"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python27-x64"
-      PYTHON_VERSION: "2.7.9"
-      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Python33"
-      PYTHON_VERSION: "3.3.5"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python33-x64"
-      PYTHON_VERSION: "3.3.5"
-      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Python34"
-      PYTHON_VERSION: "3.4.3"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python34-x64"
-      PYTHON_VERSION: "3.4.3"
-      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Python35"
-      PYTHON_VERSION: "3.5.2"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python35-x64"
-      PYTHON_VERSION: "3.5.2"
-      PYTHON_ARCH: "64"
 init:
   - ps: |
       $ErrorActionPreference = "Stop"
