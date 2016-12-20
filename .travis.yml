@@ -9,7 +9,9 @@ python:
   - 3.5
   - 3.6-dev
   - pypy
-  - pypy3
+  # TODO wait for Travis CI update from PyPy3 v2.4.0 to PyPy3.3 v5.5, reason:
+  #   cryptography 1.0 is not compatible with PyPy < 2.6
+  # - pypy3
 install:
   #- sudo apt-get install libffi-dev
   #- pip install cffi coveralls
