@@ -8,6 +8,8 @@ WinRM allows you to perform various management tasks remotely. These include,
 but are not limited to: running batch scripts, powershell scripts, and fetching 
 WMI variables.
 
+Used by [Ansible](https://www.ansible.com/) for Windows support.
+
 For more information on WinRM, please visit
 [Microsoft's WinRM site](http://msdn.microsoft.com/en-us/library/aa384426.aspx).
 
