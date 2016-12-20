@@ -13,7 +13,7 @@ For more information on WinRM, please visit
 
 ## Requirements
 * Linux, Mac OS X or Windows
-* CPython 2.6-2.7, 3.2-3.5 or PyPy 1.9
+* CPython 2.6-2.7, 3.2-3.5 or PyPy2
 * [requests-kerberos](http://pypi.python.org/pypi/requests-kerberos) and [requests-credssp](https://github.com/jborean93/requests-credssp) is optional
 
 ## Installation
