@@ -6,14 +6,7 @@ environment:
     WITH_COMPILER: "cmd /E:ON /V:ON /C .\\scripts\\run_with_compiler.cmd"
   matrix:
     # https://www.appveyor.com/docs/installed-software/#python
-    - PYTHON: "C:\\Python26"
-      PYTHON_VERSION: "2.6.6"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python26-x64"
-      PYTHON_VERSION: "2.6.6"
-      PYTHON_ARCH: "64"
-
+    # NOTE Python 2.6 for Windows is no longer supported by the Python core team
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.9"
       PYTHON_ARCH: "32"
