@@ -1,5 +1,14 @@
 # Changelog
 
+### Version 0.2.2
+- Added support for CredSSP authenication (via requests-credssp)
+- Improved README, see 'Valid transport options' section
+- Run unit tests on Linux / Travis CI on Python 2.6-2.7, 3.3-3.6, PyPy2
+- Run integration tests on Windows / AppVeyor on Python 2.7, 3.3-3.5
+- Drop support for Python 3.0-3.2 due to lack of explicit unicode literal, see pep-0414
+- Drop support for Python 2.6 on Windows
+- Add support for Python 3.6-dev on Linux
+
 ### Version 0.2.1
 - Minor import bugfix for error "'module' object has no attribute 'util'" when using Kerberos delegation on older Python builds
 
