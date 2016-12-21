@@ -16,7 +16,10 @@ Thumbs.db
 # Python virtual environment
 /env/
 
+# build outputs
+/build/
 /dist/
+/pywinrm.egg-info/
 /MANIFEST
 *.py[co]
 __pycache__
@@ -24,3 +27,5 @@ __pycache__
 *~
 
 /winrm/tests/config.json
+
+
