@@ -28,18 +28,24 @@ $ pip install pywinrm
 
 ```bash
 # for Debian/Ubuntu/etc:
-$ sudo apt-get install python-dev libkrb5-dev
+$ sudo apt-get install gcc python-dev libkrb5-dev
 $ pip install pywinrm[kerberos]
 
 # for RHEL/CentOS/etc:
-$ sudo yum install gcc krb5-devel krb5-workstation
+$ sudo yum install gcc python-devel krb5-devel krb5-workstation
 $ pip install pywinrm[kerberos]
 ```
 
 ### To use CredSSP authentication you need these optional dependencies
 
 ```bash
-pip install pywinrm[credssp]
+# for Debian/Ubuntu/etc:
+$ sudo apt-get install gcc python-dev libssl-dev
+$ pip install pywinrm[credssp]
+
+# for RHEL/CentOS/etc:
+$ sudo yum install gcc python-devel openssl-devel
+$ pip install pywinrm[credssp]
 ```
 
 ## Example Usage
