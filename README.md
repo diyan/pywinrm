@@ -36,7 +36,7 @@ $ sudo yum install gcc krb5-devel krb5-workstation
 $ pip install pywinrm[kerberos]
 ```
 
-### To use CredSSP authentication you need these optional depdencies
+### To use CredSSP authentication you need these optional dependencies
 
 ```bash
 pip install pywinrm[credssp]
