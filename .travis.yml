@@ -7,7 +7,7 @@ language: generic
 cache:
   directories:
     - $HOME/.cache/pip
-#   - $HOME/.pyenv
+    - $HOME/.cache/pyenv
 matrix:
   include:
     # Python 3.0-3.2 does not support explicit unicode literal, see pep-0414
@@ -40,9 +40,11 @@ matrix:
     - { os: osx, osx_image: xcode8.2, language: generic, env: OSX=10.12 PYENV=3.5.2 }
 
 install:
-  # TODO Always use latest pyenv but keep installed Python versions in cache
+  # Always use latest pyenv but keep installed Python versions in cache
   - rm -rf ~/.pyenv
   - git clone https://github.com/yyuu/pyenv.git ~/.pyenv
+  - mkdir -p ~/.cache/pyenv/versions
+  - ln -s ~/.cache/pyenv/versions ~/.pyenv/versions
   - export PATH="$HOME/.pyenv/shims:$HOME/.pyenv/bin:$PATH"
   - pyenv --version
   - pyenv install --skip-existing $PYENV
