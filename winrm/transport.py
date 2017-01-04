@@ -65,7 +65,8 @@ class Transport(object):
             kerberos_hostname_override=None,
             auth_method='auto',
             message_encryption='auto',
-            credssp_disable_tlsv1_2=False):
+            credssp_disable_tlsv1_2=False,
+            proxies=None):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -80,6 +81,7 @@ class Transport(object):
         self.kerberos_hostname_override = kerberos_hostname_override
         self.message_encryption = message_encryption
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
+        self.proxies = {} if proxies is None else proxies
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -147,12 +149,12 @@ class Transport(object):
 
         session.verify = self.server_cert_validation == 'validate'
 
-        # configure proxies from HTTP/HTTPS_PROXY envvars
+        # configure proxies from HTTP/HTTPS_PROXY envvars and from given proxy values
         session.trust_env = True
-        settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
+        settings = session.merge_environment_settings(url=self.endpoint, proxies=self.proxies, stream=None,
                                                       verify=None, cert=None)
 
-        # we're only applying proxies from env, other settings are ignored
+        # Applying proxy settings
         session.proxies = settings['proxies']
 
         encryption_available = False
