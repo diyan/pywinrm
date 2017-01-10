@@ -90,13 +90,21 @@ class Transport(object):
 
         # try to suppress user-unfriendly warnings from requests' vendored urllib3
         try:
-            from requests.packages.urllib3.exceptions import InsecurePlatformWarning, SNIMissingWarning, InsecureRequestWarning
+            from requests.packages.urllib3.exceptions import InsecurePlatformWarning
             warnings.simplefilter('ignore', category=InsecurePlatformWarning)
-            warnings.simplefilter('ignore', category=SNIMissingWarning)
-            # if we're explicitly ignoring validation, try to suppress InsecureRequestWarning, since the user opted-in
-            if self.server_cert_validation == 'ignore':
-                warnings.simplefilter('ignore', category=InsecureRequestWarning)
         except: pass # oh well, we tried...
+
+        try:
+            from requests.packages.urllib3.exceptions import SNIMissingWarning
+            warnings.simplefilter('ignore', category=SNIMissingWarning)
+        except: pass # oh well, we tried...
+
+        # if we're explicitly ignoring validation, try to suppress InsecureRequestWarning, since the user opted-in
+        if self.server_cert_validation == 'ignore':
+            try:
+                from requests.packages.urllib3.exceptions import InsecureRequestWarning
+                warnings.simplefilter('ignore', category=InsecureRequestWarning)
+            except: pass # oh well, we tried...
 
         # validate credential requirements for various auth types
         if self.auth_method != 'kerberos':
