@@ -1,5 +1,8 @@
 # Changelog
 
+### Developing
+- Added support for message encryption over HTTP when using NTLM
+
 ### Version 0.2.2
 - Added support for CredSSP authenication (via requests-credssp)
 - Improved README, see 'Valid transport options' section

@@ -46,10 +46,9 @@ except ImportError as ie:
 
 from winrm.exceptions import BasicAuthDisabledError, InvalidCredentialsError, \
     WinRMError, WinRMTransportError, WinRMOperationTimeoutError
+from winrm.encryption import Encryption
 
 __all__ = ['Transport']
-
-import ssl
 
 class Transport(object):
     
@@ -59,7 +58,8 @@ class Transport(object):
             cert_key_pem=None, read_timeout_sec=None, server_cert_validation='validate',
             kerberos_delegation=False,
             kerberos_hostname_override=None,
-            auth_method='auto'):
+            auth_method='auto',
+            message_encryption='auto'):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -72,6 +72,7 @@ class Transport(object):
         self.read_timeout_sec = read_timeout_sec
         self.server_cert_validation = server_cert_validation
         self.kerberos_hostname_override = kerberos_hostname_override
+        self.message_encryption = message_encryption
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -125,6 +126,13 @@ class Transport(object):
 
         self.session = None
 
+        # Used for encrypting messages
+        self.encryption = None # The Pywinrm Encryption class used to encrypt/decrypt messages
+        if self.message_encryption not in ['auto', 'always', 'never']:
+            raise WinRMError(
+                "invalid message_encryption arg: %s. Should be 'auto', 'always', or 'never'" % self.message_encryption)
+
+
     def build_session(self):
         session = requests.Session()
 
@@ -138,6 +146,7 @@ class Transport(object):
         # we're only applying proxies from env, other settings are ignored
         session.proxies = settings['proxies']
 
+        encryption_available = False
         if self.auth_method == 'kerberos':
             if not HAVE_KERBEROS:
                 raise WinRMError("requested auth method is kerberos, but requests_kerberos is not installed")
@@ -159,6 +168,8 @@ class Transport(object):
             if not HAVE_NTLM:
                 raise WinRMError("requested auth method is ntlm, but requests_ntlm is not installed")
             session.auth = HttpNtlmAuth(username=self.username, password=self.password)
+            # check if requests_ntlm has the session_security attribute available for encryption
+            encryption_available = hasattr(session.auth, 'session_security')
         # TODO: ssl is not exactly right here- should really be client_cert
         elif self.auth_method in ['basic','plaintext']:
             session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
@@ -166,40 +177,59 @@ class Transport(object):
             if not HAVE_CREDSSP:
                 raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
             session.auth = HttpCredSSPAuth(username=self.username, password=self.password)
-
         else:
             raise WinRMError("unsupported auth method: %s" % self.auth_method)
 
         session.headers.update(self.default_headers)
+        self.session = session
 
-        return session
+        # Will check the current config and see if we need to setup message encryption
+        if self.message_encryption == 'always' and not encryption_available:
+            raise WinRMError("message encryption is set to 'always' but the selected auth method %s does not support it" % self.auth_method)
+        elif encryption_available:
+            if self.message_encryption == 'always':
+                self.setup_encryption()
+            elif self.message_encryption == 'auto' and not self.endpoint.lower().startswith('https'):
+                self.setup_encryption()
+
+    def setup_encryption(self):
+        # Security context doesn't exist, sending blank message to initialise context
+        request = requests.Request('POST', self.endpoint, data=None)
+        prepared_request = self.session.prepare_request(request)
+        self._send_message_request(prepared_request, '')
+        self.encryption = Encryption(self.session, self.auth_method)
 
     def send_message(self, message):
-        # TODO support kerberos/ntlm session with message encryption
-
         if not self.session:
-            self.session = self.build_session()
+            self.build_session()
 
         # urllib3 fails on SSL retries with unicode buffers- must send it a byte string
         # see https://github.com/shazow/urllib3/issues/717
         if isinstance(message, unicode_type):
             message = message.encode('utf-8')
 
-        request = requests.Request('POST', self.endpoint, data=message)
-        prepared_request = self.session.prepare_request(request)
+        if self.encryption:
+            prepared_request = self.encryption.prepare_encrypted_request(self.session, self.endpoint, message)
+        else:
+            request = requests.Request('POST', self.endpoint, data=message)
+            prepared_request = self.session.prepare_request(request)
 
+        response = self._send_message_request(prepared_request, message)
+        return self._get_message_response_text(response)
+
+    def _send_message_request(self, prepared_request, message):
         try:
             response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
-            response_text = response.text
             response.raise_for_status()
-            return response_text
+            return response
         except requests.HTTPError as ex:
             if ex.response.status_code == 401:
                 raise InvalidCredentialsError("the specified credentials were rejected by the server")
             if ex.response.content:
-                response_text = ex.response.content
+                response_text = self._get_message_response_text(ex.response)
             else:
                 response_text = ''
+
             # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
             # should handle this 500 error and retry receiving command output.
             if b'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and b'Code="2150858793"' in response_text:
@@ -208,3 +238,10 @@ class Transport(object):
             error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
 
             raise WinRMTransportError('http', error_message)
+
+    def _get_message_response_text(self, response):
+        if self.encryption:
+            response_text = self.encryption.parse_encrypted_response(response)
+        else:
+            response_text = response.content
+        return response_text
