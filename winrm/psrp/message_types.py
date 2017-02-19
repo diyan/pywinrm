@@ -1,6 +1,6 @@
 import xmltodict
 
-from winrm.psrp.property_types import Version
+from winrm.psrp.property_types import SignedInt, Version
 
 class MessageType(object):
     """
@@ -108,8 +108,8 @@ class InitRunspacePool(MessageType):
         self.ref_id = 1
 
     def create(self, min_runspaces, max_runspaces, ps_thread_options, apartment_state, host_info, application_arguments):
-        self.min_runspaces = min_runspaces
-        self.max_runspaces = max_runspaces
+        self.min_runspaces = SignedInt(min_runspaces, "N", "MinRunspaces")
+        self.max_runspaces = SignedInt(max_runspaces, "N", "MaxRunspaces")
         self.ps_thread_options = ps_thread_options
         self.apartment_stat = apartment_state
         self.host_info = host_info
