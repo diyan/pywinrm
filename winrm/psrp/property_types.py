@@ -48,6 +48,7 @@ class Version(PrimitiveType):
     Represents a version number that consists of two to four components: major,
     minor, build, and revisions
     """
+    type = "Version"
 
 class SignedInt(PrimitiveType):
     """
@@ -56,6 +57,8 @@ class SignedInt(PrimitiveType):
 
     Represents a signed integer (32 bits)
     """
+    type = "I32"
+
     def _validate_value(self, value):
         try:
             int(value) >> 32

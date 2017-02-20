@@ -3,70 +3,66 @@ import xmltodict
 from winrm.psrp.property_types import SignedInt, Version
 
 class MessageType(object):
-    """
-    [MS-PSRP] v16.0 2016-07-14
-    2.2.1 Powershell Remoting Protocol Message (Message Type)
 
-    The type of message. The value of this field specifies what action MUST be
-    taken by the client or server upon receipt. Possible values are listed in
-    the following table.
-    """
-
-    # Valid message directions
-    SERVER = 'Server'
-    CLIENT = 'Client'
-
-    # Valid message targets
-    RUNSPACE_POOL = 'RunspacePool'
-    PIPELINE = 'pipeline'
-
-    def __init(self):
-        # raw object of the message data
-        self.data = None
+    def __init__(self, object_id_counter=0, type_name_id_counter=0):
+        self.object_id_counter = object_id_counter
+        self.type_name_id_counter = type_name_id_counter
+        self.type_names = []
+        self.elements = []
 
     def __str__(self):
-        if self.data is None:
-            raise Exception("Cannot convert to xml string, data not intialised")
+        if len(self.elements) == 0:
+            raise Exception("Cannot convert to xml string, elements not intialised")
 
         data = {
             "Obj": {
-                "@RefId": self.ref_id,
-                "MS": {
-                    self.data
-                }
+                "@RefId": self.object_id_counter,
+                "MS": self._unpack_elements(self.elements)
             }
         }
+        self.object_id_counter += 1
         return xmltodict.unparse(data, encoding="utf-8")
+
 
     def _create_xml_object(self, xml):
         return xmltodict.parse(xml, encoding="utf-8")
 
 
-class SessionCapability(MessageType):
+    def _unpack_elements(self, elements):
+        new_elements = {}
+        for element in elements:
+            type = element.type
+            if type in new_elements:
+                values = new_elements[type]
+            else:
+                values = []
 
-    def __init__(self):
-        """
-        [MS-PSRP] v16.0 2016-07-14
-        2.2.2.1 SESSION_CAPABILITY Message
-        """
-        self.id = 0x00010002
-        self.valid_directions = [self.SERVER, self.CLIENT]
-        self.target = self.RUNSPACE_POOL
-        self.ref_id = 0
+            value = { "#text": element.value }
+            if element.attribute_key is not None:
+                value["@" + element.attribute_key] = element.attribute_value
+            values.append(value)
+            new_elements[type] = values
+
+        return new_elements
+
+
+class SessionCapability(MessageType):
+    """
+    [MS-PSRP] v16.0 2016-07-14
+    2.2.2.1 SESSION_CAPABILITY Message
+    """
 
     def create(self, ps_version, protocol_version, serialization_version):
         self.ps_version = Version(ps_version, "N", "PSVersion")
         self.protocol_version = Version(protocol_version, "N", "protocolversion")
         self.serialization_version = Version(serialization_version, "N", "SerializationVersion")
 
-        self.data = {
-            "Version": [
-                self.ps_version.get_data(),
-                self.protocol_version.get_data(),
-                self.serialization_version.get_data()
-            ]
+        self.elements = [
+            self.ps_version,
+            self.protocol_version,
+            self.serialization_version
             # TODO: Add support for optional timezone
-        }
+        ]
 
     def parse(self, xml):
         data = self._create_xml_object(xml)
@@ -96,16 +92,10 @@ class SessionCapability(MessageType):
         # TODO: Add support for timezone
 
 class InitRunspacePool(MessageType):
-
-    def __init__(self):
-        """
-        [MS-PSRP] v16.0 2016-07-14
-        2.2.2.2 INIT_RUNSPACEPOOL Message
-        """
-        self.id = 0x00010004
-        self.valid_directions = [self.SERVER]
-        self.target = self.RUNSPACE_POOL
-        self.ref_id = 1
+    """
+    [MS-PSRP] v16.0 2016-07-14
+    2.2.2.2 INIT_RUNSPACEPOOL Message
+    """
 
     def create(self, min_runspaces, max_runspaces, ps_thread_options, apartment_state, host_info, application_arguments):
         self.min_runspaces = SignedInt(min_runspaces, "N", "MinRunspaces")
@@ -114,15 +104,15 @@ class InitRunspacePool(MessageType):
         self.apartment_stat = apartment_state
         self.host_info = host_info
         self.application_arguments = application_arguments
-        self.data = {
-            self.min_runspaces.get_data(),
-            self.max_runspaces.get_data(),
-            self.ps_thread_options.get_data(),
-            self.apartment_stat.get_data(),
-            self.host_info.get_data(),
-            self.application_arguments.get_data(),
-        }
-        a = ''
+
+        self.elements = [
+            self.min_runspaces,
+            self.max_runspaces
+        ]
 
     def parse(self, xml):
         a = ''
+
+session_capability = SessionCapability()
+session_capability.create("2.2", "2.0", "1.1")
+print(str(session_capability))
