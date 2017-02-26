@@ -1,48 +1,47 @@
+import struct
 import uuid
 import xmltodict
 
-
-class Colors(object):
-    """
-    [MS-PSRP] v16.0 2016-07-14
-    2.2.3.3 Color
-
-    Valid colors when setting up the Color object
-    """
-    DARK_BLUE = '1'
-    DARK_GREEN = '2'
-    DARK_CYAN = '3'
-    DARK_RED = '4'
-    DARK_MAGENTA = '5'
-    DARK_YELLOW = '6'
-    GRAY = '7'
-    DARK_GREY = '8'
-    BLUE = '9'
-    GREEN = '10'
-    CYAN = '11'
-    RED = '12'
-    MAGENTA = '13'
-    YELLOW = '14'
-    WHITE = '15'
+from winrm.contants import RunspacePoolStates, Colors
 
 
-class RunspacePoolStates(object):
-    """
-    [MS-PSRP] v16.0 2016-07-14
-    2.2.3.4 RunspacePoolState
+class Message(object):
+    DESTINATION_CLIENT = 0x00000001
+    DESTINATION_SERVER = 0x00000002
 
-    This data type represents the state of a RunspacePool
-    """
-    BEFORE_OPEN = "0"
-    OPENING = "1"
-    OPENED = "2"
-    CLOSED = "3"
-    CLOSING = "4"
-    BROKEN = "5"
-    NEGOTIATION_SENT = "6"
-    NEGOTIATION_SUCCEEDED = "7"
-    CONNECTING = "8"
-    DISCONNECTED = "9"
+    def __init__(self):
+        self.destination = None
+        self.message_type = None
+        self.rpid = None
+        self.pid = None
+        self.data = None
+
+    def create_message(self, destination, message_type, rpid, pid, data):
+        self.destination = destination
+        self.message_type = message_type
+        self.rpid = rpid
+        self.pid = pid
+        self.data = data
+
+        message = struct.pack("<I", self.destination)
+        message += struct.pack("<I", self.message_type)
+        message += rpid.bytes
+        message += pid.bytes
+        message += data
+
+        return message
+
+    def parse_message(self, message):
+        self.destination = struct.unpack("<I", message[0:4])[0]
+        self.message_type = struct.unpack("<I", message[4:8])[0]
+        self.rpid = self._unpack_uuid(message[8:24])
+        self.pid = self._unpack_uuid(message[24:40])
+        self.data = message[40:]
+
+    def _unpack_uuid(self, bytes):
+        a, b = struct.unpack('>QQ', bytes)
+        uuid_int = (a << 64) | b
+        return uuid.UUID(int=uuid_int)
 
 
 class ObjectTypes(object):
@@ -329,7 +328,7 @@ class SessionCapability(object):
         # TODO: Add timezone support
         self.initialised = True
 
-        return message_xml
+        return message_xml.encode()
 
     def parse_message_data(self, xml):
         if self.initialised:
@@ -392,7 +391,7 @@ class InitRunspacePool(object):
         }
         message_xml = xmltodict.unparse(message_data, full_document=False)
 
-        return message_xml
+        return message_xml.encode()
 
 
 class RunspaceState(object):

@@ -4,6 +4,7 @@ import re
 import sys
 import os
 import weakref
+import xmltodict
 
 is_py2 = sys.version[0] == '2'
 
@@ -200,11 +201,18 @@ class Transport(object):
                 response_text = ex.response.content
             else:
                 response_text = ''
+
+            response_dict = xmltodict.parse(response_text)
+            try:
+                error_details = response_dict['s:Envelope']['s:Body']['s:Fault']['s:Detail']['f:WSManFault']['f:Message']
+            except KeyError:
+                error_details = 'Unknown'
+
             # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
             # should handle this 500 error and retry receiving command output.
             if b'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and b'Code="2150858793"' in response_text:
                 raise WinRMOperationTimeoutError()
 
-            error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
+            error_message = 'Bad HTTP response returned from server. Code {0}: Error: {1}'.format(ex.response.status_code, error_details)
 
             raise WinRMTransportError('http', error_message)

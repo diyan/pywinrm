@@ -1,7 +1,7 @@
 import pytest
 import xmltodict
 
-from winrm.psrp.message_types import ApplicationPrivateData, InitRunspacePool, RunspaceState, \
+from winrm.psrp.messages import ApplicationPrivateData, InitRunspacePool, RunspaceState, \
     RunspacePoolStates, SessionCapability
 
 
