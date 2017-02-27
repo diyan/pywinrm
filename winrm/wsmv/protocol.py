@@ -32,7 +32,7 @@ class WsmvHandler(object):
         server_config = self.get_server_config()
         self.read_timeout_sec = read_timeout_sec
         self.operation_timeout_sec = operation_timeout_sec
-        self.max_envelop_size = server_config['max_envelop_size']
+        self.max_envelope_size = server_config['max_envelope_size']
         self.locale = locale
         self.encoding = encoding
         self.transport = transport
@@ -180,7 +180,7 @@ class WsmvHandler(object):
 
         :return: dict:
             max_batch_items: Maximum number of elements in a Pull response, min 1, max 4294967295, default 20
-            max_envelop_size_kb: Maximum SOAP data in kilobytes, min 32, max 4294967295, default 150
+            max_envelope_size_kb: Maximum SOAP data in kilobytes, min 32, max 4294967295, default 150
             max_provider_requests: Maximum number of concurrent requests to WSMV, min 1, max 4294967295, default 25
             max_timeout_ms: Maximum timeout in milliseconds for any requests except Pull, min 500, max 4294967295, default 60000
         """
@@ -189,7 +189,7 @@ class WsmvHandler(object):
             res = self._send(Actions.GET, resource_uri)
             config = {
                 'max_batch_items': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxBatchItems'],
-                'max_envelop_size_kb': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxEnvelopeSizekb'],
+                'max_envelope_size_kb': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxEnvelopeSizekb'],
                 'max_provider_requests': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxProviderRequests'],
                 'max_timeout_ms': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxTimeoutms']
             }
@@ -197,7 +197,7 @@ class WsmvHandler(object):
             # Not running as admin, reverting to defauls
             config = {
                 'max_batch_items': '20',
-                'max_envelop_size_kb': '150',
+                'max_envelope_size_kb': '150',
                 'max_provider_requests': '25',
                 'max_timeout_ms': '60000'
             }
