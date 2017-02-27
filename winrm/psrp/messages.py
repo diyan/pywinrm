@@ -2,7 +2,7 @@ import struct
 import uuid
 import xmltodict
 
-from winrm.contants import RunspacePoolStates, Colors
+from winrm.contants import PsrpRunspacePoolState, PsrpColor
 
 
 class Message(object):
@@ -228,10 +228,10 @@ class ObjectTypes(object):
                                     "EN": [
                                         {
                                             "I32": { "@N": "Key", "#text": "0"},
-                                            "Obj": ObjectTypes.create_color(Colors.GRAY)["Obj"]
+                                            "Obj": ObjectTypes.create_color(PsrpColor.GRAY)["Obj"]
                                         }, {
                                             "I32": {"@N": "Key", "#text": "1"},
-                                            "Obj": ObjectTypes.create_color(Colors.BLUE)["Obj"]
+                                            "Obj": ObjectTypes.create_color(PsrpColor.BLUE)["Obj"]
                                         }, {
                                             "I32": {"@N": "Key", "#text": "2"},
                                             "Obj": ObjectTypes.create_coordinate("0", "4")["Obj"]
@@ -416,7 +416,7 @@ class RunspaceState(object):
             raise Exception("Invalid RUNSPACE_STATE message from the server")
 
         actual_state = None
-        for key, value in RunspacePoolStates.__dict__.items():
+        for key, value in PsrpRunspacePoolState.__dict__.items():
             if value == raw_value:
                 actual_state = key
 

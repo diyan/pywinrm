@@ -2,7 +2,7 @@ import pytest
 import xmltodict
 
 from winrm.psrp.messages import ApplicationPrivateData, InitRunspacePool, RunspaceState, \
-    RunspacePoolStates, SessionCapability
+    PsrpRunspacePoolState, SessionCapability
 
 
 def test_create_session_capability():
@@ -113,7 +113,7 @@ def test_parse_runspace_pool_state():
     runspace_state.parse_message_data(test_xml)
 
     assert runspace_state.message_type == 135173
-    assert runspace_state.state == RunspacePoolStates.OPENED
+    assert runspace_state.state == PsrpRunspacePoolState.OPENED
     assert runspace_state.friendly_state == 'OPENED'
 
 

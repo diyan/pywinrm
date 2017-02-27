@@ -1,9 +1,9 @@
-from winrm.contants import Constants
+from winrm.contants import WsmvConstant
 
 
 class WsmvObject(object):
     @staticmethod
-    def command_line(command, arguments=None):
+    def command_line(command, arguments):
         """
         [MS-WSMV] v30.0 2017-07-14
         2.2.4.7 CommandLine
@@ -17,11 +17,10 @@ class WsmvObject(object):
         """
         command_line = {
             'rsp:CommandLine': {
-                'rsp:Command': command
+                'rsp:Command': command,
+                'rsp:Arguments': arguments
             }
         }
-        if arguments:
-            command_line['rsp:CommandLine']['rsp:Arguments'] = arguments
 
         return command_line
 
@@ -74,11 +73,11 @@ class WsmvObject(object):
         input_streams = kwargs.get('input_streams', 'stdin')
         output_streams = kwargs.get('output_streams', 'stdout stderr')
         max_idle_time_out = kwargs.get('max_idle_time_out', None)
-        locale = kwargs.get('locale', Constants.DEFAULT_LOCALE)
-        data_locale = kwargs.get('data_locale', Constants.DEFAULT_LOCALE)
+        locale = kwargs.get('locale', WsmvConstant.DEFAULT_LOCALE)
+        data_locale = kwargs.get('data_locale', WsmvConstant.DEFAULT_LOCALE)
         #TODO compression_mode = kwargs.get('compression_mode', None)
         profile_loaded = kwargs.get('profile_loaded', True)
-        encoding = kwargs.get('encoding', Constants.DEFAULT_ENCODING)
+        encoding = kwargs.get('encoding', WsmvConstant.DEFAULT_ENCODING)
         #TODO buffer_mode = kwargs.get('buffer_mode', None)
         #TODO state = kwargs.get('state', None)
         shell_run_time = kwargs.get('shell_run_time', None)
@@ -139,8 +138,17 @@ class WsmvObject(object):
             shell['rsp:Shell']['rsp:ShellInactivity'] = locale
 
         # Open content can be anything outside the normal structure.
-        for key in open_content.keys():
-            shell['rsp:Shell'][key] = open_content[key]
+        if open_content:
+            a = {
+                'rsp:Shell': {
+                    'creationXml': {
+                        '@xmlns': 'http://schemas.microsoft.com/powershell',
+                        '#text': ''
+                    }
+                }
+            }
+            for key in open_content.keys():
+                shell['rsp:Shell'][key] = open_content[key]
 
         return shell
 

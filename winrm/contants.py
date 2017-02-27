@@ -1,4 +1,10 @@
-class Constants(object):
+class WsmvConstant(object):
+    EMPTY_UUID = '00000000-0000-0000-0000-000000000000'
+    DEFAULT_ENCODING = 'utf-8'
+    DEFAULT_OPERATION_TIMEOUT_SEC = 20
+    DEFAULT_READ_TIMEOUT_SEC = DEFAULT_OPERATION_TIMEOUT_SEC + 10
+    DEFAULT_LOCALE = 'en-US'
+
     # [MS-WSMV] v30.0 2016-07-14 2.2.1 Namespaces
     NAMESPACES = {
         "s": "http://www.w3.org/2003/05/soap-envelope",
@@ -23,12 +29,7 @@ class Constants(object):
         "i": "http://schemas.microsoft.com/wbem/wsman/1/cim/interactive.xsd"
     }
 
-    DEFAULT_ENCODING = 'utf-8'
-    DEFAULT_OPERATION_TIMEOUT_SEC = 20
-    DEFAULT_READ_TIMEOUT_SEC = DEFAULT_OPERATION_TIMEOUT_SEC + 10
-    DEFAULT_LOCALE = 'en-US'
-
-class Actions(object):
+class WsmvAction(object):
     GET = 'http://schemas.xmlsoap.org/ws/2004/09/transfer/Get'
     PUT = 'http://schemas.xmlsoap.org/ws/2004/09/transfer/Put'
     DELETE = 'http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete'
@@ -50,12 +51,18 @@ class Actions(object):
     CANCEL = 'http://schemas.microsoft.com/wbem/wsman/1/wsman/Cancel'
 
 
-class Signals(object):
+class WsmvSignal(object):
     CTRL_BREAK = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/ctrl_break'
     CTRL_C = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/ctrl_c'
     TERMINATE = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate'
 
-class MessageTypes(object):
+class WsmvResourceURI(object):
+    SHELL_CMD = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd'
+    SHELL_POWERSHELL = 'http://schemas.microsoft.com/powershell/Microsoft.PowerShell'
+    CONFIG = 'http://schemas.microsoft.com/wbem/wsman/1/config'
+
+
+class PsrpMessageType(object):
     """
     [MS-PSRP] v16.0 2016-07-14
     2.2.1 PowerShell Remoting Protocol Message
@@ -95,7 +102,7 @@ class MessageTypes(object):
     PIPELINE_HOST_RESPONSE = 0x00041101
 
 
-class Colors(object):
+class PsrpColor(object):
     """
     [MS-PSRP] v16.0 2016-07-14
     2.2.3.3 Color
@@ -119,7 +126,7 @@ class Colors(object):
     WHITE = '15'
 
 
-class RunspacePoolStates(object):
+class PsrpRunspacePoolState(object):
     """
     [MS-PSRP] v16.0 2016-07-14
     2.2.3.4 RunspacePoolState

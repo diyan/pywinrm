@@ -2,16 +2,18 @@ import base64
 import uuid
 import xmltodict
 
-from winrm.contants import Constants, Actions, Signals
+from winrm.contants import WsmvConstant, WsmvAction, WsmvResourceURI, WsmvSignal
 from winrm.exceptions import WinRMError, WinRMOperationTimeoutError
 from winrm.wsmv.objects import WsmvObject
 
 
-class WsmvHandler(object):
+class WsmvProtocol(object):
     def __init__(
-            self, transport, read_timeout_sec=Constants.DEFAULT_READ_TIMEOUT_SEC,
-            operation_timeout_sec=Constants.DEFAULT_OPERATION_TIMEOUT_SEC,
-            locale=Constants.DEFAULT_LOCALE, encoding=Constants.DEFAULT_ENCODING):
+            self, transport,
+            read_timeout_sec=WsmvConstant.DEFAULT_READ_TIMEOUT_SEC,
+            operation_timeout_sec=WsmvConstant.DEFAULT_OPERATION_TIMEOUT_SEC,
+            locale=WsmvConstant.DEFAULT_LOCALE,
+            encoding=WsmvConstant.DEFAULT_ENCODING):
         """
         Creates a handler for managing WSMV session and exposes various method
         to create a shell, run a command and then close the shell through the
@@ -29,10 +31,10 @@ class WsmvHandler(object):
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")
 
-        server_config = self.get_server_config()
+        self.server_config = self.get_server_config()
+        self.max_envelope_size = self.server_config['max_envelope_size_kb']
         self.read_timeout_sec = read_timeout_sec
         self.operation_timeout_sec = operation_timeout_sec
-        self.max_envelope_size = server_config['max_envelope_size']
         self.locale = locale
         self.encoding = encoding
         self.transport = transport
@@ -51,18 +53,16 @@ class WsmvHandler(object):
         :param kwargs: Optional arguments to pass along when creating the Shell object. See ComplexType.shell for further definitions
         :return: The Shell ID of the newly created shell to be used for further actions
         """
-        resource_uri = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd'
-        shell = WsmvObject.shell(**kwargs)
-
-        shell_option_set = {
-            "WINRS_NOPROFILE": str(noprofile).upper(),
-            "WINRS_CODEPAGE": str(codepage)
+        body = WsmvObject.shell(**kwargs)
+        option_set = {
+            'WINRS_NOPROFILE': str(noprofile).upper(),
+            'WINRS_CODEPAGE': str(codepage)
         }
-        res = self._send(Actions.CREATE, resource_uri, shell, option_set=shell_option_set)
+        res = self.send(WsmvAction.CREATE, WsmvResourceURI.SHELL_CMD, body=body, option_set=option_set)
         shell_id = res['s:Envelope']['s:Body']['rsp:Shell']['rsp:ShellId']
         return shell_id
 
-    def run_command(self, shell_id, command, arguments=None, consolemode_stdin=True, skip_cmd_shell=False):
+    def run_command(self, shell_id, command, arguments=(), consolemode_stdin=True, skip_cmd_shell=False):
         """
         [MS-WSMV] v30.0 2016-07-14
         3.1.4.11 Command
@@ -76,8 +76,7 @@ class WsmvHandler(object):
         :param skip_cmd_shell: If True will run outside cmd.exe, if True will run with cmd.exe
         :return: The Command ID to be used later when retrieving the stdout
         """
-        resource_uri = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd'
-        command_line = WsmvObject.command_line(command, arguments)
+        body = WsmvObject.command_line(command, arguments)
         selector_set = {
             'ShellId': shell_id
         }
@@ -85,8 +84,7 @@ class WsmvHandler(object):
             'WINRS_CONSOLEMODE_STDIN': str(consolemode_stdin).upper(),
             'WINRS_SKIP_CMD_SHELL': str(skip_cmd_shell).upper()
         }
-
-        res = self._send(Actions.COMMAND, resource_uri, command_line, selector_set, option_set)
+        res = self.send(WsmvAction.COMMAND, WsmvResourceURI.SHELL_CMD, body, selector_set, option_set)
         command_id = res['s:Envelope']['s:Body']['rsp:CommandResponse']['rsp:CommandId']
 
         return command_id
@@ -111,12 +109,12 @@ class WsmvHandler(object):
         return_code = -1
         command_done = False
 
-        resource_uri = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd'
-        receive = WsmvObject.receive(command_id, 'stdout stderr')
+        body = WsmvObject.receive(command_id, 'stdout stderr')
         selector_set = {'ShellId': shell_id}
         while not command_done:
             try:
-                raw_output = self._send(Actions.RECEIVE, resource_uri, receive, selector_set=selector_set)
+                raw_output = self.send(WsmvAction.RECEIVE, WsmvResourceURI.SHELL_CMD, body=body,
+                                       selector_set=selector_set)
                 stdout, stderr, return_code, command_done = self._parse_raw_command_output(raw_output)
                 stdout_buffer.append(stdout)
                 stderr_buffer.append(stderr)
@@ -143,13 +141,11 @@ class WsmvHandler(object):
         :param shell_id: The Shell ID the command is running in
         :param command_id: The Command ID for the command to get the ouput for
         """
-        resource_uri = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd'
-        signal = WsmvObject.signal(Signals.TERMINATE, command_id)
+        body = WsmvObject.signal(WsmvSignal.TERMINATE, command_id)
         selector_set = {
             'ShellId': shell_id
         }
-
-        self._send(Actions.SIGNAL, resource_uri, body=signal, selector_set=selector_set)
+        self.send(WsmvAction.SIGNAL, WsmvResourceURI.SHELL_CMD, body=body, selector_set=selector_set)
 
     def close_shell(self, shell_id):
         """
@@ -162,12 +158,10 @@ class WsmvHandler(object):
 
         :param shell_id: The Shell ID to disconnect from
         """
-        resource_uri = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd'
         selector_set = {
             'ShellId': shell_id
         }
-
-        self._send(Actions.DELETE, resource_uri, selector_set=selector_set)
+        self.send(WsmvAction.DELETE, WsmvResourceURI.SHELL_CMD, selector_set=selector_set)
 
     def get_server_config(self):
         """
@@ -185,51 +179,41 @@ class WsmvHandler(object):
             max_timeout_ms: Maximum timeout in milliseconds for any requests except Pull, min 500, max 4294967295, default 60000
         """
         try:
-            resource_uri = 'http://schemas.microsoft.com/wbem/wsman/1/config'
-            res = self._send(Actions.GET, resource_uri)
+            res = self.send(WsmvAction.GET, WsmvResourceURI.CONFIG)
             config = {
-                'max_batch_items': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxBatchItems'],
-                'max_envelope_size_kb': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxEnvelopeSizekb'],
-                'max_provider_requests': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxProviderRequests'],
-                'max_timeout_ms': res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxTimeoutms']
+                'max_batch_items': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxBatchItems']),
+                'max_envelope_size_kb': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxEnvelopeSizekb']),
+                'max_provider_requests': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxProviderRequests']),
+                'max_timeout_ms': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxTimeoutms'])
             }
         except Exception:
             # Not running as admin, reverting to defauls
             config = {
-                'max_batch_items': '20',
-                'max_envelope_size_kb': '150',
-                'max_provider_requests': '25',
-                'max_timeout_ms': '60000'
+                'max_batch_items': 20,
+                'max_envelope_size_kb': 150,
+                'max_provider_requests': 25,
+                'max_timeout_ms': 60000
             }
 
         return config
 
-    def _parse_raw_command_output(self, output):
-        stdout = b''
-        stderr = b''
-        receive_response = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']
-        try:
-            for stream_node in receive_response['rsp:Stream']:
-                raw_text = stream_node['#text']
-                text = base64.b64decode(raw_text.encode('ascii'))
-                if stream_node['@Name'] == 'stdout':
-                    stdout += text
-                elif stream_node['@Name'] == 'stderr':
-                    stderr += text
-        except KeyError:
-            pass
+    def create_message(self, body, action, resource_uri, selector_set=None, option_set=None):
+        headers = self._create_headers(action, resource_uri, selector_set, option_set)
+        message = {
+            's:Envelope': {}
+        }
+        for alias, namespace in WsmvConstant.NAMESPACES.items():
+            message['s:Envelope']["@xmlns:%s" % alias] = namespace
 
-        command_state = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:CommandState']['@State']
-        if command_state == 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done':
-            command_done = True
-            return_code = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:CommandState']['rsp:ExitCode']
+        message['s:Envelope']['s:Header'] = headers
+        if body:
+            message['s:Envelope']['s:Body'] = body
         else:
-            command_done = False
-            return_code = -1
+            message['s:Envelope']['s:Body'] = {}
 
-        return stdout, stderr, return_code, command_done
+        return message
 
-    def _send(self, action, resource_uri, body=None, selector_set=None, option_set=None):
+    def send(self, action, resource_uri, body=None, selector_set=None, option_set=None):
         """
         Will send the obj to the server valid the response relates to the request
 
@@ -240,9 +224,9 @@ class WsmvHandler(object):
         :param option_set: To add optional option sets header values to the headers
         :return: A dict which is the xml conversion from the server
         """
-        headers = self._create_headers(action, resource_uri, selector_set, option_set)
-        message_id = headers['a:MessageID']
-        message = self._create_message(headers, body)
+        message = self.create_message(body, action, resource_uri, selector_set, option_set)
+        message_id = message['s:Envelope']['s:Header']['a:MessageID']
+        message = xmltodict.unparse(message, full_document=False, encoding=self.encoding)
 
         response_xml = self.transport.send_message(message)
         response = xmltodict.parse(response_xml, encoding=self.encoding)
@@ -297,16 +281,28 @@ class WsmvHandler(object):
             headers['w:OptionSet'] = {'w:Option': option_set_list}
         return headers
 
-    def _create_message(self, headers, body):
-        message = {
-            's:Envelope': {}
-        }
-        for alias, namespace in Constants.NAMESPACES.items():
-            message['s:Envelope']["@xmlns:%s" % alias] = namespace
-        message['s:Envelope']['s:Header'] = headers
-        if body:
-            message['s:Envelope']['s:Body'] = body
-        else:
-            message['s:Envelope']['s:Body'] = {}
 
-        return xmltodict.unparse(message, encoding=self.encoding, full_document=False)
+    def _parse_raw_command_output(self, output):
+        stdout = b''
+        stderr = b''
+        receive_response = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']
+        try:
+            for stream_node in receive_response['rsp:Stream']:
+                raw_text = stream_node['#text']
+                text = base64.b64decode(raw_text.encode('ascii'))
+                if stream_node['@Name'] == 'stdout':
+                    stdout += text
+                elif stream_node['@Name'] == 'stderr':
+                    stderr += text
+        except KeyError:
+            pass
+
+        command_state = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:CommandState']['@State']
+        if command_state == 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done':
+            command_done = True
+            return_code = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:CommandState']['rsp:ExitCode']
+        else:
+            command_done = False
+            return_code = -1
+
+        return stdout, stderr, return_code, command_done

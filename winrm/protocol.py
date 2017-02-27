@@ -4,7 +4,7 @@ import warnings
 from winrm.transport import Transport
 from winrm.exceptions import WinRMError
 
-from winrm.wsmv.protocol import WsmvHandler
+from winrm.wsmv.protocol import WsmvProtocol
 
 class Protocol(object):
     """This is the main class that does the SOAP request/response logic. There
@@ -74,7 +74,7 @@ class Protocol(object):
         self.kerberos_hostname_override = kerberos_hostname_override
 
         # Used to bridge old deprecated protocol to new WSMV protocol
-        self.wsmv = WsmvHandler(self.transport, read_timeout_sec, operation_timeout_sec)
+        self.wsmv = WsmvProtocol(self.transport, read_timeout_sec, operation_timeout_sec)
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,
