@@ -25,7 +25,7 @@ class WsmvObject(object):
         return command_line
 
     @staticmethod
-    def receive(command_id, desired_stream):
+    def receive(desired_stream, command_id=None):
         """
         [MS-WSMV] v30.0 2017-07-14
         2.2.4.26 Receive
@@ -39,11 +39,12 @@ class WsmvObject(object):
         receive = {
             'rsp:Receive': {
                 'rsp:DesiredStream': {
-                    '@CommandId': command_id,
                     '#text': desired_stream
                 }
             }
         }
+        if command_id:
+            receive['rsp:Receive']['rsp:DesiredStream']['@CommandId'] = command_id
 
         return receive
 
@@ -96,7 +97,7 @@ class WsmvObject(object):
 
         # Append optional values if they are set
         if shell_id:
-            shell['rsp:Shell']['rsp:Name'] = shell_id
+            shell['rsp:Shell']['rsp:ShellId'] = str(shell_id).upper()
 
         if name:
             shell['rsp:Shell']['rsp:Name'] = name
@@ -139,14 +140,6 @@ class WsmvObject(object):
 
         # Open content can be anything outside the normal structure.
         if open_content:
-            a = {
-                'rsp:Shell': {
-                    'creationXml': {
-                        '@xmlns': 'http://schemas.microsoft.com/powershell',
-                        '#text': ''
-                    }
-                }
-            }
             for key in open_content.keys():
                 shell['rsp:Shell'][key] = open_content[key]
 

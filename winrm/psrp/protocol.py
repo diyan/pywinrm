@@ -2,7 +2,7 @@ import uuid
 import xmltodict
 
 from winrm.contants import WsmvConstant, WsmvResourceURI, WsmvAction, PsrpMessageType, PsrpRunspacePoolState
-from winrm.exceptions import WinRMError
+from winrm.exceptions import WinRMError, WinRMTransportError, WinRMOperationTimeoutError
 
 from winrm.wsmv.objects import WsmvObject
 from winrm.wsmv.protocol import WsmvProtocol
@@ -19,9 +19,12 @@ class PsrpProtocol(object):
             encoding=WsmvConstant.DEFAULT_ENCODING):
 
         self.wsmv_protocol = WsmvProtocol(transport, read_timeout_sec, operation_timeout_sec, locale, encoding)
+        self.max_envelope_size = self.wsmv_protocol.max_envelope_size
         self.fragmenter = Fragmenter(self.wsmv_protocol)
+        self.runspace_pool_state = PsrpRunspacePoolState.BEFORE_OPEN
 
     def create_runspace_pool(self):
+        self.runspace_pool_state = PsrpRunspacePoolState.OPENING
         session_capability = SessionCapability()
         session_capability_msg = session_capability.create_message_data("2.2", "2.0", "1.1.0.1")
 
@@ -43,14 +46,39 @@ class PsrpProtocol(object):
                     '#text': fragment
                 }
             }
-            body = WsmvObject.shell(shell_id=uuid.uuid4(), input_streams='pr', output_streams='stdout', open_content=open_content)
+            shell_body = WsmvObject.shell(shell_id=uuid.uuid4(), input_streams='pr', output_streams='stdout', open_content=open_content, max_envelope_size=self.max_envelope_size)
             option_set = {
                 'protocolversion': '2.2'
             }
-            res = self.wsmv_protocol.send(WsmvAction.CREATE, WsmvResourceURI.SHELL_POWERSHELL, body=body, option_set=option_set)
+            res = self.wsmv_protocol.send(WsmvAction.CREATE, WsmvResourceURI.SHELL_POWERSHELL, body=shell_body, option_set=option_set)
             shell_id = res['s:Envelope']['s:Body']['rsp:Shell']['rsp:ShellId']
 
-        return shell_id
+        self.runspace_pool_state = PsrpRunspacePoolState.NEGOTIATION_SENT
+        receive_body = WsmvObject.receive('stdout')
+        option_set = {
+            'WSMAN_CMDSHELL_OPTION_KEEPALIVE': 'TRUE'
+        }
 
-    def run_command(self, shell_id):
+        selector_set = {
+            'ShellId': shell_id
+        }
+
+        while self.runspace_pool_state != PsrpRunspacePoolState.OPENED:
+            a = ''
+            receive_response = self.wsmv_protocol.send(WsmvAction.RECEIVE, WsmvResourceURI.SHELL_POWERSHELL, receive_body, selector_set, option_set)
+            b = ''
+
+        # Expect a session capability message
+
+        self.runspace_pool_state = PsrpRunspacePoolState.NEGOTIATION_SUCCEEDED
+
+        # Expect private data
+
+        # Expect RUNSPACEPOOL_STATE
+
+        self.runspace_pool_state = PsrpRunspacePoolState.OPENED
+
+        # runspace is opened
+
         a = ''
+

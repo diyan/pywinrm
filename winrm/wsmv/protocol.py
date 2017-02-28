@@ -31,8 +31,9 @@ class WsmvProtocol(object):
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")
 
+        self.session_id = str(uuid.uuid4()).upper()
         self.server_config = self.get_server_config()
-        self.max_envelope_size = self.server_config['max_envelope_size_kb']
+        self.max_envelope_size = self.server_config['max_envelope_size']
         self.read_timeout_sec = read_timeout_sec
         self.operation_timeout_sec = operation_timeout_sec
         self.locale = locale
@@ -109,7 +110,7 @@ class WsmvProtocol(object):
         return_code = -1
         command_done = False
 
-        body = WsmvObject.receive(command_id, 'stdout stderr')
+        body = WsmvObject.receive('stdout stderr', command_id)
         selector_set = {'ShellId': shell_id}
         while not command_done:
             try:
@@ -182,7 +183,7 @@ class WsmvProtocol(object):
             res = self.send(WsmvAction.GET, WsmvResourceURI.CONFIG)
             config = {
                 'max_batch_items': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxBatchItems']),
-                'max_envelope_size_kb': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxEnvelopeSizekb']),
+                'max_envelope_size': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxEnvelopeSizekb']) * 1024,
                 'max_provider_requests': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxProviderRequests']),
                 'max_timeout_ms': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxTimeoutms'])
             }
@@ -190,7 +191,7 @@ class WsmvProtocol(object):
             # Not running as admin, reverting to defauls
             config = {
                 'max_batch_items': 20,
-                'max_envelope_size_kb': 150,
+                'max_envelope_size': 153600,
                 'max_provider_requests': 25,
                 'max_timeout_ms': 60000
             }
@@ -200,16 +201,16 @@ class WsmvProtocol(object):
     def create_message(self, body, action, resource_uri, selector_set=None, option_set=None):
         headers = self._create_headers(action, resource_uri, selector_set, option_set)
         message = {
-            's:Envelope': {}
+            's:Envelope': {
+                's:Header': headers,
+                's:Body': {}
+            }
         }
         for alias, namespace in WsmvConstant.NAMESPACES.items():
             message['s:Envelope']["@xmlns:%s" % alias] = namespace
 
-        message['s:Envelope']['s:Header'] = headers
         if body:
             message['s:Envelope']['s:Body'] = body
-        else:
-            message['s:Envelope']['s:Body'] = {}
 
         return message
 
@@ -241,31 +242,35 @@ class WsmvProtocol(object):
     def _create_headers(self, action, resource_uri, selector_set, option_set):
         headers = {
             'a:Action': {
-                '@mustUnderstand': 'true',
+                '@s:mustUnderstand': 'true',
                 '#text': action
             },
             'p:DataLocale': {
-                '@mustUnderstand': 'false',
+                '@s:mustUnderstand': 'false',
                 '@xml:lang': self.locale
             },
             'w:Locale': {
-                '@mustUnderstand': 'false',
+                '@s:mustUnderstand': 'false',
                 '@xml:lang': self.locale
             },
             'a:To': self.transport.endpoint,
             'w:ResourceURI': {
-                '@mustUnderstand': 'true',
+                '@s:mustUnderstand': 'true',
                 '#text': resource_uri
             },
-            'w:OperationTimeout': 'PT{0}S'.format(int(self.operation_timeout_sec)),
+            'w:OperationTimeout': 'PT%sS' % str(self.operation_timeout_sec),
             'a:ReplyTo': {
                 "a:Address": {
-                    "@mustUnderstand": 'true',
+                    "@s:mustUnderstand": 'true',
                     '#text': 'http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous'
                 }
             },
-            'w:MaxEnvelopeSize': '{0}'.format(self.max_envelope_size),
-            'a:MessageID': 'uuid:{0}'.format(uuid.uuid4())
+            'w:MaxEnvelopeSize': '%s' % str(self.max_envelope_size),
+            'a:MessageID': 'uuid:%s' % str(uuid.uuid4()).upper(),
+            'p:SessionId': {
+                '@s:mustUnderstand': 'false',
+                '#text': 'uuid:%s' % self.session_id
+            }
         }
 
         if selector_set:

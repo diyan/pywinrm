@@ -23,6 +23,7 @@ class Fragmenter(object):
         raw_fragment = b''
         current_fragment_size = 0
         for blob in blobs:
+            self.object_id += 1
             blob_size = len(blob)
             if blob_size > max_blob_size:
                 # The individual blob needs to split into multiple fragments
@@ -50,8 +51,6 @@ class Fragmenter(object):
                 fragment = self._create_fragment(self.object_id, 0, self.IS_START_FRAGMENT, self.IS_END_FRAGMENT, blob)
                 raw_fragment += fragment
                 current_fragment_size += blob_size
-
-            self.object_id += 1
 
         # Make sure the raw fragment has been added at the end
         if len(raw_fragment) > 0:
@@ -101,9 +100,6 @@ class Fragmenter(object):
 
         :return: the max length of a fragment blob as an int
         """
-        # MaxEvelopeSize in KB * 1024 to convert to bytes
-        max_envelope_bytes = self.wsmv_protocol.max_envelope_size * 1024
-
         # Number of bytes in fragment header
         fragment_header_bytes = 21
 
@@ -111,7 +107,7 @@ class Fragmenter(object):
         wsmv_message_bytes = self._get_empty_wsmv_command_size()
 
         # Determine how many base64 characters are allowed, convert to base64 decoded bytes available
-        base64_bytes_allowed = max_envelope_bytes - wsmv_message_bytes
+        base64_bytes_allowed = self.wsmv_protocol.max_envelope_size - wsmv_message_bytes
         raw_base64_size = base64_bytes_allowed / 4 * 3
 
         # Subtract remaining amount with the header bytes length
