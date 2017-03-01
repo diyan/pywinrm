@@ -1,28 +1,30 @@
 import base64
 import struct
+import uuid
 import xmltodict
 
 
 from winrm.contants import WsmvAction, WsmvConstant, WsmvResourceURI
 from winrm.wsmv.objects import WsmvObject
+from winrm.psrp.messages import Message
 
 class Fragmenter(object):
-    IS_START_FRAGMENT = 0x00000001
-    IS_MIDDLE_FRAGMENT = 0x00000000
-    IS_END_FRAGMENT = 0x00000010
-
+    IS_MIDDLE_FRAGMENT = 0x0
+    IS_START_FRAGMENT = 0x1
+    IS_END_FRAGMENT = 0x2
 
     def __init__(self, wsmv_protocol):
         self.wsmv_protocol = wsmv_protocol
         self.object_id = 0
 
-    def fragment_messages(self, blobs):
+    def fragment_messages(self, messages):
         max_blob_size = self._calculate_max_blob_size()
         fragments = []
 
         raw_fragment = b''
         current_fragment_size = 0
-        for blob in blobs:
+        for message in messages:
+            blob = message.create_message()
             self.object_id += 1
             blob_size = len(blob)
             if blob_size > max_blob_size:
@@ -85,10 +87,10 @@ class Fragmenter(object):
     def _create_fragment(self, object_id, fragment_id, e, s, blob):
         start_end_byte = e | s
 
-        fragment = struct.pack("<Q", object_id)
-        fragment += struct.pack("<Q", fragment_id)
-        fragment += struct.pack("<Q", start_end_byte)
-        fragment += struct.pack("<I", len(blob))
+        fragment = struct.pack(">Q", object_id)
+        fragment += struct.pack(">Q", fragment_id)
+        fragment += struct.pack(">B", start_end_byte)
+        fragment += struct.pack(">I", len(blob))
         fragment += blob
 
         return fragment
@@ -129,3 +131,25 @@ class Fragmenter(object):
         message = self.wsmv_protocol.create_message(body, WsmvAction.COMMAND, WsmvResourceURI.SHELL_POWERSHELL,
                                                     selector_set=selector_set)
         return len(xmltodict.unparse(message))
+
+class Defragmenter(object):
+    def __init__(self):
+        self.fragments = b''
+
+    def defragment_message(self, message):
+        fragment = base64.b64decode(message)
+
+        object_id = struct.unpack('>Q', fragment[0:8])[0]
+        fragment_id = struct.unpack('>Q', fragment[8:16])[0]
+        start_end_byte = struct.unpack('>B', fragment[16:17])[0]
+        blob_length = struct.unpack('>I', fragment[17:21])[0]
+        fragment_blob = fragment[21:blob_length+21]
+
+        self.fragments += fragment_blob
+
+        if start_end_byte & 0x3:
+            defragmented_message = Message.parse_message(self.fragments)
+            self.fragments = b''
+            return defragmented_message
+        else:
+            return None

@@ -191,7 +191,7 @@ class WsmvProtocol(object):
             # Not running as admin, reverting to defauls
             config = {
                 'max_batch_items': 20,
-                'max_envelope_size': 153600,
+                'max_envelope_size': WsmvConstant.DEFAULT_MAX_ENVELOPE_SIZE,
                 'max_provider_requests': 25,
                 'max_timeout_ms': 60000
             }

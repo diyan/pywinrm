@@ -1,7 +1,7 @@
 import pytest
 import xmltodict
 
-from winrm.psrp.messages import ApplicationPrivateData, InitRunspacePool, RunspaceState, \
+from winrm.psrp.messages import ApplicationPrivateData, InitRunspacePool, RunspacePoolState, \
     PsrpRunspacePoolState, SessionCapability
 
 
@@ -109,7 +109,7 @@ def test_create_init_runspace_pool():
 
 def test_parse_runspace_pool_state():
     test_xml = '<Obj RefId="1"><MS><I32 N="RunspaceState">2</I32></MS></Obj>'
-    runspace_state = RunspaceState()
+    runspace_state = RunspacePoolState()
     runspace_state.parse_message_data(test_xml)
 
     assert runspace_state.message_type == 135173
@@ -120,7 +120,7 @@ def test_parse_runspace_pool_state():
 def test_parse_runspace_pool_invalid_state():
     with pytest.raises(Exception) as excinfo:
         test_xml = '<Obj RefId="1"><MS><I32 N="RunspaceState">10</I32></MS></Obj>'
-        runspace_state = RunspaceState()
+        runspace_state = RunspacePoolState()
         runspace_state.parse_message_data(test_xml)
 
     assert "Invalid RunspacePoolState value of 10" in str(excinfo.value)
@@ -129,7 +129,7 @@ def test_parse_runspace_pool_invalid_state():
 def test_parse_runspace_pool_invalid_message():
     with pytest.raises(Exception) as excinfo:
         test_xml = '<Obj RefId="1"><MS><I32 N="Other">2</I32></MS></Obj>'
-        runspace_state = RunspaceState()
+        runspace_state = RunspacePoolState()
         runspace_state.parse_message_data(test_xml)
 
     assert "Invalid RUNSPACE_STATE message from the server" in str(excinfo.value)

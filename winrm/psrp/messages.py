@@ -2,47 +2,43 @@ import struct
 import uuid
 import xmltodict
 
-from winrm.contants import PsrpRunspacePoolState, PsrpColor
+from winrm.contants import PsrpRunspacePoolState, PsrpColor, PsrpMessageType
 
 
 class Message(object):
     DESTINATION_CLIENT = 0x00000001
     DESTINATION_SERVER = 0x00000002
+    BYTE_ORDER_MARK = b'\xef\xbb\xbf'
 
-    def __init__(self):
-        self.destination = None
-        self.message_type = None
-        self.rpid = None
-        self.pid = None
-        self.data = None
-
-    def create_message(self, destination, message_type, rpid, pid, data):
+    def __init__(self, destination, message_type, rpid, pid, data):
         self.destination = destination
         self.message_type = message_type
         self.rpid = rpid
         self.pid = pid
-        self.data = data
+        if isinstance(data, dict):
+            self.data = data
+        else:
+            self.data = data.create_message_data()
 
+    def create_message(self):
         message = struct.pack("<I", self.destination)
         message += struct.pack("<I", self.message_type)
-        message += rpid.bytes
-        message += pid.bytes
-        message += data
+        message += self.rpid.bytes
+        message += self.pid.bytes
+        message += self.BYTE_ORDER_MARK
+        message += xmltodict.unparse(self.data, full_document=False, encoding='utf-8').encode()
 
         return message
 
-    def parse_message(self, message):
-        self.destination = struct.unpack("<I", message[0:4])[0]
-        self.message_type = struct.unpack("<I", message[4:8])[0]
-        self.rpid = self._unpack_uuid(message[8:24])
-        self.pid = self._unpack_uuid(message[24:40])
-        self.data = message[40:]
+    @staticmethod
+    def parse_message(message):
+        destination = struct.unpack("<I", message[0:4])[0]
+        message_type = struct.unpack("<I", message[4:8])[0]
+        rpid = uuid.UUID(bytes=message[8:24])
+        pid = uuid.UUID(bytes=message[24:40])
+        data = xmltodict.parse(message[43:])
 
-    def _unpack_uuid(self, bytes):
-        a, b = struct.unpack('>QQ', bytes)
-        uuid_int = (a << 64) | b
-        return uuid.UUID(int=uuid_int)
-
+        return Message(destination, message_type, rpid, pid, data)
 
 class ObjectTypes(object):
     @staticmethod
@@ -154,14 +150,14 @@ class ObjectTypes(object):
                 "TN": {
                     "@RefId": ObjectTypes.get_random_ref_id(),
                     "T": [
-                        "System.Management.Automation.Runspaces.PSThreadOptions"
-                        "System.Enum"
-                        "System.ValueType"
-                        "System.Object"
+                        "System.Management.Automation.Runspaces.PSThreadOptions",
+                        "System.Enum",
+                        "System.ValueType",
+                        "System.Object",
                     ]
                 },
                 "ToString": "Default",
-                "I32": object_ref_id
+                "I32": "0"
             }
         }
         return ps_thread_options
@@ -192,11 +188,81 @@ class ObjectTypes(object):
                         "System.Object"
                     ]
                 },
-                "ToString": "MTA",
-                "I32": object_ref_id
+                "ToString": "Unknown",
+                "I32": "2"
             }
         }
         return apartment_state
+
+    @staticmethod
+    def create_remote_stream_options():
+        """
+        [MS-PSRP] v16.0 2016-07-14
+        2.2.3.8 RemoteStreamOptions
+
+        This data type represents a set of zero or more optoins of a remote
+        stream.
+
+        :return: dict of the RemoteStreamOptions object
+        """
+        remote_stream_options = {
+            "Obj": {
+                "@N": "RemoteStreamOptions",
+                "@RefId": ObjectTypes.get_random_ref_id(),
+                "TN": {
+                    "@RefId": ObjectTypes.get_random_ref_id(),
+                    "T": [
+                        "System.Management.Automation.RemoteStreamOptions",
+                        "System.Enum",
+                        "System.ValueType",
+                        "System.Object"
+                    ]
+                },
+                "ToString": "0",
+                "I32": "0"
+            }
+        }
+        return remote_stream_options
+
+    @staticmethod
+    def create_pipeline():
+        """
+        [MS-PSRP] v16.0 2016-07-14
+        2.2.3.11 Pipeline
+
+        This data type represents a pipeline to be executed
+
+        :return: dict of the Pipeline object
+        """
+        pipeline = {
+            "Obj": {
+                "@N": "PowerShell",
+                "@RefId": ObjectTypes.get_random_ref_id(),
+                "MS": {
+                    "Obj": {
+                        "@N": "Cmds",
+                        "@RefId": ObjectTypes.get_random_ref_id(),
+                        "TN": {
+                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "T": [
+                                "System.Collections.Generic.List`1[[System.Management.Automation.PSObject, System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35]]",
+                                "System.Object"
+                            ]
+                        },
+                        "LST": {
+
+                        }
+                    },
+                    "B": [
+                        {"@N": "IsNested", "#text": "false"},
+                        {"@N": "RedirectShellErrorOutputPipe", "#text": "true"}
+                    ],
+                    "Nil": {"@N": "History"}
+                }
+            }
+
+        }
+        return pipeline
 
     @staticmethod
     def create_host_info():
@@ -225,7 +291,7 @@ class ObjectTypes(object):
                                     "T": ["System.Collections.Hashtable", "System.Object"]
                                 },
                                 "DCT": {
-                                    "EN": [
+                                    "En": [
                                         {
                                             "I32": { "@N": "Key", "#text": "0"},
                                             "Obj": ObjectTypes.create_color(PsrpColor.GRAY)["Obj"]
@@ -295,7 +361,7 @@ class ObjectTypes(object):
 
 
 class SessionCapability(object):
-    def __init__(self):
+    def __init__(self, ps_version, protocol_version, serialization_version):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.2.1 SESSION_CAPABILITY Message
@@ -304,56 +370,55 @@ class SessionCapability(object):
         Direction: Bidirectional
         Target: RunspacePool
         """
-        self.message_type = 0x00010002
-        self.initialised = False
+        self.message_type = PsrpMessageType.SESSION_CAPABILITY
 
-    def create_message_data(self, ps_version, protocol_version, serialization_version):
         self.ps_version = ps_version
         self.protocol_version = protocol_version
         self.serialization_version = serialization_version
 
+    def create_message_data(self):
         message_data = {
             "Obj": {
                 "@RefId": ObjectTypes.get_random_ref_id(),
                 "MS": {
                     "Version": [
-                        {"@N": "PSVersion", "#text": ps_version},
-                        {"@N": "protocolversion", "#text": protocol_version},
-                        {"@N": "SerializationVersion", "#text": serialization_version},
+                        {"@N": "PSVersion", "#text": self.ps_version},
+                        {"@N": "protocolversion", "#text": self.protocol_version},
+                        {"@N": "SerializationVersion", "#text": self.serialization_version},
                     ]
                 }
             }
         }
-        message_xml = xmltodict.unparse(message_data, full_document=False)
         # TODO: Add timezone support
-        self.initialised = True
 
-        return message_xml.encode()
+        return message_data
 
-    def parse_message_data(self, xml):
-        if self.initialised:
-            raise Exception("Cannot parse message data on an already initialised object")
-
-        message_data = xmltodict.parse(xml)
-        version_values = message_data["Obj"]["MS"]["Version"]
+    @staticmethod
+    def parse_message_data(message):
+        version_values = message.data["Obj"]["MS"]["Version"]
 
         if len(version_values) != 3:
             raise Exception("Expecting 3 version properties in SESSION_CAPAIBLITY, actual: %d" % len(version_values))
 
+        ps_version = None
+        protocol_version = None
+        serialization_version = None
         for version in version_values:
             attribute_value = version['@N']
             if attribute_value == 'PSVersion':
-                self.ps_version = version['#text']
+                ps_version = version['#text']
             elif attribute_value == 'protocolversion':
-                self.protocol_version = version['#text']
+                protocol_version = version['#text']
             elif attribute_value == 'SerializationVersion':
-                self.serialization_version = version['#text']
+                serialization_version = version['#text']
             else:
                 raise Exception("Invalid attribute value '%s'" % attribute_value)
 
+        return SessionCapability(ps_version, protocol_version, serialization_version)
+
 
 class InitRunspacePool(object):
-    def __init__(self):
+    def __init__(self, min_runspaces, max_runspaces):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.2.2 INIT_RUNSPACEPOOL Message
@@ -362,9 +427,8 @@ class InitRunspacePool(object):
         Direction: Client to Server
         Target: RunspacePool
         """
-        self.message_type = 0x00010004
+        self.message_type = PsrpMessageType.INIT_RUNSPACEPOOL
 
-    def create_message_data(self, min_runspaces, max_runspaces):
         self.min_runspaces = min_runspaces
         self.max_runspaces = max_runspaces
         self.ps_thread_options = ObjectTypes.create_ps_thread_option()
@@ -372,13 +436,14 @@ class InitRunspacePool(object):
         self.host_info = ObjectTypes.create_host_info()
         self.application_arguments = None
 
+    def create_message_data(self):
         message_data = {
             "Obj": {
                 "@RefId": ObjectTypes.get_random_ref_id(),
                 "MS": {
                     "I32": [
-                        {"@N": "MinRunspaces", "#text": min_runspaces},
-                        {"@N": "MaxRunspaces", "#text": max_runspaces}
+                        {"@N": "MinRunspaces", "#text": self.min_runspaces},
+                        {"@N": "MaxRunspaces", "#text": self.max_runspaces}
                     ],
                     "Obj": [
                         self.ps_thread_options["Obj"],
@@ -389,13 +454,12 @@ class InitRunspacePool(object):
                 }
             }
         }
-        message_xml = xmltodict.unparse(message_data, full_document=False)
 
-        return message_xml.encode()
+        return message_data
 
 
-class RunspaceState(object):
-    def __init__(self):
+class RunspacePoolState(object):
+    def __init__(self, state, friendly_state):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.2.9 RUNSPACEPOOL_STATE Message
@@ -404,30 +468,76 @@ class RunspaceState(object):
         Direction: Server to Client
         Target: RunspacePool
         """
-        self.message_type = 0x00021005
+        self.message_type = PsrpMessageType.RUNSPACEPOOL_STATE
 
-    def parse_message_data(self, xml):
-        message_data = xmltodict.parse(xml)
-        raw_state = message_data["Obj"]["MS"]["I32"]
+        self.state = state
+        self.friendly_state = friendly_state
+
+    @staticmethod
+    def parse_message_data(message):
+        raw_state = message.data["Obj"]["MS"]["I32"]
         attribute = raw_state["@N"]
-        raw_value = raw_state["#text"]
+        state = raw_state["#text"]
 
         if attribute != 'RunspaceState':
             raise Exception("Invalid RUNSPACE_STATE message from the server")
 
-        actual_state = None
+        friendly_state = None
         for key, value in PsrpRunspacePoolState.__dict__.items():
-            if value == raw_value:
-                actual_state = key
+            if value == state:
+                friendly_state = key
 
-        if actual_state is None:
-            raise Exception("Invalid RunspacePoolState value of %s" % raw_value)
-        self.state = raw_value
-        self.friendly_state = actual_state
+        if friendly_state is None:
+            raise Exception("Invalid RunspacePoolState value of %s" % state)
+
+        return RunspacePoolState(state, friendly_state)
+
+
+class CreatePipeline(object):
+    def __init__(self):
+        """
+        [MS-PSRP] v16.0 2016-07-14
+        2.2.2.10 CREATE_PIPELINE Message
+
+        Create a command pipeline and invoke it in the specified RunspacePool
+        Direction: Client to Server
+        Target: RunspacePool
+        """
+        self.message_type = PsrpMessageType.CREATE_PIPELINE
+
+        self.no_input = True
+        self.apartment_state = ObjectTypes.create_apartment_state()
+        self.remote_stream_options = ObjectTypes.create_remote_stream_options()
+        self.add_to_history = True
+        self.host_info = ObjectTypes.create_host_info()
+        self.power_shell = ''
+        self.is_nested = False
+
+    def create_message_data(self):
+        message_data = {
+            "Obj": {
+                "@RefId": ObjectTypes.get_random_ref_id(),
+                "MS": {
+                    "B": [
+                        {"@N": "NoInput", "#text": self.no_input},
+                        {"@N": "AddToHistory", "#text": self.add_to_history},
+                        {"@N": "IsNested", "#text": self.is_nested}
+                    ],
+                    "Obj": [
+                        self.apartment_state["Obj"],
+                        self.remote_stream_options["Obj"],
+                        self.host_info["Obj"],
+                        self.power_shell
+                    ]
+                }
+            }
+        }
+
+        return message_data
 
 
 class ApplicationPrivateData(object):
-    def __init__(self):
+    def __init__(self, bash_version):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.2.13 APPLICATION_PRIVATE_DATA Message
@@ -438,11 +548,14 @@ class ApplicationPrivateData(object):
         Direction: Server to Client
         Target: RunspacePool
         """
-        self.message_type = 0x00021009
+        self.message_type = PsrpMessageType.APPLICATION_PRIVATE_DATA
+        self.bash_version = bash_version
 
-    def parse_message_data(self, xml):
-        message_data = xmltodict.parse(xml)
+    @staticmethod
+    def parse_message_data(message):
         try:
-            self.bash_version = message_data["Obj"]["MS"]["Obj"]["DCT"]["En"]["Obj"]["DCT"]["En"]["Version"]["#text"]
+            bash_version = message.data["Obj"]["MS"]["Obj"]["DCT"]["En"]["Obj"]["DCT"]["En"]["Version"]["#text"]
         except TypeError:
             raise Exception("Invalid APPLICATION_PRIVATE_DATA message from the server")
+
+        return ApplicationPrivateData(bash_version)

@@ -97,10 +97,10 @@ class WsmvObject(object):
 
         # Append optional values if they are set
         if shell_id:
-            shell['rsp:Shell']['rsp:ShellId'] = str(shell_id).upper()
+            shell['rsp:Shell']['@ShellId'] = str(shell_id).upper()
 
         if name:
-            shell['rsp:Shell']['rsp:Name'] = name
+            shell['rsp:Shell']['@Name'] = name
 
         if owner:
             shell['rsp:Shell']['rsp:Owner'] = owner
