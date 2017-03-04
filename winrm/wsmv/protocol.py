@@ -228,6 +228,7 @@ class WsmvProtocol(object):
         message = self.create_message(body, action, resource_uri, selector_set, option_set)
         message_id = message['s:Envelope']['s:Header']['a:MessageID']
         message = xmltodict.unparse(message, full_document=False, encoding=self.encoding)
+        print(message)
 
         response_xml = self.transport.send_message(message)
         response = xmltodict.parse(response_xml, encoding=self.encoding)

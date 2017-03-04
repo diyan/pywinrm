@@ -3,7 +3,7 @@ from winrm.contants import WsmvConstant
 
 class WsmvObject(object):
     @staticmethod
-    def command_line(command, arguments):
+    def command_line(command, arguments, command_id):
         """
         [MS-WSMV] v30.0 2017-07-14
         2.2.4.7 CommandLine
@@ -13,6 +13,7 @@ class WsmvObject(object):
 
         :param command: Contains the name of the command to be executed without any arguments.
         :param arguments: Supply if one or more arguments are required
+        :param command_id: If set will add the command id to the message
         :return: dict to use when using xmltodict to convert to a dict
         """
         command_line = {
@@ -21,6 +22,8 @@ class WsmvObject(object):
                 'rsp:Arguments': arguments
             }
         }
+        if command_id:
+            command_line['rsp:CommandLine']['@CommandId'] = command_id
 
         return command_line
 
