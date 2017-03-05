@@ -1,14 +1,14 @@
 import uuid
 import xmltodict
 
-from winrm.contants import WsmvConstant, WsmvResourceURI, WsmvAction, PsrpMessageType, PsrpRunspacePoolState
+from winrm.contants import WsmvConstant, WsmvResourceURI, WsmvAction, PsrpMessageType, PsrpRunspacePoolState, PsrpConstant, PsrpPSInvocationState
 from winrm.exceptions import WinRMError, WinRMTransportError, WinRMOperationTimeoutError
 
 from winrm.wsmv.objects import WsmvObject
 from winrm.wsmv.protocol import WsmvProtocol
 
 from winrm.psrp.fragmenter import Fragment, Fragmenter, Defragmenter
-from winrm.psrp.messages import CreatePipeline, SessionCapability, InitRunspacePool, Message, RunspacePoolState
+from winrm.psrp.messages import CreatePipeline, SessionCapability, InitRunspacePool, Message, RunspacePoolState, PipelineState
 
 class PsrpProtocol(object):
     def __init__(
@@ -23,8 +23,9 @@ class PsrpProtocol(object):
         self.fragmenter = Fragmenter(self.wsmv_protocol)
         self.defragmenter = Defragmenter()
         self.runspace_pool_state = PsrpRunspacePoolState.BEFORE_OPEN
-        self.rpid = uuid.uuid4()
-        self.pid = uuid.uuid4()
+        self.pipeline_state = PsrpPSInvocationState.NOT_STARTED
+        self.rpid = uuid.uuid4() # For each unique runspace
+        self.pid = uuid.uuid4() # For each unique pipeline
 
     def create_runspace_pool(self):
         self.runspace_pool_state = PsrpRunspacePoolState.OPENING
@@ -48,7 +49,7 @@ class PsrpProtocol(object):
             option_set = {
                 'protocolversion': '2.2'
             }
-            res = self.wsmv_protocol.send(WsmvAction.CREATE, WsmvResourceURI.SHELL_POWERSHELL, body=shell_body, option_set=option_set)
+            self.wsmv_protocol.send(WsmvAction.CREATE, WsmvResourceURI.SHELL_POWERSHELL, body=shell_body, option_set=option_set)
 
         self.runspace_pool_state = PsrpRunspacePoolState.NEGOTIATION_SENT
         receive_body = WsmvObject.receive('stdout')
@@ -91,6 +92,7 @@ class PsrpProtocol(object):
         return shell_id
 
     def run_command(self, shell_id, command):
+        command += "\r\nif (!$?) { if($LASTEXITCODE) { exit $LASTEXITCODE } else { exit 1 } }"
         command_id = str(uuid.uuid4()).upper()
         create_pipeline = CreatePipeline(command)
         cp = Message(Message.DESTINATION_SERVER, PsrpMessageType.CREATE_PIPELINE, self.rpid, self.pid,
@@ -99,13 +101,65 @@ class PsrpProtocol(object):
 
         # Send first fragment using the Command message
         selector_set = {'ShellId': shell_id}
-        body = WsmvObject.command_line('Write-Host', fragments[0].decode(), command_id)
+        body = WsmvObject.command_line('Invoke-Expression', fragments[0].decode(), command_id)
         res = self.wsmv_protocol.send(WsmvAction.COMMAND, WsmvResourceURI.SHELL_POWERSHELL, body=body,
                                       selector_set=selector_set)
+        command_id = res['s:Envelope']['s:Body']['rsp:CommandResponse']['rsp:CommandId']
 
         for idx, fragment in enumerate(fragments):
             if idx != 0:
                 # Send the remaining fragments using the Send message
-                a = ''
+                body = WsmvObject.send('stdin', command_id, fragment[idx])
+                self.wsmv_protocol.send(WsmvAction.SEND, WsmvResourceURI.SHELL_POWERSHELL, body=body, selector_set=selector_set)
 
-        a = ''
+        self.pipeline_state = PsrpPSInvocationState.RUNNING
+        return command_id
+
+    def get_command_output(self, shell_id, command_id):
+        stdout_buffer = []
+        stderr_buffer = []
+        return_code = -1
+        body = WsmvObject.receive('stdout', command_id)
+        selector_set = {
+            'ShellId': shell_id
+        }
+
+        while self.pipeline_state == PsrpPSInvocationState.RUNNING:
+            res = self.wsmv_protocol.send(WsmvAction.RECEIVE, WsmvResourceURI.SHELL_POWERSHELL, body=body,
+                                          selector_set=selector_set)
+
+            receive_response = res['s:Envelope']['s:Body']['rsp:ReceiveResponse']
+            streams = receive_response['rsp:Stream']
+            if isinstance(streams, dict):
+                streams = [streams]
+
+            for stream_node in streams:
+                raw_text = stream_node['#text']
+                stream_type = stream_node['@Name']
+                message = self.defragmenter.defragment_message(raw_text)
+
+                # If it is None we don't have the full fragments, wait until we get more
+                if message is not None:
+                    message_type = message.message_type
+
+                    if message_type == PsrpMessageType.PIPELINE_STATE:
+                        pipeline_state = PipelineState.parse_message_data(message)
+                        self.pipeline_state = pipeline_state.state
+                        if pipeline_state.exception_as_error_record:
+                            stderr_buffer.append(pipeline_state.exception_as_error_record.encode())
+                    elif message_type == PsrpMessageType.PIPELINE_HOST_RESPONSE:
+                        a = ''
+
+
+
+            command_state_info = receive_response['rsp:CommandState']
+            if command_state_info['@State'] == 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done':
+                return_code = command_state_info['rsp:ExitCode']
+
+        output = {
+            'stdout': b''.join(stdout_buffer),
+            'stderr': b''.join(stderr_buffer),
+            'return_code': int(return_code)
+        }
+
+        return output

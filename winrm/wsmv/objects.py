@@ -14,7 +14,7 @@ class WsmvObject(object):
         :param command: Contains the name of the command to be executed without any arguments.
         :param arguments: Supply if one or more arguments are required
         :param command_id: If set will add the command id to the message
-        :return: dict to use when using xmltodict to convert to a dict
+        :return: dict used when converting to xml
         """
         command_line = {
             'rsp:CommandLine': {
@@ -37,7 +37,7 @@ class WsmvObject(object):
 
         :param command_id: The ID of the command to get the output for
         :param arguments: The desired stream to get the output for
-        :return: dict to use when using xmltodict to convert to a dict
+        :return: dict used when converting to xml
         """
         receive = {
             'rsp:Receive': {
@@ -52,6 +52,31 @@ class WsmvObject(object):
         return receive
 
     @staticmethod
+    def send(stream_name, command_id, stream):
+        """
+        [MS-WSMV] v30.0 2017-07-14
+        2.2.4.32 Send
+
+        Describes the input data blocks sent to the server
+
+        :param stream_name: The stream name, e.g. stdin or pr
+        :param command_id: The CommandID that the send relates to
+        :param stream: The value of the stream to send to the server
+        :return: dict used when converting to xml
+        """
+        send = {
+            'rsp:Send': {
+                'rsp:Stream': {
+                    '@Name': stream_name,
+                    '@CommandId': command_id,
+                    '#text': stream
+                }
+            }
+        }
+
+        return send
+
+    @staticmethod
     def shell(**kwargs):
         """
         [MS-WSMV] v30.0 2017-07-14
@@ -63,7 +88,7 @@ class WsmvObject(object):
         wst:GetResponse - properties of an existing Shell instance
 
         :param kwargs: A dictionary used to setup a Shell object
-        :return: dict to use when using xmltodict to convert to a dict
+        :return: dict used when converting to xml
         """
         shell_id = kwargs.get('shell_id', None)
         name = kwargs.get('name', None)
@@ -159,7 +184,7 @@ class WsmvObject(object):
 
         :param signal_code: The signal code to send, see contants.Signals
         :param command_id: If the signal is targeted to a command specify the id otherwisee will target the shell
-        :return dict to use when using xmltodict to convert to a dict
+        :return: dict used when converting to xml
         """
         signal = {
             'rsp:Signal': {

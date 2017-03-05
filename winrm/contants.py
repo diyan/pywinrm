@@ -144,3 +144,54 @@ class PsrpRunspacePoolState(object):
     NEGOTIATION_SUCCEEDED = "7"
     CONNECTING = "8"
     DISCONNECTED = "9"
+
+
+class PsrpPSInvocationState(object):
+    """
+    [MS-PSRP] v16.0 2016-07-14
+    2.2.3.5 PSInvocationState
+
+    This data type represents a state of a pipeline invocation
+    """
+    NOT_STARTED = "0"
+    RUNNING = "1"
+    STOPPING = "2"
+    STOPPED = "3"
+    COMPLETED = "4"
+    FAILED = "5"
+    DISCONNECTED = "6"
+
+
+class PsrpConstant(object):
+    """
+    [MS-PSRP] v16.0 2016-07-14
+    2.2.3.9 ErrorCategory
+
+    This data type represents a category of an error
+    """
+    ERROR_CATEGORIES = {
+        "0": "The error category is unspecified",
+        "1": "The error occurred while trying to perform an open",
+        "2": "The error occurred while trying to perform a close",
+        "3": "The error originated with the device",
+        "4": "A deadlock was detected",
+        "5": "An argument was invalid",
+        "6": "The data was invalid",
+        "7": "An operation was invalid",
+        "8": "A result was invalid",
+        "9": "A type was invalid",
+        "10": "There is an error with the metadata",
+        "11": "The operation is not implemented",
+        "12": "The specified resource was not installed",
+        "13": "The object was not found",
+        "14": "The operation was stopped",
+        "15": "The operation timed out",
+        "16": "There was an error with the syntax",
+        "17": "There was an error with the parser",
+        "18": "Permission was denied",
+        "19": "The resource is busy",
+        "20": "The resource already exists",
+        "21": "The resource was unavailable",
+        "22": "The error occurred while trying to perform a read",
+        "25": "The error relates to security",
+    }
