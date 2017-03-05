@@ -1,3 +1,4 @@
+import re
 import uuid
 import xmltodict
 
@@ -118,6 +119,11 @@ class PsrpProtocol(object):
     def get_command_output(self, shell_id, command_id):
         stdout_buffer = []
         stderr_buffer = []
+        output_buffer = []
+        verbose_buffer = []
+        debug_buffer = []
+        error_buffer = []
+        warning_buffer = []
         return_code = -1
         body = WsmvObject.receive('stdout', command_id)
         selector_set = {
@@ -146,8 +152,25 @@ class PsrpProtocol(object):
                         pipeline_state = PipelineState.parse_message_data(message)
                         self.pipeline_state = pipeline_state.state
                         if pipeline_state.exception_as_error_record:
-                            stderr_buffer.append(pipeline_state.exception_as_error_record.encode())
-                    elif message_type == PsrpMessageType.PIPELINE_HOST_RESPONSE:
+                            error_buffer.append(pipeline_state.exception_as_error_record.encode())
+                    elif message_type == PsrpMessageType.PIPELINE_OUTPUT:
+                        output = message.data['S']
+                        if output:
+                            output_buffer.append(message.data['S'].encode())
+                            stdout_buffer.append(message.data['S'].encode())
+                    elif message_type == PsrpMessageType.ERROR_RECORD:
+                        error = self._parse_error_message(message.data)
+                        error_buffer.append(error)
+                        stderr_buffer.append(error)
+                    elif message_type == PsrpMessageType.DEBUG_RECORD:
+                        debug_buffer.append(message.data['Obj']['ToString'].encode())
+                    elif message_type == PsrpMessageType.VERBOSE_RECORD:
+                        verbose_buffer.append(message.data['Obj']['ToString'].encode())
+                    elif message_type == PsrpMessageType.WARNING_RECORD:
+                        warning_buffer.append(message.data['Obj']['ToString'].encode())
+                    elif message_type == PsrpMessageType.PIPELINE_HOST_CALL:
+                        stdout_buffer.append(self._parse_host_call(message.data))
+                    else:
                         a = ''
 
 
@@ -157,9 +180,77 @@ class PsrpProtocol(object):
                 return_code = command_state_info['rsp:ExitCode']
 
         output = {
-            'stdout': b''.join(stdout_buffer),
-            'stderr': b''.join(stderr_buffer),
+            'stdout': b'\n'.join(stdout_buffer),
+            'stderr': b'\n'.join(stderr_buffer),
+            'output': b'\n'.join(output_buffer),
+            'verbose': b'\n'.join(verbose_buffer),
+            'debug': b'\n'.join(debug_buffer),
+            'error': b'\n'.join(error_buffer),
+            'warning': b'\n'.join(warning_buffer),
             'return_code': int(return_code)
         }
 
         return output
+
+    def _parse_host_call(self, message_data):
+        raw_output = message_data['Obj']['MS']['Obj']
+        full_output = b''
+        method_identifier = ''
+        for raw in raw_output:
+            if raw['@N'] == 'mi':
+                method_identifier = raw['ToString']
+            else:
+                output_list = raw['LST']
+                if isinstance(output_list, dict):
+                    output_list = [output_list]
+
+                if method_identifier != 'SetShouldExit' and method_identifier != 'WriteProgress':
+                    for output in output_list:
+                        full_output += output['S'].encode()
+
+        if method_identifier == 'WriteDebugLine':
+            full_output = b'DEBUG: %s' % full_output
+        elif method_identifier == 'WriteWarningLine':
+            full_output = b'WARNING: %s' % full_output
+        elif method_identifier == 'WriteVerboseLine':
+            full_output = b'VERBOSE: %s' % full_output
+        else:
+            a = ''
+
+        return full_output
+
+    def _parse_error_message(self, message_data):
+        error_message = message_data['Obj']['ToString']
+
+        my_command = ''
+        error_category_message = ''
+        position_message = ''
+        fully_qualified_error_id = ''
+
+        for error_info in message_data['Obj']['MS']['S']:
+            if error_info['@N'] == 'FullyQualifiedErrorId':
+                fully_qualified_error_id = error_info['#text']
+            elif error_info['@N'] == 'ErrorCategory_Message':
+                error_category_message = error_info['#text']
+
+        for error_info in message_data['Obj']['MS']['Obj']:
+            if error_info['@N'] == 'InvocationInfo':
+                invocation_info = error_info['Props']['S']
+                for info in invocation_info:
+                    if info['@N'] == 'PositionMessage':
+                        position_message = info['#text']
+                    elif info['@N'] == 'MyCommand':
+                        my_command = info['#text']
+
+        error_string = """%s : %s
+%s
+    + CategoryInfo          : %s
+    + FullyQualifiedErrorId : %s
+""" % (my_command, error_message, position_message, error_category_message, fully_qualified_error_id)
+
+        pattern = '_x([0-9A-F]*)_'
+        hex_strings = re.findall(pattern, error_string, re.I)
+        for hex_string in hex_strings:
+            error_string = error_string.replace("_x%s_" % hex_string, chr(int(hex_string, 16)))
+
+        return error_string.encode()
