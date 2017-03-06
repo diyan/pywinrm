@@ -7,7 +7,7 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
-from winrm.contants import PsrpRunspacePoolState, PsrpPSInvocationState, PsrpColor, PsrpMessageType, PsrpConstant
+from winrm.contants import PsrpRunspacePoolState, PsrpPSInvocationState, PsrpColor, PsrpMessageType
 
 
 class Message(object):
@@ -683,10 +683,10 @@ class ApplicationPrivateData(object):
 
 
 class PipelineState(object):
-    def __init__(self, state, friendly_state, error_message):
+    def __init__(self, state, friendly_state, exception_as_error_record):
         self.state = state
         self.friendly_state = friendly_state
-        self.exception_as_error_record = error_message
+        self.exception_as_error_record = exception_as_error_record
 
     @staticmethod
     def parse_message_data(message):
@@ -697,16 +697,6 @@ class PipelineState(object):
             if value == state:
                 friendly_state = key
 
-        error_message = None
-        exception_as_error_record_root = message.data['Obj']['MS'].get('Obj', None)
-        if exception_as_error_record_root:
-            error_code = exception_as_error_record_root['MS']['I32']['#text']
-            error_category = PsrpConstant.ERROR_CATEGORIES.get(error_code, "Unknown Error: %s" % error_code)
-            error_message = 'Error %s: %s.\n' % (error_code, error_category)
+        exception_as_error_record = message.data['Obj']['MS'].get('Obj', None)
 
-            raw_error_messages = exception_as_error_record_root['MS']['Obj']
-            for raw_error_message in raw_error_messages:
-                if raw_error_message['ToString'] != 'System.Management.Automation.InvocationInfo':
-                    error_message += '%s.\n' % raw_error_message['ToString']
-
-        return PipelineState(state, friendly_state, error_message)
+        return PipelineState(state, friendly_state, exception_as_error_record)

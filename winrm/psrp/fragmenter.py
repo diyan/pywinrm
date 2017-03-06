@@ -58,6 +58,9 @@ class Fragmenter(object):
         self.object_id = 0
 
     def fragment_messages(self, messages):
+        if not isinstance(messages, list):
+            messages = [messages]
+
         max_blob_size = self._calculate_max_blob_size()
         fragments = []
 

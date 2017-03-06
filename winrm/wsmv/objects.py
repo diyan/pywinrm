@@ -92,23 +92,23 @@ class WsmvObject(object):
         """
         shell_id = kwargs.get('shell_id', None)
         name = kwargs.get('name', None)
-        owner = kwargs.get('owner', None)
-        client_ip = kwargs.get('client_ip', None)
-        process_id = kwargs.get('process_id', None)
+        # TODO owner = kwargs.get('owner', None)
+        # TODO client_ip = kwargs.get('client_ip', None)
+        # TODO process_id = kwargs.get('process_id', None)
         environment = kwargs.get('environment', None)
         working_directory = kwargs.get('working_directory', None)
-        #TODO lifetime = kwargs.get('lifetime', None)
+        # TODO lifetime = kwargs.get('lifetime', None)
         idle_time_out = kwargs.get('idle_time_out', None)
         input_streams = kwargs.get('input_streams', 'stdin')
         output_streams = kwargs.get('output_streams', 'stdout stderr')
         max_idle_time_out = kwargs.get('max_idle_time_out', None)
         locale = kwargs.get('locale', WsmvConstant.DEFAULT_LOCALE)
         data_locale = kwargs.get('data_locale', WsmvConstant.DEFAULT_LOCALE)
-        #TODO compression_mode = kwargs.get('compression_mode', None)
+        # TODO compression_mode = kwargs.get('compression_mode', None)
         profile_loaded = kwargs.get('profile_loaded', True)
         encoding = kwargs.get('encoding', WsmvConstant.DEFAULT_ENCODING)
-        #TODO buffer_mode = kwargs.get('buffer_mode', None)
-        #TODO state = kwargs.get('state', None)
+        # TODO buffer_mode = kwargs.get('buffer_mode', None)
+        # TODO state = kwargs.get('state', None)
         shell_run_time = kwargs.get('shell_run_time', None)
         shell_inactivity = kwargs.get('shell_inactivity', None)
         open_content = kwargs.get('open_content', None) # Used in MS-PSRP
@@ -129,15 +129,6 @@ class WsmvObject(object):
 
         if name:
             shell['rsp:Shell']['@Name'] = name
-
-        if owner:
-            shell['rsp:Shell']['rsp:Owner'] = owner
-
-        if client_ip:
-            shell['rsp:Shell']['rsp:ClientIP'] = client_ip
-
-        if process_id:
-            shell['rsp:Shell']['rsp:ProcessId'] = process_id
 
         if environment:
             environment_list = []
@@ -179,11 +170,11 @@ class WsmvObject(object):
         [MS-WSMV] v30.0 2017-07-14
         2.2.4.38 Signal
 
-        Describes the signal values that are used to control the exeuciton of
+        Describes the signal values that are used to control the execution of
         the specific commands or of the Shell processor itself.
 
         :param signal_code: The signal code to send, see contants.Signals
-        :param command_id: If the signal is targeted to a command specify the id otherwisee will target the shell
+        :param command_id: If the signal is targeted to a command specify the id otherwise will target the shell
         :return: dict used when converting to xml
         """
         signal = {
