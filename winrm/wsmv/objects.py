@@ -3,7 +3,7 @@ from winrm.contants import WsmvConstant
 
 class WsmvObject(object):
     @staticmethod
-    def command_line(command, arguments, command_id):
+    def command_line(command, arguments, command_id=None):
         """
         [MS-WSMV] v30.0 2017-07-14
         2.2.4.7 CommandLine

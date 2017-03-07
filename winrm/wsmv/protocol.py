@@ -24,7 +24,6 @@ class WsmvProtocol(object):
         :param Transport transport: A initialised Transport() object for handling message transport
         :param int read_timeout_sec: The maximum amount of seconds to wait before a HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long.
         :param int operation_timeout_sec: The maximum allows time in seconds for any single WSMan HTTP operation (default 20). Note that operation timeouts while receiving output (the only WSMan operation that should take any singificant time, and where these timeouts are expected) will be silently retried indefinitely.
-        :param int max_envelop_size: The maximum envelope size of the WSMan message (default 153600).
         :param string locale: The locale value to use when creating a Shell on the remote host (default en-US).
         :param string encoding: The encoding format when creating XML strings to send to the server (default utf-8).
         """
@@ -32,13 +31,16 @@ class WsmvProtocol(object):
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")
 
         self.session_id = str(uuid.uuid4()).upper()
-        self.server_config = self.get_server_config()
-        self.max_envelope_size = self.server_config['max_envelope_size']
         self.read_timeout_sec = read_timeout_sec
         self.operation_timeout_sec = operation_timeout_sec
         self.locale = locale
         self.encoding = encoding
         self.transport = transport
+
+        # Determine the max envelope size
+        self.max_envelope_size = WsmvConstant.DEFAULT_MAX_ENVELOPE_SIZE
+        self.server_config = self.get_server_config()
+        self.max_envelope_size = self.server_config['max_envelope_size']
 
     def open_shell(self, noprofile=False, codepage=437, **kwargs):
         """
@@ -228,7 +230,6 @@ class WsmvProtocol(object):
         message = self.create_message(body, action, resource_uri, selector_set, option_set)
         message_id = message['s:Envelope']['s:Header']['a:MessageID']
         message = xmltodict.unparse(message, full_document=False, encoding=self.encoding)
-        print(message)
 
         response_xml = self.transport.send_message(message)
         response = xmltodict.parse(response_xml, encoding=self.encoding)

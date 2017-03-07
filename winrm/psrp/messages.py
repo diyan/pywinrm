@@ -383,7 +383,6 @@ class ObjectTypes(object):
 
         :return: dict of the HostInfo object
         """
-
         host_info = {
             "Obj": {
                 "@N": "HostInfo",
@@ -670,6 +669,7 @@ class ApplicationPrivateData(object):
         Target: RunspacePool
         """
         self.message_type = PsrpMessageType.APPLICATION_PRIVATE_DATA
+
         self.bash_version = bash_version
 
     @staticmethod
@@ -684,6 +684,17 @@ class ApplicationPrivateData(object):
 
 class PipelineState(object):
     def __init__(self, state, friendly_state, exception_as_error_record):
+        """
+        [MS-PSRP] v16.0 2016-07-14
+        2.2.2.21 PIPELINE_STATE Message
+
+        State information of a command pipeline on the server
+
+        Direction: Server to Client
+        Target: pipeline or RunspacePool
+        """
+        self.message_type = PsrpMessageType.PIPELINE_STATE
+
         self.state = state
         self.friendly_state = friendly_state
         self.exception_as_error_record = exception_as_error_record

@@ -30,6 +30,7 @@ class WsmvConstant(object):
         "i": "http://schemas.microsoft.com/wbem/wsman/1/cim/interactive.xsd"
     }
 
+
 class WsmvAction(object):
     GET = 'http://schemas.xmlsoap.org/ws/2004/09/transfer/Get'
     PUT = 'http://schemas.xmlsoap.org/ws/2004/09/transfer/Put'
@@ -56,6 +57,7 @@ class WsmvSignal(object):
     CTRL_BREAK = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/ctrl_break'
     CTRL_C = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/ctrl_c'
     TERMINATE = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate'
+
 
 class WsmvResourceURI(object):
     SHELL_CMD = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd'
@@ -163,6 +165,12 @@ class PsrpPSInvocationState(object):
 
 
 class PsrpConstant(object):
+    DEFAULT_PS_VERSION = "2.0"
+    DEFAULT_PROTOCOL_VERSION = "2.3"
+    DEFAULT_SERIALIZATION_VERSION = "1.1.0.1"
+    DEFAULT_MIN_RUNSPACES = 1
+    DEFAULT_MAX_RUNSPACES = 1
+
     """
     [MS-PSRP] v16.0 2016-07-14
     2.2.3.9 ErrorCategory
