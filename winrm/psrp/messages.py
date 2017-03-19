@@ -230,17 +230,16 @@ class ObjectTypes(object):
         return remote_stream_options
 
     @staticmethod
-    def create_pipeline(command):
+    def create_pipeline(commands):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.3.11 Pipeline
 
         This data type represents a pipeline to be executed
 
-        :param commands: The command you wish to run
+        :param commands: A list of commands created by create_command you wish to run
         :return: dict of the Pipeline object
         """
-        command = ObjectTypes.create_command(command)
         pipeline = {
             "Obj": {
                 "@N": "PowerShell",
@@ -256,7 +255,9 @@ class ObjectTypes(object):
                                 "System.Object"
                             ]
                         },
-                        "LST": command
+                        "LST": {
+                            "Obj": []
+                        }
                     },
                     "B": [
                         {"@N": "IsNested", "#text": "false"},
@@ -266,10 +267,13 @@ class ObjectTypes(object):
                 }
             }
         }
+        for command in commands:
+            pipeline['Obj']['MS']['Obj']['LST']['Obj'].append(command['Obj'])
+
         return pipeline
 
     @staticmethod
-    def create_command(command):
+    def create_command(command, parameters=()):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.3.12 Command
@@ -277,16 +281,62 @@ class ObjectTypes(object):
         This data type represents a command in a pipeline
 
         :param command: The command you wish to run
+        :param parameters: A list of parameters to run with the command, must be in the format -Key Value
         :return: dict of the Command object
         """
         merge_reference_id = ObjectTypes.get_random_ref_id()
+        arguments = []
+        for parameter in parameters:
+            if parameter.startswith('-'):
+                parameter_split = parameter.split(' ', 1)
+                arguments.append({
+                    "@RefId": ObjectTypes.get_random_ref_id(),
+                    "MS": {
+                        "S": {"@N": "N", "#text": parameter_split[0]},
+                        "Nil": {"@N": "V"}
+                    }
+                })
+                if len(parameter_split) > 1:
+                    arguments.append({
+                        "@RefId": ObjectTypes.get_random_ref_id(),
+                        "MS": {
+                            "Nil": {"@N": "N"},
+                            "S": {"@N": "V", "#text": parameter_split[1]}
+                        }
+                    })
+            else:
+                arguments.append({
+                    "@RefId": ObjectTypes.get_random_ref_id(),
+                    "MS": {
+                        "Nil": {"@N": "N"},
+                        "S": {"@N": "V", "#text": parameter}
+                    }
+                })
+
+        args_element = {
+            "@N": "Args",
+            "@RefId": ObjectTypes.get_random_ref_id(),
+            "TN": {
+                "@RefId": ObjectTypes.get_random_ref_id(),
+                "T": [
+                    "System.Collections.Generic.List`1[[System.Management.Automation.PSObject, System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35]]",
+                    "System.Object"
+                ]
+            },
+            "LST": {}
+        }
+        if len(arguments) > 0:
+            args_element['LST'] = {'Obj': arguments}
+            is_script = "false"
+        else:
+            is_script = "true"
 
         command_dict = {
             "Obj": {
                 "@RefId": ObjectTypes.get_random_ref_id(),
                 "MS": {
-                    "S": {"@N": "Cmd", "#text": "Invoke-Expression"},
-                    "B": {"@N": "IsScript","#text": "false"},
+                    "S": {"@N": "Cmd", "#text": command},
+                    "B": {"@N": "IsScript","#text": is_script},
                     "Nil": {"@N": "UseLocalScope"},
                     "Obj": [
                         {
@@ -339,38 +389,12 @@ class ObjectTypes(object):
                             "TNRef": {"@RefId": merge_reference_id},
                             "ToString": "None",
                             "I32": "0"
-                        }, {
-                            "@N": "Args",
-                            "@RefId": ObjectTypes.get_random_ref_id(),
-                            "TN": {
-                                "@RefId": ObjectTypes.get_random_ref_id(),
-                                "T": [
-                                    "System.Collections.Generic.List`1[[System.Management.Automation.PSObject, System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35]]",
-                                    "System.Object"
-                                ]
-                            },
-                            "LST": {
-                                "Obj": [
-                                    {
-                                        "@RefId": ObjectTypes.get_random_ref_id(),
-                                        "MS": {
-                                            "Nil": {"@N": "V"},
-                                            "S": {"@N": "N", "#text": "-Command"}
-                                        }
-                                    }, {
-                                        "@RefId": ObjectTypes.get_random_ref_id(),
-                                        "MS": {
-                                            "Nil": {"@N": "N"},
-                                            "S": {"@N": "V", "#text": command}
-                                        }
-                                    }
-                                ]
-                            }
-                        }
+                        }, args_element
                     ]
                 }
             }
         }
+
         return command_dict
 
     @staticmethod
@@ -614,7 +638,7 @@ class RunspacePoolState(object):
 
 
 class CreatePipeline(object):
-    def __init__(self, command):
+    def __init__(self, commands):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.2.10 CREATE_PIPELINE Message
@@ -622,6 +646,8 @@ class CreatePipeline(object):
         Create a command pipeline and invoke it in the specified RunspacePool
         Direction: Client to Server
         Target: RunspacePool
+
+        @param commands: A list of commands created by create_command you wish to run
         """
         self.message_type = PsrpMessageType.CREATE_PIPELINE
 
@@ -630,7 +656,7 @@ class CreatePipeline(object):
         self.remote_stream_options = ObjectTypes.create_remote_stream_options()
         self.add_to_history = True
         self.host_info = ObjectTypes.create_host_info()
-        self.power_shell = ObjectTypes.create_pipeline(command)
+        self.power_shell = ObjectTypes.create_pipeline(commands)
         self.is_nested = False
 
     def create_message_data(self):
@@ -680,6 +706,68 @@ class ApplicationPrivateData(object):
             raise Exception("Invalid APPLICATION_PRIVATE_DATA message from the server")
 
         return ApplicationPrivateData(bash_version)
+
+
+class PipelineInput(object):
+    def __init__(self, data):
+        self.message_type = PsrpMessageType.PIPELINE_INPUT
+        self.data = data
+
+    def create_message_data(self):
+        input_data = {
+            "Obj": {
+                "@RefId": ObjectTypes.get_random_ref_id(),
+                "MS": {
+                    "Obj": [
+                        {
+                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@N": "mr",
+                            "TN": {
+                                "@RefId": ObjectTypes.get_random_ref_id(),
+                                "T": [
+                                    "System.Collections.Hashtable",
+                                    "System.Object"
+                                ]
+                            },
+                            "DCT": {
+                                "En": {
+                                    "S": [
+                                        {"@N": "Key", "#text": "Test Prompt"},
+                                        {"@N": "Value", "#text": self.data}
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@N": "mi",
+                            "TN": {
+                                "@RefId": ObjectTypes.get_random_ref_id(),
+                                "T": [
+                                    "System.Management.Automation.Remoting.RemoteHostMethodId",
+                                    "System.Enum",
+                                    "System.ValueType",
+                                    "System.Object"
+                                ]
+                            },
+                            "ToString": "Prompt",
+                            "I32": "23"
+                        }
+                    ],
+                    "I64": {"@N": "ci", "#text": "1"}
+                }
+            }
+        }
+
+        return input_data
+
+class EndOfPipelineInput(object):
+    def __init__(self):
+        self.message_type = PsrpMessageType.END_OF_PIPELINE_INPUT
+
+    def create_message_data(self):
+        data = {}
+        return data
 
 
 class PipelineState(object):

@@ -52,7 +52,7 @@ class WsmvObject(object):
         return receive
 
     @staticmethod
-    def send(stream_name, command_id, stream):
+    def send(stream_name, command_id, stream, end=False):
         """
         [MS-WSMV] v30.0 2017-07-14
         2.2.4.32 Send
@@ -73,6 +73,8 @@ class WsmvObject(object):
                 }
             }
         }
+        if end:
+            send['rsp:Send']['rsp:Stream']['@End'] = 'true'
 
         return send
 
@@ -134,7 +136,7 @@ class WsmvObject(object):
             environment_list = []
             for key, value in environment.items():
                 environment_list.append({'@Name': key, '#text': value})
-            shell['rsp:Shell']['rsp:Environment'] = {'Variable': environment_list}
+            shell['rsp:Shell']['rsp:Environment'] = {'rsp:Variable': environment_list}
 
         if working_directory:
             shell['rsp:Shell']['rsp:WorkingDirectory'] = working_directory

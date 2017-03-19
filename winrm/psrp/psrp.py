@@ -1,29 +1,27 @@
 import uuid
 
+from winrm.client import Client
 from winrm.contants import WsmvConstant, WsmvResourceURI, WsmvAction, WsmvSignal, \
     PsrpMessageType, PsrpRunspacePoolState, PsrpPSInvocationState, PsrpConstant
 from winrm.exceptions import WinRMError, WinRMTransportError
 
 from winrm.wsmv.objects import WsmvObject
-from winrm.wsmv.protocol import WsmvProtocol
 
 from winrm.psrp.response_reader import Reader
 from winrm.psrp.fragmenter import Fragmenter, Defragmenter
-from winrm.psrp.messages import CreatePipeline, SessionCapability, InitRunspacePool, Message, RunspacePoolState
+from winrm.psrp.messages import CreatePipeline, SessionCapability, InitRunspacePool, Message, RunspacePoolState, ObjectTypes, PipelineInput, EndOfPipelineInput
 
 
-class PsrpProtocol(object):
+class PsrpClient(Client):
     def __init__(self,
-                 transport,
-                 read_timeout_sec=WsmvConstant.DEFAULT_READ_TIMEOUT_SEC,
+                 transport_opts,
                  operation_timeout_sec=WsmvConstant.DEFAULT_OPERATION_TIMEOUT_SEC,
                  locale=WsmvConstant.DEFAULT_LOCALE,
                  encoding=WsmvConstant.DEFAULT_ENCODING,
+                 max_envelope_size=WsmvConstant.DEFAULT_MAX_ENVELOPE_SIZE,
                  min_runspaces=PsrpConstant.DEFAULT_MIN_RUNSPACES,
-                 max_runspaces=PsrpConstant.DEFAULT_MAX_RUNSPACES,
-                 ps_version=PsrpConstant.DEFAULT_PS_VERSION,
-                 protocol_version=PsrpConstant.DEFAULT_PROTOCOL_VERSION,
-                 serialization_version=PsrpConstant.DEFAULT_SERIALIZATION_VERSION):
+                 max_runspaces=PsrpConstant.DEFAULT_MAX_RUNSPACES
+                 ):
         """
         Will set up a handler used to interact with the PSRP protocol
 
@@ -38,26 +36,24 @@ class PsrpProtocol(object):
         :param string protocol_version: The remoting protocol version supported by pywinrm (default 2.3)
         :param string serialization_version: The powershell serialization version supported by pywinrm (default 1.1.0.1)
         """
-
-        self.wsmv_protocol = WsmvProtocol(transport, read_timeout_sec, operation_timeout_sec, locale, encoding)
-        self.max_envelope_size = self.wsmv_protocol.max_envelope_size
-        self.fragmenter = Fragmenter(self.wsmv_protocol)
+        Client.__init__(self, transport_opts, operation_timeout_sec, locale, encoding, max_envelope_size,
+                        WsmvResourceURI.SHELL_POWERSHELL)
         self.min_runspaces = min_runspaces
         self.max_runspaces = max_runspaces
-        self.ps_version = ps_version
-        self.protocol_version = protocol_version
-        self.serialization_version = serialization_version
+        self.fragmenter = Fragmenter(self)
 
-        self.resource_uri = WsmvResourceURI.SHELL_POWERSHELL
         self.state = PsrpRunspacePoolState.BEFORE_OPEN
-        self.shell_id = str(uuid.uuid4()).upper()
         self.rpid = uuid.uuid4()
         self.pipelines = []
 
-    def create(self):
+    def open_shell(self,
+                   ps_version=PsrpConstant.DEFAULT_PS_VERSION,
+                   protocol_version=PsrpConstant.DEFAULT_PROTOCOL_VERSION,
+                   serialization_version=PsrpConstant.DEFAULT_SERIALIZATION_VERSION
+                   ):
         # Will create a new RunspacePool and Shell on the server.
         self.state = PsrpRunspacePoolState.OPENING
-        session_capability = SessionCapability(self.ps_version, self.protocol_version, self.serialization_version)
+        session_capability = SessionCapability(ps_version, protocol_version, serialization_version)
         init_runspace_pool = InitRunspacePool(str(self.min_runspaces), str(self.max_runspaces))
 
         sc = Message(Message.DESTINATION_SERVER, PsrpMessageType.SESSION_CAPABILITY, self.rpid,
@@ -77,15 +73,14 @@ class PsrpProtocol(object):
             body = WsmvObject.shell(shell_id=self.shell_id, input_streams='stdin pr', output_streams='stdout',
                                           open_content=open_content)
             option_set = {
-                'protocolversion': self.protocol_version
+                'protocolversion': protocol_version
             }
-            self.wsmv_protocol.send(WsmvAction.CREATE, self.resource_uri, body=body,
-                                    option_set=option_set)
+            self.send(WsmvAction.CREATE, body=body, option_set=option_set)
 
         self.state = PsrpRunspacePoolState.NEGOTIATION_SENT
         self._wait_for_open_pool()
 
-    def run_command(self, command):
+    def run_command(self, command, arguments=()):
         """
         Will run a command in a new pipeline on the RunspacePool. It will first
         check to see if the pool will accept a new runspace/pipeline based on
@@ -115,18 +110,31 @@ class PsrpProtocol(object):
                 "Cannot create new command pipeline as Runspace Pool already has %d running, max allowed %d" % (
                 running_pipelines, self.max_runspaces))
 
-        pipeline = Pipeline(self.rpid, self.shell_id, self.resource_uri, self.fragmenter, self.wsmv_protocol)
+        pipeline = Pipeline(self)
         self.pipelines.append(pipeline)
+        pipeline.create(command, arguments)
+
+        return pipeline.command_id
+
+    def get_command_output(self, command_id):
+        running_pipeline = None
+        for pipeline in self.pipelines:
+            if pipeline.command_id == command_id:
+                running_pipeline = pipeline
 
         try:
-            pipeline.create(command)
-            output = pipeline.get_output()
+            output = running_pipeline.get_output()
         finally:
-            pipeline.stop()
+            running_pipeline.stop()
 
         return output
 
-    def close(self):
+    def cleanup_command(self, command_id):
+        for pipeline in self.pipelines:
+            if pipeline.command_id == command_id:
+                pipeline.stop()
+
+    def close_shell(self):
         """
         Will close the RunspacePool and all pipelines that are currently
         running in that pool. Once this action is processed no more commands
@@ -139,7 +147,7 @@ class PsrpProtocol(object):
             selector_set = {
                 'ShellId': self.shell_id
             }
-            self.wsmv_protocol.send(WsmvAction.DELETE, self.resource_uri, selector_set=selector_set)
+            self.send(WsmvAction.DELETE, selector_set=selector_set)
             self.state = PsrpRunspacePoolState.CLOSED
 
     def _wait_for_open_pool(self):
@@ -158,8 +166,7 @@ class PsrpProtocol(object):
         defragmenter = Defragmenter()
 
         while self.state != PsrpRunspacePoolState.OPENED:
-            body = self.wsmv_protocol.send(WsmvAction.RECEIVE, self.resource_uri, receive_body,
-                                           selector_set, option_set)
+            body = self.send(WsmvAction.RECEIVE, receive_body, selector_set, option_set)
             streams = body['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:Stream']
             messages = []
             if isinstance(streams, list):
@@ -193,13 +200,14 @@ class PsrpProtocol(object):
 
         :param server_protocol_version: The protocol version returned by the server in a SESSION_CAPABILITY message
         """
-        if self.wsmv_protocol.max_envelope_size == WsmvConstant.DEFAULT_MAX_ENVELOPE_SIZE:
+        current_envelope_size = self.server_config['max_envelope_size']
+        if current_envelope_size == WsmvConstant.DEFAULT_MAX_ENVELOPE_SIZE:
             if server_protocol_version > '2.1':
-                self.wsmv_protocol.max_envelope_size = 512000
+                self.server_config['max_envelope_size'] = 512000
 
 
 class Pipeline(object):
-    def __init__(self, rpid, shell_id, resource_uri, fragmenter, wsmv_protocol):
+    def __init__(self, client):
         """
         A pipeline object that can run a command in the RunspacePool. Each
         pipeline can only run 1 command before it needs to be closed. You can
@@ -213,29 +221,28 @@ class Pipeline(object):
         :param fragmenter: The fragmenter object created in the RunspacePool used to fragment messages
         :param wsmv_protocol: The WSMV protocol object used to send messages to the server
         """
-        self.rpid = rpid
+        self.client = client
         self.pid = uuid.uuid4()
-        self.shell_id = shell_id
         self.command_id = str(uuid.uuid4()).upper()
         self.state = PsrpPSInvocationState.NOT_STARTED
 
-        self.resource_uri = resource_uri
-        self.fragmenter = fragmenter
-        self.wsmv_protocol = wsmv_protocol
-
-    def create(self, command):
+    def create(self, command, arguments):
         """
         Will create a command pipeline to run on the server
 
-        :param command: The command or script to run
+        :param command: A script or command to run
+        :param arguments: Optional argument to add to the command
         """
-        create_pipeline = Message(Message.DESTINATION_SERVER, PsrpMessageType.CREATE_PIPELINE, self.rpid, self.pid,
-                                  CreatePipeline(command))
+        commands = [ObjectTypes.create_command(command, arguments)]
 
-        fragments = self.fragmenter.fragment_messages(create_pipeline)
-        body = WsmvObject.command_line('Invoke-Expression', fragments[0].decode(), self.command_id)
-        response = self.wsmv_protocol.send(WsmvAction.COMMAND, self.resource_uri,
-                                           body=body, selector_set={'ShellId': self.shell_id})
+        # We pipe the resulting command to a string so PSRP doesn't return a custom object
+        commands.append(ObjectTypes.create_command('Out-String', ['-Stream']))
+        create_pipeline = Message(Message.DESTINATION_SERVER, PsrpMessageType.CREATE_PIPELINE, self.client.rpid,
+                                  self.pid, CreatePipeline(commands))
+
+        fragments = self.client.fragmenter.fragment_messages(create_pipeline)
+        body = WsmvObject.command_line('', fragments[0].decode(), self.command_id)
+        response = self.client.send(WsmvAction.COMMAND, body=body, selector_set={'ShellId': self.client.shell_id})
         self.state = PsrpPSInvocationState.RUNNING
 
         # Send first fragment using the Command message
@@ -245,8 +252,8 @@ class Pipeline(object):
         for idx, fragment in enumerate(fragments):
             if idx != 0:
                 body = WsmvObject.send('stdin', command_id, fragment[idx])
-                self.wsmv_protocol.send(WsmvAction.SEND, self.resource_uri, body=body,
-                                        selector_set={'ShellId': self.shell_id})
+                self.client.send(WsmvAction.SEND, body=body,
+                                        selector_set={'ShellId': self.client.shell_id})
 
     def get_output(self):
         """
@@ -263,8 +270,7 @@ class Pipeline(object):
         body = WsmvObject.receive('stdout', self.command_id)
 
         while self.state == PsrpPSInvocationState.RUNNING:
-            response = self.wsmv_protocol.send(WsmvAction.RECEIVE, self.resource_uri,
-                                               body=body, selector_set={'ShellId': self.shell_id})
+            response = self.client.send(WsmvAction.RECEIVE, body=body, selector_set={'ShellId': self.client.shell_id})
 
             streams = response['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:Stream']
             if isinstance(streams, dict):
@@ -279,9 +285,33 @@ class Pipeline(object):
                     if new_state:
                         self.state = new_state
 
+            command_state = response['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:CommandState']['@State']
+            if command_state == 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Pending':
+                self.send_command_input('hello world')
+
         self.stop()
 
         return reader
+
+    def send_command_input(self, input):
+        input_message = Message(Message.DESTINATION_SERVER, PsrpMessageType.PIPELINE_INPUT, self.client.rpid, self.pid, PipelineInput(input))
+        fragments = self.client.fragmenter.fragment_messages(input_message)
+        selector_set = {"ShellId": self.client.shell_id}
+        for fragment in fragments:
+            body = WsmvObject.send('pr', self.command_id, fragment)
+            a = self.client.send(WsmvAction.SEND, body=body, selector_set=selector_set)
+            b = ''
+
+        #if end_of_input:
+        #    end_of_input_message = Message(Message.DESTINATION_SERVER, PsrpMessageType.PIPELINE_INPUT, self.rpid, running_pipeline.pid, EndOfPipelineInput())
+        #    fragments = self.fragmenter.fragment_messages(end_of_input_message)
+        #    for fragment in fragments:
+        #        body = WsmvObject.send('stdin', command_id, fragment)
+        #        a = self.send(WsmvAction.SEND, body=body, selector_set=selector_set)
+        #        b = ''
+
+        z = ''
+
 
     def stop(self):
         # Will stop the pipeline if it has not been stopped already
@@ -289,11 +319,10 @@ class Pipeline(object):
             self.state = PsrpPSInvocationState.STOPPING
             body = WsmvObject.signal(WsmvSignal.TERMINATE, self.command_id)
             selector_set = {
-                'ShellId': self.shell_id
+                'ShellId': self.client.shell_id
             }
             try:
-                self.wsmv_protocol.send(WsmvAction.SIGNAL, self.resource_uri, body=body,
-                                    selector_set=selector_set)
+                self.client.send(WsmvAction.SIGNAL, body=body, selector_set=selector_set)
                 self.state = PsrpPSInvocationState.STOPPED
             except WinRMTransportError:
                 self.state = PsrpPSInvocationState.FAILED

@@ -2,7 +2,6 @@ import base64
 import struct
 import xmltodict
 
-
 from winrm.contants import WsmvAction, WsmvConstant, WsmvResourceURI
 from winrm.wsmv.objects import WsmvObject
 from winrm.psrp.messages import Message
@@ -53,8 +52,8 @@ class Fragment(object):
 
 
 class Fragmenter(object):
-    def __init__(self, wsmv_protocol):
-        self.wsmv_protocol = wsmv_protocol
+    def __init__(self, client):
+        self.client = client
         self.object_id = 0
 
     def fragment_messages(self, messages):
@@ -141,7 +140,7 @@ class Fragmenter(object):
         wsmv_message_bytes = self._get_empty_wsmv_command_size()
 
         # Determine how many base64 characters are allowed, convert to base64 decoded bytes available
-        base64_bytes_allowed = self.wsmv_protocol.max_envelope_size - wsmv_message_bytes
+        base64_bytes_allowed = self.client.server_config['max_envelope_size'] - wsmv_message_bytes
         raw_base64_size = base64_bytes_allowed / 4 * 3
 
         # Subtract remaining amount with the header bytes length
@@ -156,12 +155,11 @@ class Fragmenter(object):
         large the PSRP fragment can be
         :return: The length of the WSMV CommandLine xml string
         """
-        body = WsmvObject.command_line('Invoke-Expression', '', WsmvConstant.EMPTY_UUID)
+        body = WsmvObject.command_line('', '', WsmvConstant.EMPTY_UUID)
         selector_set = {
             'ShellId': WsmvConstant.EMPTY_UUID
         }
-        message = self.wsmv_protocol.create_message(body, WsmvAction.COMMAND, WsmvResourceURI.SHELL_POWERSHELL,
-                                                    selector_set=selector_set)
+        message = self.client.create_message(body, WsmvAction.COMMAND, selector_set=selector_set)
         return len(xmltodict.unparse(message))
 
 class Defragmenter(object):

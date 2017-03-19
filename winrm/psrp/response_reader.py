@@ -1,6 +1,7 @@
 import re
 
 from winrm.contants import PsrpMessageType
+from winrm.exceptions import WinRMError
 from winrm.psrp.messages import PipelineState
 
 
@@ -39,6 +40,9 @@ class Reader(object):
         self.debug = b''
         self.information = []
         self.return_code = 0
+
+    def __getitem__(self, item):
+        return self.__getattribute__(item)
 
     def parse_receive_response(self, message):
         """
@@ -99,18 +103,25 @@ class Reader(object):
         if isinstance(output_list, dict):
             output_list = [output_list]
 
-        if method_identifier != 'SetShouldExit' and method_identifier != 'WriteProgress':
-            for output in output_list:
-                full_output += output['S'].encode()
+        if method_identifier == 'Prompt':
+            raw_prompt_info = output_list[0]['Obj']['LST']['Obj']['MS']['S']
+            name = self.get_value_of_attribute(raw_prompt_info, 'N', 'name', '#text')
+            type = self.get_value_of_attribute(raw_prompt_info, 'N', 'parameterTypeName', '#text')
+            #raise WinRMError("Server expecting input under Name; %s, Type: %s. Any command input needs to be sent "
+            #                 "before receiving messages" % (name, type))
+        else:
+            if method_identifier != 'SetShouldExit' and method_identifier != 'WriteProgress':
+                for output in output_list:
+                    full_output += output['S'].encode()
 
-        if method_identifier == 'WriteDebugLine':
-            full_output = b'DEBUG: %s' % full_output
-        elif method_identifier == 'WriteWarningLine':
-            full_output = b'WARNING: %s' % full_output
-        elif method_identifier == 'WriteVerboseLine':
-            full_output = b'VERBOSE: %s' % full_output
+            if method_identifier == 'WriteDebugLine':
+                full_output = b'DEBUG: %s' % full_output
+            elif method_identifier == 'WriteWarningLine':
+                full_output = b'WARNING: %s' % full_output
+            elif method_identifier == 'WriteVerboseLine':
+                full_output = b'VERBOSE: %s' % full_output
 
-        self.stdout += full_output + b"\n"
+            self.stdout += full_output + b"\n"
 
     def _parse_information_stream(self, message_data):
         """
@@ -193,6 +204,8 @@ class Reader(object):
         hex_strings = re.findall(pattern, error_string, re.I)
         for hex_string in hex_strings:
             error_string = error_string.replace("_x%s_" % hex_string, chr(int(hex_string, 16)))
+        # Replace all occurrences of \r\n with just \n
+        error_string = error_string.replace('\r\n', '\n')
 
         self.stderr += error_string.encode() + b"\n"
         self.error += error_string.encode() + b"\n"
