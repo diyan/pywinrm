@@ -3,8 +3,9 @@ import struct
 import xmltodict
 
 from winrm.contants import WsmvAction, WsmvConstant, WsmvResourceURI
-from winrm.wsmv.objects import WsmvObject
-from winrm.psrp.messages import Message
+from winrm.wsmv.message_objects import WsmvObject
+from winrm.psrp.message_objects import Message
+
 
 class Fragment(object):
     IS_MIDDLE_FRAGMENT = 0x0
@@ -159,7 +160,8 @@ class Fragmenter(object):
         selector_set = {
             'ShellId': WsmvConstant.EMPTY_UUID
         }
-        message = self.client.create_message(body, WsmvAction.COMMAND, selector_set=selector_set)
+        message = self.client.create_message(body, WsmvAction.COMMAND, resource_uri=self.client.resource_uri,
+                                             selector_set=selector_set)
         return len(xmltodict.unparse(message))
 
 class Defragmenter(object):

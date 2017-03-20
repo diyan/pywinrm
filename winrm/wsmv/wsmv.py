@@ -1,9 +1,14 @@
-import base64
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 
 from winrm.client import Client
-from winrm.contants import WsmvConstant, WsmvAction, WsmvResourceURI, WsmvSignal
+from winrm.contants import WsmvConstant, WsmvAction, WsmvResourceURI, WsmvSignal, WsmvCommandState
 from winrm.exceptions import WinRMOperationTimeoutError
-from winrm.wsmv.objects import WsmvObject
+
+from winrm.wsmv.message_objects import WsmvObject
+from winrm.wsmv.response_reader import Reader
 
 
 class WsmvClient(Client):
@@ -46,10 +51,11 @@ class WsmvClient(Client):
         :return: The Shell ID of the newly created shell to be used for further actions
         """
         body = WsmvObject.shell(**kwargs)
-        option_set = {
-            'WINRS_NOPROFILE': str(noprofile).upper(),
-            'WINRS_CODEPAGE': str(codepage)
-        }
+        option_set = OrderedDict([
+            ('WINRS_CODEPAGE', str(codepage)),
+            ('WINRS_NOPROFILE', str(noprofile).upper())
+        ])
+
         res = self.send(WsmvAction.CREATE, body=body, option_set=option_set)
         self.shell_id = res['s:Envelope']['s:Body']['rsp:Shell']['rsp:ShellId']
 
@@ -71,11 +77,11 @@ class WsmvClient(Client):
         selector_set = {
             'ShellId': self.shell_id
         }
-        option_set = {
-            'WINRS_CONSOLEMODE_STDIN': str(consolemode_stdin).upper(),
-            'WINRS_SKIP_CMD_SHELL': str(skip_cmd_shell).upper()
-        }
-        res = self.send(WsmvAction.COMMAND, body, selector_set, option_set)
+        option_set = OrderedDict([
+            ('WINRS_CONSOLEMODE_STDIN', str(consolemode_stdin).upper()),
+            ('WINRS_SKIP_CMD_SHELL', str(skip_cmd_shell).upper())
+        ])
+        res = self.send(WsmvAction.COMMAND, body=body, selector_set=selector_set, option_set=option_set)
         command_id = res['s:Envelope']['s:Body']['rsp:CommandResponse']['rsp:CommandId']
 
         try:
@@ -99,7 +105,7 @@ class WsmvClient(Client):
         selector_set = {
             'ShellId': self.shell_id
         }
-        self.send(WsmvAction.DELETE, self.resource_uri, selector_set=selector_set)
+        self.send(WsmvAction.DELETE, selector_set=selector_set)
 
     def _get_command_output(self, command_id):
         """
@@ -111,36 +117,22 @@ class WsmvClient(Client):
 
         :param shell_id: The Shell ID the command is running in
         :param command_id: The Command ID for the command to get the ouput for
-        :return: dict:
-            int return_code: The return code from the command
-            bytestring stdout: The stdout from the command
-            bytestring stderr: The stderr from the command
+        :return: Reader: A class containing the stdout, stderr and return_code of the command
         """
-        stdout_buffer = []
-        stderr_buffer = []
-        return_code = -1
-        command_done = False
-
+        state = WsmvCommandState.RUNNING
         body = WsmvObject.receive('stdout stderr', command_id)
         selector_set = {'ShellId': self.shell_id}
-        while not command_done:
+        reader = Reader()
+
+        while state != WsmvCommandState.DONE:
             try:
-                raw_output = self.send(WsmvAction.RECEIVE, body=body,
-                                       selector_set=selector_set)
-                stdout, stderr, return_code, command_done = self._parse_raw_command_output(raw_output)
-                stdout_buffer.append(stdout)
-                stderr_buffer.append(stderr)
+                response = self.send(WsmvAction.RECEIVE, body=body, selector_set=selector_set)
+                state = reader.parse_receive_response(response)
             except WinRMOperationTimeoutError:
                 # this is an expected error when waiting for a long-running process, just silently retry
                 pass
 
-        output = {
-            'stdout': b''.join(stdout_buffer),
-            'stderr': b''.join(stderr_buffer),
-            'return_code': int(return_code)
-        }
-
-        return output
+        return reader
 
     def _cleanup_command(self, command_id):
         """
@@ -158,28 +150,3 @@ class WsmvClient(Client):
             'ShellId': self.shell_id
         }
         self.send(WsmvAction.SIGNAL, body=body, selector_set=selector_set)
-
-    def _parse_raw_command_output(self, output):
-        stdout = b''
-        stderr = b''
-        receive_response = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']
-        try:
-            for stream_node in receive_response['rsp:Stream']:
-                raw_text = stream_node['#text']
-                text = base64.b64decode(raw_text.encode('ascii'))
-                if stream_node['@Name'] == 'stdout':
-                    stdout += text
-                elif stream_node['@Name'] == 'stderr':
-                    stderr += text
-        except KeyError:
-            pass
-
-        command_state = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:CommandState']['@State']
-        if command_state == 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done':
-            command_done = True
-            return_code = output['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:CommandState']['rsp:ExitCode']
-        else:
-            command_done = False
-            return_code = -1
-
-        return stdout, stderr, return_code, command_done

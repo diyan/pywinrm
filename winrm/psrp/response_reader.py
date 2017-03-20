@@ -1,7 +1,7 @@
 import re
 
 from winrm.contants import PsrpMessageType
-from winrm.psrp.messages import PipelineState
+from winrm.psrp.message_objects import PipelineState
 
 
 class Reader(object):
@@ -152,11 +152,11 @@ class Reader(object):
 
         information_record = {
             'tags': tags,
-            'time_generated': time_generated,
-            'message_data': message_data,
-            'source': source,
-            'user': user,
-            'computer': computer,
+            'time_generated': time_generated.encode(),
+            'message_data': message_data.encode(),
+            'source': source.encode(),
+            'user': user.encode(),
+            'computer': computer.encode(),
         }
         self.information.append(information_record)
 

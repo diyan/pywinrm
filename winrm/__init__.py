@@ -1,4 +1,15 @@
+import logging
 import re
+import sys
+
+if sys.version_info[:2] > (2, 6):
+    from logging import NullHandler
+else:
+    from logging import Handler
+
+    class NullHandler(Handler):
+        def emit(self, record):
+            pass
 
 from winrm.psrp.psrp import PsrpClient
 from winrm.wsmv.wsmv import WsmvClient
@@ -13,6 +24,10 @@ FEATURE_READ_TIMEOUT=True
 FEATURE_OPERATION_TIMEOUT=True
 FEATURE_PSRP_CLIENT=True
 FEATURE_WSMV_CLIENT=True
+
+logging.getLogger(__name__).addHandler(NullHandler())
+#logging.basicConfig(level=logging.DEBUG)
+
 
 class Session(object):
 
@@ -32,11 +47,11 @@ class Session(object):
 
         return output
 
-    def run_ps(self, command, parameters=()):
+    def run_ps(self, command, parameters=(), responses=()):
         protocol = PsrpClient(self.transport_opts)
         try:
             protocol.open_shell()
-            output = protocol.run_command(command, parameters=parameters)
+            output = protocol.run_command(command, parameters, responses)
         finally:
             protocol.close_shell()
 

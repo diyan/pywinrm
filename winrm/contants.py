@@ -65,6 +65,12 @@ class WsmvResourceURI(object):
     CONFIG = 'http://schemas.microsoft.com/wbem/wsman/1/config'
 
 
+class WsmvCommandState(object):
+    DONE = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done'
+    PENDING = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Pending'
+    RUNNING = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Running'
+
+
 class PsrpMessageType(object):
     """
     [MS-PSRP] v16.0 2016-07-14

@@ -28,10 +28,7 @@ class Message(object):
         message += self.rpid.bytes
         message += self.pid.bytes
         message += self.BYTE_ORDER_MARK
-        if self.data:
-            message += xmltodict.unparse(self.data, full_document=False, encoding='utf-8').encode()
-        else:
-            message += "".encode()
+        message += xmltodict.unparse(self.data, full_document=False, encoding='utf-8').encode()
 
         return message
 
@@ -45,7 +42,8 @@ class Message(object):
 
         return Message(destination, rpid, pid, PrimitiveMessage(message_type, data))
 
-class ObjectTypes(object):
+
+class PsrpObject(object):
     @staticmethod
     def create_coordinate(x, y):
         """
@@ -61,12 +59,12 @@ class ObjectTypes(object):
         coordinate = {
             "Obj": {
                 "@N": "Value",
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "S": {"@N": "T", "#text": "System.Management.Automation.Host.Coordinates"},
                     "Obj": {
                         "@N": "V",
-                        "@RefId": ObjectTypes.get_random_ref_id(),
+                        "@RefId": PsrpObject.get_random_ref_id(),
                         "MS": {
                             "I32": [
                                 {"@N": "x", "#text": x},
@@ -94,12 +92,12 @@ class ObjectTypes(object):
         size = {
             "Obj": {
                 "@N": "Value",
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "S": {"@N": "T", "#text": "System.Management.Automation.Host.Size"},
                     "Obj": {
                         "@N": "V",
-                        "@RefId": ObjectTypes.get_random_ref_id(),
+                        "@RefId": PsrpObject.get_random_ref_id(),
                         "MS": {
                             "I32": [
                                 {"@N": "width", "#text": width},
@@ -126,7 +124,7 @@ class ObjectTypes(object):
         color = {
             "Obj": {
                 "@N": "Value",
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "S": {"@N": "T", "#text": "System.ConsoleColor"},
                     "I32": {"@N": "V", "#text": color}
@@ -147,13 +145,13 @@ class ObjectTypes(object):
 
         :return: dict of the PSThreadOption object
         """
-        object_ref_id = ObjectTypes.get_random_ref_id()
+        object_ref_id = PsrpObject.get_random_ref_id()
         ps_thread_options = {
             "Obj": {
                 "@N": "PSThreadOptions",
                 "@RefId": object_ref_id,
                 "TN": {
-                    "@RefId": ObjectTypes.get_random_ref_id(),
+                    "@RefId": PsrpObject.get_random_ref_id(),
                     "T": [
                         "System.Management.Automation.Runspaces.PSThreadOptions",
                         "System.Enum",
@@ -179,13 +177,13 @@ class ObjectTypes(object):
 
         :return: dict of the ApartmentState object
         """
-        object_ref_id = ObjectTypes.get_random_ref_id()
+        object_ref_id = PsrpObject.get_random_ref_id()
         apartment_state = {
             "Obj": {
                 "@N": "ApartmentState",
                 "@RefId": object_ref_id,
                 "TN": {
-                    "@RefId": ObjectTypes.get_random_ref_id(),
+                    "@RefId": PsrpObject.get_random_ref_id(),
                     "T": [
                         "System.Threading.ApartmentState",
                         "System.Enum",
@@ -213,9 +211,9 @@ class ObjectTypes(object):
         remote_stream_options = {
             "Obj": {
                 "@N": "RemoteStreamOptions",
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "TN": {
-                    "@RefId": ObjectTypes.get_random_ref_id(),
+                    "@RefId": PsrpObject.get_random_ref_id(),
                     "T": [
                         "System.Management.Automation.RemoteStreamOptions",
                         "System.Enum",
@@ -243,13 +241,13 @@ class ObjectTypes(object):
         pipeline = {
             "Obj": {
                 "@N": "PowerShell",
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "Obj": {
                         "@N": "Cmds",
-                        "@RefId": ObjectTypes.get_random_ref_id(),
+                        "@RefId": PsrpObject.get_random_ref_id(),
                         "TN": {
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "T": [
                                 "System.Collections.Generic.List`1[[System.Management.Automation.PSObject, System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35]]",
                                 "System.Object"
@@ -284,13 +282,13 @@ class ObjectTypes(object):
         :param parameters: A list of parameters to run with the command, must be in the format -Key Value
         :return: dict of the Command object
         """
-        merge_reference_id = ObjectTypes.get_random_ref_id()
+        merge_reference_id = PsrpObject.get_random_ref_id()
         arguments = []
         for parameter in parameters:
             if parameter.startswith('-'):
                 parameter_split = parameter.split(' ', 1)
                 arguments.append({
-                    "@RefId": ObjectTypes.get_random_ref_id(),
+                    "@RefId": PsrpObject.get_random_ref_id(),
                     "MS": {
                         "S": {"@N": "N", "#text": parameter_split[0]},
                         "Nil": {"@N": "V"}
@@ -298,7 +296,7 @@ class ObjectTypes(object):
                 })
                 if len(parameter_split) > 1:
                     arguments.append({
-                        "@RefId": ObjectTypes.get_random_ref_id(),
+                        "@RefId": PsrpObject.get_random_ref_id(),
                         "MS": {
                             "Nil": {"@N": "N"},
                             "S": {"@N": "V", "#text": parameter_split[1]}
@@ -306,7 +304,7 @@ class ObjectTypes(object):
                     })
             else:
                 arguments.append({
-                    "@RefId": ObjectTypes.get_random_ref_id(),
+                    "@RefId": PsrpObject.get_random_ref_id(),
                     "MS": {
                         "Nil": {"@N": "N"},
                         "S": {"@N": "V", "#text": parameter}
@@ -315,9 +313,9 @@ class ObjectTypes(object):
 
         args_element = {
             "@N": "Args",
-            "@RefId": ObjectTypes.get_random_ref_id(),
+            "@RefId": PsrpObject.get_random_ref_id(),
             "TN": {
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "T": [
                     "System.Collections.Generic.List`1[[System.Management.Automation.PSObject, System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35]]",
                     "System.Object"
@@ -333,7 +331,7 @@ class ObjectTypes(object):
 
         command_dict = {
             "Obj": {
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "S": {"@N": "Cmd", "#text": command},
                     "B": {"@N": "IsScript","#text": is_script},
@@ -341,7 +339,7 @@ class ObjectTypes(object):
                     "Obj": [
                         {
                             "@N": "MergeMyResult",
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "TN": {
                                 "@RefId": merge_reference_id,
                                 "T": [
@@ -355,37 +353,37 @@ class ObjectTypes(object):
                             "I32": "0"
                         }, {
                             "@N": "MergeToResult",
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "TNRef": {"@RefId": merge_reference_id},
                             "ToString": "None",
                             "I32": "0"
                         }, {
                             "@N": "MergePreviousResults",
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "TNRef": {"@RefId": merge_reference_id},
                             "ToString": "None",
                             "I32": "0"
                         }, {
                             "@N": "MergeError",
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "TNRef": {"@RefId": merge_reference_id},
                             "ToString": "None",
                             "I32": "0"
                         }, {
                             "@N": "MergeWarning",
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "TNRef": {"@RefId": merge_reference_id},
                             "ToString": "None",
                             "I32": "0"
                         }, {
                             "@N": "MergeVerbose",
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "TNRef": {"@RefId": merge_reference_id},
                             "ToString": "None",
                             "I32": "0"
                         }, {
                             "@N": "MergeDebug",
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "TNRef": {"@RefId": merge_reference_id},
                             "ToString": "None",
                             "I32": "0"
@@ -410,17 +408,17 @@ class ObjectTypes(object):
         host_info = {
             "Obj": {
                 "@N": "HostInfo",
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "Obj": {
                         "@N": "_hostDefaultData",
-                        "@RefId": ObjectTypes.get_random_ref_id(),
+                        "@RefId": PsrpObject.get_random_ref_id(),
                         "MS": {
                             "Obj": {
                                 "@N": "data",
-                                "@RefId": ObjectTypes.get_random_ref_id(),
+                                "@RefId": PsrpObject.get_random_ref_id(),
                                 "TN": {
-                                    "@RefId": ObjectTypes.get_random_ref_id(),
+                                    "@RefId": PsrpObject.get_random_ref_id(),
                                     "T": ["System.Collections.Hashtable", "System.Object"]
                                 },
                                 "DCT": {
@@ -429,25 +427,25 @@ class ObjectTypes(object):
                                         # Using OrderedDict to do this
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "0"}),
-                                            ("Obj", ObjectTypes.create_color(PsrpColor.GRAY)["Obj"])
+                                            ("Obj", PsrpObject.create_color(PsrpColor.GRAY)["Obj"])
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "1"}),
-                                            ("Obj", ObjectTypes.create_color(PsrpColor.BLUE)["Obj"])
+                                            ("Obj", PsrpObject.create_color(PsrpColor.BLUE)["Obj"])
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "2"}),
-                                            ("Obj", ObjectTypes.create_coordinate("0", "4")["Obj"])
+                                            ("Obj", PsrpObject.create_coordinate("0", "4")["Obj"])
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "3"}),
-                                            ("Obj", ObjectTypes.create_coordinate("0", "0")["Obj"])
+                                            ("Obj", PsrpObject.create_coordinate("0", "0")["Obj"])
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "4"}),
                                             ("Obj", {
                                                 "@N": "Value",
-                                                "@RefId": ObjectTypes.get_random_ref_id(),
+                                                "@RefId": PsrpObject.get_random_ref_id(),
                                                 "MS": {
                                                     "S": {"@N": "T", "#text": "System.Int32"},
                                                     "I32": {"@N": "V", "#text": "25"}
@@ -456,25 +454,25 @@ class ObjectTypes(object):
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "5"}),
-                                            ("Obj", ObjectTypes.create_size("120", "3000")["Obj"])
+                                            ("Obj", PsrpObject.create_size("120", "3000")["Obj"])
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "6"}),
-                                            ("Obj", ObjectTypes.create_size("120", "79")["Obj"])
+                                            ("Obj", PsrpObject.create_size("120", "79")["Obj"])
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "7"}),
-                                            ("Obj", ObjectTypes.create_size("120", "98")["Obj"])
+                                            ("Obj", PsrpObject.create_size("120", "98")["Obj"])
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "8"}),
-                                            ("Obj", ObjectTypes.create_size("181", "98")["Obj"])
+                                            ("Obj", PsrpObject.create_size("181", "98")["Obj"])
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "9"}),
                                             ("Obj", {
                                                 "@N": "Value",
-                                                "@RefId": ObjectTypes.get_random_ref_id(),
+                                                "@RefId": PsrpObject.get_random_ref_id(),
                                                 "MS": {
                                                     "S": [
                                                         {"@N": "T", "#text": "System.String"},
@@ -498,6 +496,36 @@ class ObjectTypes(object):
             }
         }
         return host_info
+
+    @staticmethod
+    def get_host_method_identifier(method_type, method_id):
+        """
+        [MS-PSRP] v16.0 2016-07-14
+        2.2.3.17 Host Method Identifier
+
+        This data type represents a method to be executed on a host
+
+        :param method_type: The name of the method
+        :param method_id: The ID of the method
+        :return: dict of the Host Method Identifier object
+        """
+        host_method_identifier = {
+            "Obj": {
+                "@RefId": PsrpObject.get_random_ref_id(),
+                "@N": "mi",
+                "TN": {
+                    "T": [
+                        "System.Management.Automation.Remoting.RemoteHostMethodId",
+                        "System.Enum",
+                        "System.ValueType",
+                        "System.Object"
+                    ]
+                },
+                "ToString": method_type,
+                "I32": method_id
+            }
+        }
+        return host_method_identifier
 
     @staticmethod
     def get_random_ref_id():
@@ -539,7 +567,7 @@ class SessionCapability(object):
     def create_message_data(self):
         message_data = {
             "Obj": {
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "Version": [
                         {"@N": "PSVersion", "#text": self.ps_version},
@@ -591,15 +619,15 @@ class InitRunspacePool(object):
 
         self.min_runspaces = min_runspaces
         self.max_runspaces = max_runspaces
-        self.ps_thread_options = ObjectTypes.create_ps_thread_option()
-        self.apartment_state = ObjectTypes.create_apartment_state()
-        self.host_info = ObjectTypes.create_host_info()
+        self.ps_thread_options = PsrpObject.create_ps_thread_option()
+        self.apartment_state = PsrpObject.create_apartment_state()
+        self.host_info = PsrpObject.create_host_info()
         self.application_arguments = None
 
     def create_message_data(self):
         message_data = {
             "Obj": {
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "I32": [
                         {"@N": "MinRunspaces", "#text": self.min_runspaces},
@@ -668,17 +696,17 @@ class CreatePipeline(object):
         self.message_type = PsrpMessageType.CREATE_PIPELINE
 
         self.no_input = True
-        self.apartment_state = ObjectTypes.create_apartment_state()
-        self.remote_stream_options = ObjectTypes.create_remote_stream_options()
+        self.apartment_state = PsrpObject.create_apartment_state()
+        self.remote_stream_options = PsrpObject.create_remote_stream_options()
         self.add_to_history = True
-        self.host_info = ObjectTypes.create_host_info()
-        self.power_shell = ObjectTypes.create_pipeline(commands)
+        self.host_info = PsrpObject.create_host_info()
+        self.power_shell = PsrpObject.create_pipeline(commands)
         self.is_nested = False
 
     def create_message_data(self):
         message_data = {
             "Obj": {
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "B": [
                         {"@N": "NoInput", "#text": str(self.no_input).lower()},
@@ -768,22 +796,21 @@ class PipelineHostResponse(object):
         """
         self.message_type = PsrpMessageType.PIPELINE_HOST_RESPONSE
         self.call_id = call_id
-        self.method_id = method_id
-        self.method_type = method_type
+        self.method_identifier = PsrpObject.get_host_method_identifier(method_type, method_id)
         self.prompt_key = prompt_key
         self.response = response
 
     def create_message_data(self):
         response_data = {
             "Obj": {
-                "@RefId": ObjectTypes.get_random_ref_id(),
+                "@RefId": PsrpObject.get_random_ref_id(),
                 "MS": {
                     "Obj": [
                         {
-                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@RefId": PsrpObject.get_random_ref_id(),
                             "@N": "mr",
                             "TN": {
-                                "@RefId": ObjectTypes.get_random_ref_id(),
+                                "@RefId": PsrpObject.get_random_ref_id(),
                                 "T": [
                                     "System.Collections.Hashtable",
                                     "System.Object"
@@ -798,20 +825,7 @@ class PipelineHostResponse(object):
                                 }
                             }
                         },
-                        {
-                            "@RefId": ObjectTypes.get_random_ref_id(),
-                            "@N": "mi",
-                            "TN": {
-                                "T": [
-                                    "System.Management.Automation.Remoting.RemoteHostMethodId",
-                                    "System.Enum",
-                                    "System.ValueType",
-                                    "System.Object"
-                                ]
-                            },
-                            "ToString": self.method_type,
-                            "I32": self.method_id
-                        }
+                        self.method_identifier['Obj']
                     ],
                     "I64": {"@N": "ci", "#text": self.call_id},
                 }

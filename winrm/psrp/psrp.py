@@ -5,12 +5,12 @@ from winrm.contants import WsmvConstant, WsmvResourceURI, WsmvAction, WsmvSignal
     PsrpMessageType, PsrpRunspacePoolState, PsrpPSInvocationState, PsrpConstant
 from winrm.exceptions import WinRMError, WinRMTransportError
 
-from winrm.wsmv.objects import WsmvObject
+from winrm.wsmv.message_objects import WsmvObject
 
 from winrm.psrp.response_reader import Reader
 from winrm.psrp.fragmenter import Fragmenter, Defragmenter
-from winrm.psrp.messages import CreatePipeline, SessionCapability, InitRunspacePool, Message, \
-    RunspacePoolState, ObjectTypes, PipelineHostResponse
+from winrm.psrp.message_objects import CreatePipeline, SessionCapability, InitRunspacePool, Message, \
+    RunspacePoolState, PsrpObject, PipelineHostResponse
 
 class PsrpClient(Client):
     def __init__(self,
@@ -151,7 +151,7 @@ class PsrpClient(Client):
         defragmenter = Defragmenter()
 
         while self.state != PsrpRunspacePoolState.OPENED:
-            body = self.send(WsmvAction.RECEIVE, receive_body, selector_set, option_set)
+            body = self.send(WsmvAction.RECEIVE, body=receive_body, selector_set=selector_set, option_set=option_set)
             streams = body['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:Stream']
             messages = []
             if isinstance(streams, list):
@@ -217,10 +217,10 @@ class Pipeline(object):
         """
         self.responses = responses
         self.current_response_count = 0
-        commands = [ObjectTypes.create_command(command, parameters)]
+        commands = [PsrpObject.create_command(command, parameters)]
 
         # We pipe the resulting command to a string so PSRP doesn't return a complex object
-        commands.append(ObjectTypes.create_command('Out-String', ['-Stream']))
+        commands.append(PsrpObject.create_command('Out-String', ['-Stream']))
         create_pipeline = Message(Message.DESTINATION_SERVER, self.client.rpid,
                                   self.pid, CreatePipeline(commands))
 
@@ -300,7 +300,7 @@ class Pipeline(object):
 
     def stop(self):
         # Will stop the pipeline if it has not been stopped already
-        if self.state != PsrpPSInvocationState.STOPPED or self.state != PsrpPSInvocationState.FAILED:
+        if self.state != PsrpPSInvocationState.STOPPED and self.state != PsrpPSInvocationState.FAILED:
             self.state = PsrpPSInvocationState.STOPPING
             body = WsmvObject.signal(WsmvSignal.TERMINATE, self.command_id)
             selector_set = {

@@ -1,3 +1,4 @@
+import logging
 import uuid
 import xmltodict
 
@@ -5,6 +6,7 @@ from winrm.contants import WsmvAction, WsmvResourceURI, WsmvConstant
 from winrm.exceptions import WinRMError
 from winrm.transport import Transport
 
+log = logging.getLogger(__name__)
 
 class Client(object):
     def __init__(self, transport_opts, operation_timeout_sec, locale, encoding, max_envelope_size, resource_uri):
@@ -27,12 +29,13 @@ class Client(object):
         self.operation_timeout_sec = operation_timeout_sec
         self.locale = locale
         self.encoding = encoding
-        self.server_config = self.get_server_config(max_envelope_size)
         self.shell_id = str(uuid.uuid4()).upper()
         self.resource_uri = resource_uri
+        self.set_server_config(max_envelope_size)
+        log.debug("Creating new Shell class: Shell ID: %s, Resource URI: %s" % (self.shell_id, self.resource_uri))
 
 
-    def get_server_config(self, default_max_envelope_size):
+    def set_server_config(self, default_max_envelope_size):
         """
         [MS-WSMV] v30 2016-07-14
         2.2.4.10 ConfigType
@@ -48,27 +51,58 @@ class Client(object):
             max_provider_requests: Maximum number of concurrent requests to WSMV, min 1, max 4294967295, default 25
             max_timeout_ms: Maximum timeout in milliseconds for any requests except Pull, min 500, max 4294967295, default 60000
         """
+        self.server_config = {
+            'max_batch_items': 20,
+            'max_envelope_size': default_max_envelope_size,
+            'max_provider_requests': 25,
+            'max_timeout_ms': 60000
+        }
+
         try:
-            res = self.send(WsmvAction.GET, WsmvResourceURI.CONFIG)
-            config = {
+            log.debug("Trying to get Server WinRM config")
+            res = self.send(WsmvAction.GET, resource_uri=WsmvResourceURI.CONFIG)
+            self.server_config = {
                 'max_batch_items': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxBatchItems']),
                 'max_envelope_size': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxEnvelopeSizekb']) * 1024,
                 'max_provider_requests': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxProviderRequests']),
                 'max_timeout_ms': int(res['s:Envelope']['s:Body']['cfg:Config']['cfg:MaxTimeoutms'])
             }
         except Exception:
-            # Not running as admin, reverting to defaults
-            config = {
-                'max_batch_items': 20,
-                'max_envelope_size': default_max_envelope_size,
-                'max_provider_requests': 25,
-                'max_timeout_ms': 60000
-            }
+            log.warning("Failed to retrieve Server WinRM config, using defaults instead")
+            pass
 
-        return config
+    def send(self, action, resource_uri=None, body=None, selector_set=None, option_set=None):
+        """
+        Will send the obj to the server valid the response relates to the request
 
-    def create_message(self, body, action, selector_set=None, option_set=None):
-        headers = self._create_headers(action, selector_set, option_set)
+        :param action: The WSMV action to send through
+        :param resource_uri: The WSMV resource_uri
+        :param body: The WSMV body which is created by winrm.wsmv.complex_types
+        :param selector_set: To add optional selector sets header values to the headers
+        :param option_set: To add optional option sets header values to the headers
+        :return: A dict which is the xml conversion from the server
+        """
+        if resource_uri is None:
+            resource_uri = self.resource_uri
+        message = self.create_message(body, action, resource_uri, selector_set, option_set)
+        message_id = message['s:Envelope']['s:Header']['a:MessageID']
+        message = xmltodict.unparse(message, full_document=False, encoding=self.encoding)
+        log.debug("Sending message to server: %s" % message)
+
+        response_xml = self.transport.send_message(message)
+        log.debug("Received message from server: %s" % response_xml)
+        response = xmltodict.parse(response_xml, encoding=self.encoding)
+        response_relates_id = response['s:Envelope']['s:Header']['a:RelatesTo']
+
+        log.debug("Request ID: %s, Response relates to ID: %s" % (message_id, response_relates_id))
+        if message_id != response_relates_id:
+            raise WinRMError("Response related to Message ID: '%s' does not match request Message ID: '%s'" % (
+            response_relates_id, message_id))
+
+        return response
+
+    def create_message(self, body, action, resource_uri, selector_set=None, option_set=None):
+        headers = self._create_headers(action, resource_uri, selector_set, option_set)
         message = {
             's:Envelope': {
                 's:Header': headers,
@@ -83,32 +117,7 @@ class Client(object):
 
         return message
 
-    def send(self, action, body=None, selector_set=None, option_set=None):
-        """
-        Will send the obj to the server valid the response relates to the request
-
-        :param action: The WSMV action to send through
-        :param resource_uri: The WSMV resource_uri
-        :param body: The WSMV body which is created by winrm.wsmv.complex_types
-        :param selector_set: To add optional selector sets header values to the headers
-        :param option_set: To add optional option sets header values to the headers
-        :return: A dict which is the xml conversion from the server
-        """
-        message = self.create_message(body, action, selector_set, option_set)
-        message_id = message['s:Envelope']['s:Header']['a:MessageID']
-        message = xmltodict.unparse(message, full_document=False, encoding=self.encoding)
-
-        response_xml = self.transport.send_message(message)
-        response = xmltodict.parse(response_xml, encoding=self.encoding)
-        response_relates_id = response['s:Envelope']['s:Header']['a:RelatesTo']
-
-        if message_id != response_relates_id:
-            raise WinRMError("Response related to Message ID: '%s' does not match request Message ID: '%s'" % (
-            response_relates_id, message_id))
-
-        return response
-
-    def _create_headers(self, action, selector_set, option_set):
+    def _create_headers(self, action, resource_uri, selector_set, option_set):
         headers = {
             'a:Action': {
                 '@s:mustUnderstand': 'true',
@@ -125,7 +134,7 @@ class Client(object):
             'a:To': self.transport.endpoint,
             'w:ResourceURI': {
                 '@s:mustUnderstand': 'true',
-                '#text': self.resource_uri
+                '#text': resource_uri
             },
             'w:OperationTimeout': 'PT%sS' % str(self.operation_timeout_sec),
             'a:ReplyTo': {

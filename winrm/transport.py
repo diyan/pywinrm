@@ -1,20 +1,22 @@
 from __future__ import unicode_literals
-import os
-import xmltodict
 
-unicode_type = type(u'')
-
+import logging
 import requests
 import requests.auth
+import os
 import warnings
+import xmltodict
 
 from distutils.util import strtobool
+
+log = logging.getLogger(__name__)
 
 HAVE_KERBEROS = False
 try:
     from requests_kerberos import HTTPKerberosAuth, REQUIRED, OPTIONAL, DISABLED
     HAVE_KERBEROS = True
 except ImportError:
+    log.debug("Failed to import requests-kerberos, Kerberos auth is not enabled")
     pass
 
 HAVE_NTLM = False
@@ -22,6 +24,7 @@ try:
     from requests_ntlm import HttpNtlmAuth
     HAVE_NTLM = True
 except ImportError as ie:
+    log.debug("Failed to import requests_ntlm, NTLM auth is not enabled")
     pass
 
 HAVE_CREDSSP = False
@@ -29,7 +32,10 @@ try:
     from requests_credssp import HttpCredSSPAuth
     HAVE_CREDSSP = True
 except ImportError as ie:
+    log.debug("Failed to import requests-credssp, CredSSP auth is not enabled")
     pass
+
+unicode_type = type(u'')
 
 from winrm.exceptions import InvalidCredentialsError, \
     WinRMError, WinRMTransportError, WinRMOperationTimeoutError
@@ -39,6 +45,7 @@ __all__ = ['Transport']
 class Transport(object):
 
     def __init__(self, **kwargs):
+        log.debug("Initialising transport with vars %s" % str(kwargs))
         self.endpoint = kwargs.get('endpoint')
         self.auth_method = kwargs.get('auth_method', 'auto')
         self.username = kwargs.get('username', None)
@@ -129,6 +136,7 @@ class Transport(object):
             except: pass # oh well, we tried...
 
     def build_session(self):
+        log.debug("Building a new Requests session")
         session = requests.Session()
         session.verify = self.server_cert_validation == 'validate'
 
@@ -141,8 +149,10 @@ class Transport(object):
         session.proxies = settings['proxies']
 
         if self.auth_method == 'basic':
+            log.debug("Connecting using HTTP Basic Authentication")
             session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
         elif self.auth_method == 'kerberos':
+            log.debug("Connecting using Kerberos Authentication")
             # TODO: do argspec sniffing on extensions to ensure we're not setting bogus kwargs on older versions
             session.auth = HTTPKerberosAuth(mutual_authentication=REQUIRED,
                                             delegate=self.kerberos_delegation,
@@ -151,12 +161,15 @@ class Transport(object):
                                             hostname_override=self.kerberos_hostname_override,
                                             sanitize_mutual_error_response=False)
         elif self.auth_method == 'ntlm':
+            log.debug("Connecting using NTLM Authentication")
             session.auth = HttpNtlmAuth(username=self.username, password=self.password)
         elif self.auth_method == 'certificate':
+            log.debug("Connecting using Certificate Authentication")
             session.cert = (self.cert_pem, self.cert_key_pem)
             session.headers['Authorization'] = \
                 "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"
         elif self.auth_method == 'credssp':
+            log.debug("Connecting using CredSSP Authentication")
             session.auth = HttpCredSSPAuth(username=self.username, password=self.password)
 
         session.headers.update(self.default_headers)
@@ -193,6 +206,7 @@ class Transport(object):
         else:
             response_text = ''
 
+        log.warning("Received error from Server, Message response: %s" % response_text)
         response_dict = xmltodict.parse(response_text)
         try:
             wsman_fault = response_dict['s:Envelope']['s:Body']['s:Fault']['s:Detail']['f:WSManFault']
