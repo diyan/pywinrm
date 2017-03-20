@@ -1,5 +1,22 @@
 # Changelog
 
+### Version 1.0.0
+
+This is a major release which changes the inner workings of Pywinrm
+
+#### Features
+- Added support for sending commands through PSRP and the many benefits that brings
+- Better error handling to output error details on 500 messages
+- More message validation between the client and the server
+- Added more shell options when using WSMV
+- Many fixes over the previous WSMV like multiple environment variable support and better Python 3 compatibility
+- Updated README to cover all the changes in this release
+- Tests, tests and more tests
+
+#### Deprecations
+- Deprecated the existing protocol class in favour of WsmvClient or PsrpClient. Will be removed in a future version
+- Deprecated the plaintext and ssl transport auth methods in favour of the WinRM named options
+
 ### Version 0.2.2
 - Added support for CredSSP authenication (via requests-credssp)
 - Improved README, see 'Valid transport options' section

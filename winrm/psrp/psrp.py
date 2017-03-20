@@ -9,8 +9,8 @@ from winrm.wsmv.objects import WsmvObject
 
 from winrm.psrp.response_reader import Reader
 from winrm.psrp.fragmenter import Fragmenter, Defragmenter
-from winrm.psrp.messages import CreatePipeline, SessionCapability, InitRunspacePool, Message, RunspacePoolState, ObjectTypes, PipelineInput, EndOfPipelineInput
-
+from winrm.psrp.messages import CreatePipeline, SessionCapability, InitRunspacePool, Message, \
+    RunspacePoolState, ObjectTypes, PipelineHostResponse
 
 class PsrpClient(Client):
     def __init__(self,
@@ -25,16 +25,13 @@ class PsrpClient(Client):
         """
         Will set up a handler used to interact with the PSRP protocol
 
-        :param Transport transport: A initialised Transport() object for handling message transport
-        :param int read_timeout_sec: The maximum amount of seconds to wait before a HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long.
-        :param int operation_timeout_sec: The maximum allows time in seconds for any single WSMan HTTP operation (default 20). Note that operation timeouts while receiving output (the only WSMan operation that should take any singificant time, and where these timeouts are expected) will be silently retried indefinitely.
-        :param string locale: The locale value to use when creating a Shell on the remote host (default en-US).
-        :param string encoding: The encoding format when creating XML strings to send to the server (default utf-8).
-        :param int min_runspaces: The minumum amount of runspaces to create on the server (default 1)
+        :param transport_opts: See winrm.client Client() for more info
+        :param int operation_timeout_sec: See winrm.client Client() for more info
+        :param string locale: See winrm.client Client() for more info
+        :param string encoding: See winrm.client Client() for more info
+        :param int max_envelope_size: See winrm.client Client() for more info
+        :param int min_runspaces: The minimum amount of runspaces to create on the server (default 1)
         :param int max_runspaces: The maximum amount of runspaces to create on the server (default 1)
-        :param string ps_version: The powershell version supported by pywinrm (default 2.0)
-        :param string protocol_version: The remoting protocol version supported by pywinrm (default 2.3)
-        :param string serialization_version: The powershell serialization version supported by pywinrm (default 1.1.0.1)
         """
         Client.__init__(self, transport_opts, operation_timeout_sec, locale, encoding, max_envelope_size,
                         WsmvResourceURI.SHELL_POWERSHELL)
@@ -56,9 +53,9 @@ class PsrpClient(Client):
         session_capability = SessionCapability(ps_version, protocol_version, serialization_version)
         init_runspace_pool = InitRunspacePool(str(self.min_runspaces), str(self.max_runspaces))
 
-        sc = Message(Message.DESTINATION_SERVER, PsrpMessageType.SESSION_CAPABILITY, self.rpid,
+        sc = Message(Message.DESTINATION_SERVER, self.rpid,
                      uuid.UUID(WsmvConstant.EMPTY_UUID), session_capability)
-        init_pool = Message(Message.DESTINATION_SERVER, PsrpMessageType.INIT_RUNSPACEPOOL, self.rpid,
+        init_pool = Message(Message.DESTINATION_SERVER, self.rpid,
                             uuid.UUID(WsmvConstant.EMPTY_UUID), init_runspace_pool)
 
         fragments = self.fragmenter.fragment_messages([sc, init_pool])
@@ -80,14 +77,16 @@ class PsrpClient(Client):
         self.state = PsrpRunspacePoolState.NEGOTIATION_SENT
         self._wait_for_open_pool()
 
-    def run_command(self, command, arguments=()):
+    def run_command(self, command, parameters=(), responses=()):
         """
         Will run a command in a new pipeline on the RunspacePool. It will first
         check to see if the pool will accept a new runspace/pipeline based on
         the max_runspaces setting.
 
-        :param command: The command or script to run
-        :return winrm.psrp.response_reader.Reader() object containing the powershell streams
+        :param command: A PS command or script to run
+        :param parameters: If using a PS command, this contains a list of parameter key value pairs to run with the command
+        :param responses: A list of optional responses to pass onto the script when prompted. Useful for scripts that doesn't handle input parameters
+        :return winrm.psrp.response_reader.Reader() object containing the powershell output streams
         """
         if self.state != PsrpRunspacePoolState.OPENED:
             raise WinRMError("Cannot execute command pipeline as the RunspacePool State is not Opened")
@@ -112,27 +111,13 @@ class PsrpClient(Client):
 
         pipeline = Pipeline(self)
         self.pipelines.append(pipeline)
-        pipeline.create(command, arguments)
-
-        return pipeline.command_id
-
-    def get_command_output(self, command_id):
-        running_pipeline = None
-        for pipeline in self.pipelines:
-            if pipeline.command_id == command_id:
-                running_pipeline = pipeline
-
         try:
-            output = running_pipeline.get_output()
+            pipeline.create(command, parameters, responses)
+            output = pipeline.get_output()
         finally:
-            running_pipeline.stop()
+            pipeline.stop()
 
         return output
-
-    def cleanup_command(self, command_id):
-        for pipeline in self.pipelines:
-            if pipeline.command_id == command_id:
-                pipeline.stop()
 
     def close_shell(self):
         """
@@ -215,29 +200,28 @@ class Pipeline(object):
         set to a number > 1 than there is no guarantee it will keep the same
         values set by a previous pipeline
 
-        :param rpid: The RunspacePool rpid
-        :param shell_id: The shell id that was created in the RunspacePool
-        :param resource_uri: The resource URI for the shell
-        :param fragmenter: The fragmenter object created in the RunspacePool used to fragment messages
-        :param wsmv_protocol: The WSMV protocol object used to send messages to the server
+        :param client: The class of PsrpClient used to send messages to the server
         """
         self.client = client
         self.pid = uuid.uuid4()
         self.command_id = str(uuid.uuid4()).upper()
         self.state = PsrpPSInvocationState.NOT_STARTED
 
-    def create(self, command, arguments):
+    def create(self, command, parameters, responses):
         """
         Will create a command pipeline to run on the server
 
-        :param command: A script or command to run
-        :param arguments: Optional argument to add to the command
+        :param command: A PS command or script to run
+        :param parameters: If using a PS command, this contains a list of parameter key value pairs to run with the command
+        :param responses: A list of optional responses to pass onto the script when prompted. Useful for scripts that doesn't handle input parameters
         """
-        commands = [ObjectTypes.create_command(command, arguments)]
+        self.responses = responses
+        self.current_response_count = 0
+        commands = [ObjectTypes.create_command(command, parameters)]
 
-        # We pipe the resulting command to a string so PSRP doesn't return a custom object
+        # We pipe the resulting command to a string so PSRP doesn't return a complex object
         commands.append(ObjectTypes.create_command('Out-String', ['-Stream']))
-        create_pipeline = Message(Message.DESTINATION_SERVER, PsrpMessageType.CREATE_PIPELINE, self.client.rpid,
+        create_pipeline = Message(Message.DESTINATION_SERVER, self.client.rpid,
                                   self.pid, CreatePipeline(commands))
 
         fragments = self.client.fragmenter.fragment_messages(create_pipeline)
@@ -266,13 +250,13 @@ class Pipeline(object):
         :return: winrm.psrp.response_reader.Reader() object containing the powershell streams
         """
         defragmenter = Defragmenter()
-        reader = Reader()
+        reader = Reader(self.input_callback)
         body = WsmvObject.receive('stdout', self.command_id)
 
         while self.state == PsrpPSInvocationState.RUNNING:
             response = self.client.send(WsmvAction.RECEIVE, body=body, selector_set={'ShellId': self.client.shell_id})
 
-            streams = response['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:Stream']
+            streams = response['s:Envelope']['s:Body']['rsp:ReceiveResponse'].get('rsp:Stream', [])
             if isinstance(streams, dict):
                 streams = [streams]
             for stream in streams:
@@ -285,33 +269,34 @@ class Pipeline(object):
                     if new_state:
                         self.state = new_state
 
-            command_state = response['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:CommandState']['@State']
-            if command_state == 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Pending':
-                self.send_command_input('hello world')
-
         self.stop()
 
         return reader
 
-    def send_command_input(self, input):
-        input_message = Message(Message.DESTINATION_SERVER, PsrpMessageType.PIPELINE_INPUT, self.client.rpid, self.pid, PipelineInput(input))
+    def input_callback(self, method_identifier, name, type):
+        """
+        Will take in the input request and pass in the pre-set input responses
+        passed in when we started the command. If the response count is less than
+        the responses required, a WinRMError will fire
+
+        :param method_identifier: The method identifier ID retrieved from the host call request message
+        :param name: The name of the input retrieved from the host call request message
+        :param type: The method identifier text retrieved from the host call request message
+        """
+        responses = self.responses
+        if len(responses) < self.current_response_count + 1:
+            raise WinRMError("Expecting another response than what was specified")
+
+        current_response = self.responses[self.current_response_count]
+        self.current_response_count += 1
+
+        input_message = Message(Message.DESTINATION_SERVER, self.client.rpid,
+                                self.pid, PipelineHostResponse(str(self.current_response_count), method_identifier, type, name, current_response))
         fragments = self.client.fragmenter.fragment_messages(input_message)
         selector_set = {"ShellId": self.client.shell_id}
         for fragment in fragments:
             body = WsmvObject.send('pr', self.command_id, fragment)
-            a = self.client.send(WsmvAction.SEND, body=body, selector_set=selector_set)
-            b = ''
-
-        #if end_of_input:
-        #    end_of_input_message = Message(Message.DESTINATION_SERVER, PsrpMessageType.PIPELINE_INPUT, self.rpid, running_pipeline.pid, EndOfPipelineInput())
-        #    fragments = self.fragmenter.fragment_messages(end_of_input_message)
-        #    for fragment in fragments:
-        #        body = WsmvObject.send('stdin', command_id, fragment)
-        #        a = self.send(WsmvAction.SEND, body=body, selector_set=selector_set)
-        #        b = ''
-
-        z = ''
-
+            self.client.send(WsmvAction.SEND, body=body, selector_set=selector_set)
 
     def stop(self):
         # Will stop the pipeline if it has not been stopped already

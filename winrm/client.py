@@ -8,6 +8,16 @@ from winrm.transport import Transport
 
 class Client(object):
     def __init__(self, transport_opts, operation_timeout_sec, locale, encoding, max_envelope_size, resource_uri):
+        """
+        A base class for shell operations over WSMan, contains common code in both WSMV and PSRP
+
+        :param transport_opts: A dict of options to pass through to the Transport class. See winrm.transport for more details
+        :param int operation_timeout_sec: The maximum allowed time in seconds for any single WSMan HTTP operations (default 2)
+        :param string locale: The locale and data_locale to set in the messages (default en-US)
+        :param string encoding: The string encoding format to encode messages in (default utf-8)
+        :param int max_envelope_size: The maximum envelope size in bytes, will be overwritten is Pywinrm can get the config from the server (default 153600)
+        :param resource_uri: The WSMV Shell Resource URI to use
+        """
         read_timeout_sec = transport_opts.get('read_timeout_sec', WsmvConstant.DEFAULT_READ_TIMEOUT_SEC)
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")

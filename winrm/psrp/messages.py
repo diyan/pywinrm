@@ -15,15 +15,12 @@ class Message(object):
     DESTINATION_SERVER = 0x00000002
     BYTE_ORDER_MARK = b'\xef\xbb\xbf'
 
-    def __init__(self, destination, message_type, rpid, pid, data):
+    def __init__(self, destination, rpid, pid, message):
         self.destination = destination
-        self.message_type = message_type
+        self.message_type = message.message_type
         self.rpid = rpid
         self.pid = pid
-        if isinstance(data, dict):
-            self.data = data
-        else:
-            self.data = data.create_message_data()
+        self.data = message.create_message_data()
 
     def create_message(self):
         message = struct.pack("<I", self.destination)
@@ -31,7 +28,10 @@ class Message(object):
         message += self.rpid.bytes
         message += self.pid.bytes
         message += self.BYTE_ORDER_MARK
-        message += xmltodict.unparse(self.data, full_document=False, encoding='utf-8').encode()
+        if self.data:
+            message += xmltodict.unparse(self.data, full_document=False, encoding='utf-8').encode()
+        else:
+            message += "".encode()
 
         return message
 
@@ -43,7 +43,7 @@ class Message(object):
         pid = uuid.UUID(bytes=message[24:40])
         data = xmltodict.parse(message[43:])
 
-        return Message(destination, message_type, rpid, pid, data)
+        return Message(destination, rpid, pid, PrimitiveMessage(message_type, data))
 
 class ObjectTypes(object):
     @staticmethod
@@ -504,6 +504,22 @@ class ObjectTypes(object):
         return str(uuid.uuid4().int & (1<<32)-1)
 
 
+class PrimitiveMessage(object):
+
+    def __init__(self, message_type, data):
+        """
+        Used as a primitive object when parsing messages from the server
+
+        :param type: The message type
+        :param data: The raw message dict
+        """
+        self.message_type = message_type
+        self.data = data
+
+    def create_message_data(self):
+        return self.data
+
+
 class SessionCapability(object):
     def __init__(self, ps_version, protocol_version, serialization_version):
         """
@@ -695,7 +711,6 @@ class ApplicationPrivateData(object):
         Target: RunspacePool
         """
         self.message_type = PsrpMessageType.APPLICATION_PRIVATE_DATA
-
         self.bash_version = bash_version
 
     @staticmethod
@@ -706,68 +721,6 @@ class ApplicationPrivateData(object):
             raise Exception("Invalid APPLICATION_PRIVATE_DATA message from the server")
 
         return ApplicationPrivateData(bash_version)
-
-
-class PipelineInput(object):
-    def __init__(self, data):
-        self.message_type = PsrpMessageType.PIPELINE_INPUT
-        self.data = data
-
-    def create_message_data(self):
-        input_data = {
-            "Obj": {
-                "@RefId": ObjectTypes.get_random_ref_id(),
-                "MS": {
-                    "Obj": [
-                        {
-                            "@RefId": ObjectTypes.get_random_ref_id(),
-                            "@N": "mr",
-                            "TN": {
-                                "@RefId": ObjectTypes.get_random_ref_id(),
-                                "T": [
-                                    "System.Collections.Hashtable",
-                                    "System.Object"
-                                ]
-                            },
-                            "DCT": {
-                                "En": {
-                                    "S": [
-                                        {"@N": "Key", "#text": "Test Prompt"},
-                                        {"@N": "Value", "#text": self.data}
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "@RefId": ObjectTypes.get_random_ref_id(),
-                            "@N": "mi",
-                            "TN": {
-                                "@RefId": ObjectTypes.get_random_ref_id(),
-                                "T": [
-                                    "System.Management.Automation.Remoting.RemoteHostMethodId",
-                                    "System.Enum",
-                                    "System.ValueType",
-                                    "System.Object"
-                                ]
-                            },
-                            "ToString": "Prompt",
-                            "I32": "23"
-                        }
-                    ],
-                    "I64": {"@N": "ci", "#text": "1"}
-                }
-            }
-        }
-
-        return input_data
-
-class EndOfPipelineInput(object):
-    def __init__(self):
-        self.message_type = PsrpMessageType.END_OF_PIPELINE_INPUT
-
-    def create_message_data(self):
-        data = {}
-        return data
 
 
 class PipelineState(object):
@@ -799,3 +752,70 @@ class PipelineState(object):
         exception_as_error_record = message.data['Obj']['MS'].get('Obj', None)
 
         return PipelineState(state, friendly_state, exception_as_error_record)
+
+
+class PipelineHostResponse(object):
+
+    def __init__(self, call_id, method_id, method_type, prompt_key, response):
+        """
+        [MS-PSRP] v16.0 2016-07-14
+        2.2.2.28 PIPELINE_HOST_RESPONSE Message
+
+        Response from a host call executed on the client's host
+
+        Direction: Client to Server
+        Target: pipeline
+        """
+        self.message_type = PsrpMessageType.PIPELINE_HOST_RESPONSE
+        self.call_id = call_id
+        self.method_id = method_id
+        self.method_type = method_type
+        self.prompt_key = prompt_key
+        self.response = response
+
+    def create_message_data(self):
+        response_data = {
+            "Obj": {
+                "@RefId": ObjectTypes.get_random_ref_id(),
+                "MS": {
+                    "Obj": [
+                        {
+                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@N": "mr",
+                            "TN": {
+                                "@RefId": ObjectTypes.get_random_ref_id(),
+                                "T": [
+                                    "System.Collections.Hashtable",
+                                    "System.Object"
+                                ]
+                            },
+                            "DCT": {
+                                "En": {
+                                    "S": [
+                                        {"@N": "Key", "#text": self.prompt_key},
+                                        {"@N": "Value", "#text": self.response}
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "@RefId": ObjectTypes.get_random_ref_id(),
+                            "@N": "mi",
+                            "TN": {
+                                "T": [
+                                    "System.Management.Automation.Remoting.RemoteHostMethodId",
+                                    "System.Enum",
+                                    "System.ValueType",
+                                    "System.Object"
+                                ]
+                            },
+                            "ToString": self.method_type,
+                            "I32": self.method_id
+                        }
+                    ],
+                    "I64": {"@N": "ci", "#text": self.call_id},
+                }
+            }
+        }
+
+        return response_data

@@ -1,17 +1,18 @@
 import re
 
 from winrm.contants import PsrpMessageType
-from winrm.exceptions import WinRMError
 from winrm.psrp.messages import PipelineState
 
 
 class Reader(object):
-    def __init__(self):
+    def __init__(self, input_callback):
         """
         Takes in ReceiveResponse messages from the server and extracts each
         output stream and state information from the pipeline command. More
         info on how streams work and what they should contain can be found here
         https://blogs.technet.microsoft.com/heyscriptingguy/2015/07/04/weekend-scripter-welcome-to-the-powershell-information-stream/
+
+        :param input_callback: The method to run when a PIPELINE_HOST_CALL message return Prompt as the mi
 
         Attributes:
             stdout: The output to the host program, as set by the command run. Does not include the error stream
@@ -40,6 +41,7 @@ class Reader(object):
         self.debug = b''
         self.information = []
         self.return_code = 0
+        self.input_callback = input_callback
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -104,15 +106,16 @@ class Reader(object):
             output_list = [output_list]
 
         if method_identifier == 'Prompt':
+            method_identifier_id = self.get_value_of_attribute(raw_output, 'N', 'mi', 'I32')
             raw_prompt_info = output_list[0]['Obj']['LST']['Obj']['MS']['S']
             name = self.get_value_of_attribute(raw_prompt_info, 'N', 'name', '#text')
-            type = self.get_value_of_attribute(raw_prompt_info, 'N', 'parameterTypeName', '#text')
-            #raise WinRMError("Server expecting input under Name; %s, Type: %s. Any command input needs to be sent "
-            #                 "before receiving messages" % (name, type))
+            self.input_callback(method_identifier_id, name, method_identifier)
         else:
             if method_identifier != 'SetShouldExit' and method_identifier != 'WriteProgress':
                 for output in output_list:
-                    full_output += output['S'].encode()
+                    test = output.get('S', None)
+                    if test:
+                        full_output += test.encode()
 
             if method_identifier == 'WriteDebugLine':
                 full_output = b'DEBUG: %s' % full_output

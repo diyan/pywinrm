@@ -78,9 +78,30 @@ class WsmvClient(Client):
         res = self.send(WsmvAction.COMMAND, body, selector_set, option_set)
         command_id = res['s:Envelope']['s:Body']['rsp:CommandResponse']['rsp:CommandId']
 
-        return command_id
+        try:
+            output = self._get_command_output(command_id)
+        finally:
+            self._cleanup_command(command_id)
 
-    def get_command_output(self, command_id):
+        return output
+
+    def close_shell(self):
+        """
+        [MS-WSMV] v30.0 2016-07-14
+        3.1.4.15 Disconnect
+
+        Will disconnect from a remote Shell based on the ID that has been
+        passed through. This should be run at the end of all process to
+        ensure any left over shells on the host are removed.
+
+        :param shell_id: The Shell ID to disconnect from
+        """
+        selector_set = {
+            'ShellId': self.shell_id
+        }
+        self.send(WsmvAction.DELETE, self.resource_uri, selector_set=selector_set)
+
+    def _get_command_output(self, command_id):
         """
         [MS-WSMV] v30.0 2016-07-14
         3.1.4.14 Receive
@@ -121,7 +142,7 @@ class WsmvClient(Client):
 
         return output
 
-    def cleanup_command(self, command_id):
+    def _cleanup_command(self, command_id):
         """
         [MS-WSMV] v30.0 2016-07-14
         3.1.4.12 Signal
@@ -137,22 +158,6 @@ class WsmvClient(Client):
             'ShellId': self.shell_id
         }
         self.send(WsmvAction.SIGNAL, body=body, selector_set=selector_set)
-
-    def close_shell(self):
-        """
-        [MS-WSMV] v30.0 2016-07-14
-        3.1.4.15 Disconnect
-
-        Will disconnect from a remote Shell based on the ID that has been
-        passed through. This should be run at the end of all process to
-        ensure any left over shells on the host are removed.
-
-        :param shell_id: The Shell ID to disconnect from
-        """
-        selector_set = {
-            'ShellId': self.shell_id
-        }
-        self.send(WsmvAction.DELETE, self.resource_uri, selector_set=selector_set)
 
     def _parse_raw_command_output(self, output):
         stdout = b''
