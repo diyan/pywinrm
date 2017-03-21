@@ -136,7 +136,7 @@ class Client(object):
                 '@s:mustUnderstand': 'true',
                 '#text': resource_uri
             },
-            'w:OperationTimeout': 'PT%sS' % str(self.operation_timeout_sec),
+            'w:OperationTimeout': convert_seconds_to_iso8601_duration(self.operation_timeout_sec),
             'a:ReplyTo': {
                 "a:Address": {
                     "@s:mustUnderstand": 'true',
@@ -163,3 +163,65 @@ class Client(object):
                 option_set_list.append({'@Name': key, '#text': value})
             headers['w:OptionSet'] = {'w:Option': option_set_list}
         return headers
+
+
+def get_value_of_attribute(root, attribute_key, attribute_value, element_value=None):
+    """
+    Helper method to search through a list of elements in an xml node and
+    retrieve the element with the attribute specified. If no values are
+    found None is returned instead
+
+    :param root: The xml root to search in
+    :param attribute_key: The attribute key to search for the value
+    :param attribute_value: The value of the attribute based on the attribute_key
+    :param element_value: If set will return the value of the element found
+    :return:
+    """
+    value = None
+    if isinstance(root, dict):
+        root = [root]
+    for node in root:
+        if isinstance(node, dict):
+            try:
+                key = node['@%s' % attribute_key]
+                if key == attribute_value:
+                    if element_value:
+                        value = node.get(element_value, None)
+                    else:
+                        value = node
+                    break
+            except KeyError:
+                pass
+    return value
+
+
+def convert_seconds_to_iso8601_duration(seconds):
+    # Details can be found here https://tools.ietf.org/html/rfc2445#section-4.3.6
+    if isinstance(seconds, str):
+        if seconds.startswith('P'):
+            return seconds
+        seconds = int(seconds)
+
+    duration = "P"
+    if seconds > 604800:
+        weeks = int(seconds / 604800)
+        seconds -= 604800 * weeks
+        duration += "%dW" % weeks
+    if seconds > 86400:
+        days = int(seconds / 86400)
+        seconds -= 86400 * days
+        duration += "%dD" % days
+    if seconds > 0:
+        duration += "T"
+        if seconds > 3600:
+            hours = int(seconds / 3600)
+            seconds -= 3600 * hours
+            duration += "%dH" % hours
+        if seconds > 60:
+            minutes = int(seconds / 60)
+            seconds -= 60 * minutes
+            duration += "%dM" % minutes
+        if seconds > 0:
+            duration += "%dS" % seconds
+
+    return duration

@@ -1,5 +1,6 @@
 import re
 
+from winrm.client import get_value_of_attribute
 from winrm.contants import PsrpMessageType
 from winrm.psrp.message_objects import PipelineState
 
@@ -99,16 +100,16 @@ class Reader(object):
         """
         raw_output = message_data['Obj']['MS']['Obj']
         full_output = b''
-        method_identifier = self.get_value_of_attribute(raw_output, 'N', 'mi', 'ToString')
+        method_identifier = get_value_of_attribute(raw_output, 'N', 'mi', 'ToString')
 
-        output_list = self.get_value_of_attribute(raw_output, 'N', 'mp', 'LST')
+        output_list = get_value_of_attribute(raw_output, 'N', 'mp', 'LST')
         if isinstance(output_list, dict):
             output_list = [output_list]
 
         if method_identifier == 'Prompt':
-            method_identifier_id = self.get_value_of_attribute(raw_output, 'N', 'mi', 'I32')
+            method_identifier_id = get_value_of_attribute(raw_output, 'N', 'mi', 'I32')
             raw_prompt_info = output_list[0]['Obj']['LST']['Obj']['MS']['S']
-            name = self.get_value_of_attribute(raw_prompt_info, 'N', 'name', '#text')
+            name = get_value_of_attribute(raw_prompt_info, 'N', 'name', '#text')
             self.input_callback(method_identifier_id, name, method_identifier)
         else:
             if method_identifier != 'SetShouldExit' and method_identifier != 'WriteProgress':
@@ -134,21 +135,21 @@ class Reader(object):
         :param message_data: The InformationRecord stream
         """
         raw_output = message_data['Obj']['MS']
-        raw_tags = self.get_value_of_attribute(raw_output['Obj'], 'N', 'Tags', 'LST')
+        raw_tags = get_value_of_attribute(raw_output['Obj'], 'N', 'Tags', 'LST')
         tags = []
         if raw_tags is not None:
             tags = raw_tags['S']
             if isinstance(tags, str):
                 tags = [tags]
 
-        time_generated = self.get_value_of_attribute(raw_output['DT'], 'N', 'TimeGenerated', '#text')
-        message_data = self.get_value_of_attribute(raw_output['S'], 'N', 'MessageData', '#text')
-        source = self.get_value_of_attribute(raw_output['S'], 'N', 'Source', '#text')
-        user = self.get_value_of_attribute(raw_output['S'], 'N', 'User', '#text')
-        computer = self.get_value_of_attribute(raw_output['S'], 'N', 'Computer', '#text')
+        time_generated = get_value_of_attribute(raw_output['DT'], 'N', 'TimeGenerated', '#text')
+        message_data = get_value_of_attribute(raw_output['S'], 'N', 'MessageData', '#text')
+        source = get_value_of_attribute(raw_output['S'], 'N', 'Source', '#text')
+        user = get_value_of_attribute(raw_output['S'], 'N', 'User', '#text')
+        computer = get_value_of_attribute(raw_output['S'], 'N', 'Computer', '#text')
 
         if message_data is None:
-            message_data = self.get_value_of_attribute(raw_output['Obj'], 'N', 'MessageData').get('ToString', '')
+            message_data = get_value_of_attribute(raw_output['Obj'], 'N', 'MessageData').get('ToString', '')
 
         information_record = {
             'tags': tags,
@@ -168,9 +169,9 @@ class Reader(object):
         :param message_data: The PipelineHostCall stream
         """
         raw_output = message_data['Obj']['MS']['Obj']
-        method_identifier = self.get_value_of_attribute(raw_output, 'N', 'mi', 'ToString')
+        method_identifier = get_value_of_attribute(raw_output, 'N', 'mi', 'ToString')
         if method_identifier == 'SetShouldExit':
-            return_code = self.get_value_of_attribute(raw_output, 'N', 'mp', 'LST').get('I32', None)
+            return_code = get_value_of_attribute(raw_output, 'N', 'mp', 'LST').get('I32', None)
             if return_code:
                 self.return_code = int(return_code)
 
@@ -184,12 +185,12 @@ class Reader(object):
         error_message = message_data['Obj']['ToString']
 
         error_info = message_data['Obj']['MS']['S']
-        fq_error_id = self.get_value_of_attribute(error_info, 'N', 'FullyQualifiedErrorId', '#text')
-        error_category_message = self.get_value_of_attribute(error_info, 'N', 'ErrorCategory_Message', '#text')
+        fq_error_id = get_value_of_attribute(error_info, 'N', 'FullyQualifiedErrorId', '#text')
+        error_category_message = get_value_of_attribute(error_info, 'N', 'ErrorCategory_Message', '#text')
 
-        invocation_info = self.get_value_of_attribute(message_data['Obj']['MS']['Obj'], 'N', 'InvocationInfo')
-        position_message = self.get_value_of_attribute(invocation_info['Props']['S'], 'N', 'PositionMessage', '#text')
-        my_command = self.get_value_of_attribute(invocation_info['Props']['S'], 'N', 'MyCommand', '#text')
+        invocation_info = get_value_of_attribute(message_data['Obj']['MS']['Obj'], 'N', 'InvocationInfo')
+        position_message = get_value_of_attribute(invocation_info['Props']['S'], 'N', 'PositionMessage', '#text')
+        my_command = get_value_of_attribute(invocation_info['Props']['S'], 'N', 'MyCommand', '#text')
 
         error_string = "%s\n" % error_message
 
@@ -212,29 +213,3 @@ class Reader(object):
 
         self.stderr += error_string.encode() + b"\n"
         self.error += error_string.encode() + b"\n"
-
-    @staticmethod
-    def get_value_of_attribute(root, attribute_key, attribute_value, element_value=None):
-        """
-        Helper method to search through a list of elements in an xml node and
-        retrieve the element with the attribute specified. If no values are
-        found None is returned instead
-
-        :param root: The xml root to search in
-        :param attribute_key: The attribute key to search for the value
-        :param attribute_value: The value of the attribute based on the attribute_key
-        :param element_value: If set will return the value of the element found
-        :return:
-        """
-        value = None
-        if isinstance(root, dict):
-            root = [root]
-        for node in root:
-            key = node['@%s' % attribute_key]
-            if key == attribute_value:
-                if element_value:
-                    value = node.get(element_value, None)
-                else:
-                    value = node
-                break
-        return value

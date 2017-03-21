@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<s:Envelope xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:cert="http://schemas.microsoft.com/wbem/wsman/1/config/service/certmapping" xmlns:wsmanfault="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault" xmlns:plugin="http://schemas.microsoft.com/wbem/wsman/1/config/PluginConfiguration" xmlns:m="http://schemas.microsoft.com/wbem/wsman/1/machineid" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:wsmid="http://schemas.dmtf.org/wbem/wsman/identify/1/wsmanidentity.xsd" xmlns:wse="http://schemas.xmlsoap.org/ws/2004/08/eventing" xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:sub="http://schemas.microsoft.com/wbem/wsman/1/subscription" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:wsen="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:i="http://schemas.microsoft.com/wbem/wsman/1/cim/interactive.xsd" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd">
+    <s:Header>
+        <p:DataLocale xml:lang="en-US" s:mustUnderstand="false"/>
+        <w:OptionSet>
+            <w:Option Name="WINRS_CONSOLEMODE_STDIN">TRUE</w:Option>
+            <w:Option Name="WINRS_SKIP_CMD_SHELL">FALSE</w:Option>
+        </w:OptionSet>
+        <w:ResourceURI s:mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+        <w:OperationTimeout>PT20S</w:OperationTimeout>
+        <w:SelectorSet>
+            <w:Selector Name="ShellId">4C7F3BB5-B508-4F20-9B6E-C8980CFCADCA</w:Selector>
+        </w:SelectorSet>
+        <p:SessionId s:mustUnderstand="false">uuid:11111111-1111-1111-1111-111111111111</p:SessionId>
+        <a:ReplyTo>
+            <a:Address s:mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+        </a:ReplyTo>
+        <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+        <w:Locale xml:lang="en-US" s:mustUnderstand="false"/>
+        <a:To>https://windows-host:5986/wsman</a:To>
+        <a:Action s:mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
+        <w:MaxEnvelopeSize>512000</w:MaxEnvelopeSize>
+    </s:Header>
+    <s:Body>
+        <rsp:CommandLine>
+            <rsp:Command>PowerShell -Command Start-Sleep -s 30; Write-Host Test</rsp:Command>
+        </rsp:CommandLine>
+    </s:Body>
+</s:Envelope>

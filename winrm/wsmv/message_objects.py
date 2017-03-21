@@ -1,4 +1,4 @@
-from winrm.contants import WsmvConstant
+from winrm.client import convert_seconds_to_iso8601_duration
 
 
 class WsmvObject(object):
@@ -89,48 +89,39 @@ class WsmvObject(object):
         wst:CreateResponse - properties of the created Shell instance
         wst:GetResponse - properties of an existing Shell instance
 
+        See page 52 of MS-WSMV for more details on the parameters and structure
+
         :param kwargs: A dictionary used to setup a Shell object
+            shell_id: Used in PSRP messages to set the Shell ID when creating the shell
+            environment: A dict of environment variables to set when creating the shell
+            working_directory: The working directory of the shell
+            lifetime: Configures the maximum time, that the Remote Shell will stay open
+            idle_time_out: The service SHOULD close and terminate the shell instance if it is idle for this much time
+            input_streams: A simple token list of all input streams that are used in the execution
+            output_stream: See input_streams but a list of all output streams
+            open_content: Additional values that come under the Open Content model of the message, used in PSRP
         :return: dict used when converting to xml
         """
         shell_id = kwargs.get('shell_id', None)
-        name = kwargs.get('name', None)
-        # TODO owner = kwargs.get('owner', None)
-        # TODO client_ip = kwargs.get('client_ip', None)
-        # TODO process_id = kwargs.get('process_id', None)
         environment = kwargs.get('environment', None)
         working_directory = kwargs.get('working_directory', None)
-        # TODO lifetime = kwargs.get('lifetime', None)
+        lifetime = kwargs.get('lifetime', None)
         idle_time_out = kwargs.get('idle_time_out', None)
         input_streams = kwargs.get('input_streams', 'stdin')
         output_streams = kwargs.get('output_streams', 'stdout stderr')
-        max_idle_time_out = kwargs.get('max_idle_time_out', None)
-        locale = kwargs.get('locale', WsmvConstant.DEFAULT_LOCALE)
-        data_locale = kwargs.get('data_locale', WsmvConstant.DEFAULT_LOCALE)
-        # TODO compression_mode = kwargs.get('compression_mode', None)
-        profile_loaded = kwargs.get('profile_loaded', True)
-        encoding = kwargs.get('encoding', WsmvConstant.DEFAULT_ENCODING)
-        # TODO buffer_mode = kwargs.get('buffer_mode', None)
-        # TODO state = kwargs.get('state', None)
-        shell_run_time = kwargs.get('shell_run_time', None)
-        shell_inactivity = kwargs.get('shell_inactivity', None)
         open_content = kwargs.get('open_content', None) # Used in MS-PSRP
 
         # Create basic object
         shell = {
             'rsp:Shell': {
                 'rsp:InputStreams': input_streams,
-                'rsp:OutputStreams': output_streams,
-                'rsp:Locale': locale,
-                'rsp:DataLocale': data_locale
+                'rsp:OutputStreams': output_streams
             }
         }
 
         # Append optional values if they are set
         if shell_id:
             shell['rsp:Shell']['@ShellId'] = str(shell_id).upper()
-
-        if name:
-            shell['rsp:Shell']['@Name'] = name
 
         if environment:
             environment_list = []
@@ -141,23 +132,11 @@ class WsmvObject(object):
         if working_directory:
             shell['rsp:Shell']['rsp:WorkingDirectory'] = working_directory
 
+        if lifetime:
+            shell['rsp:Shell']['rsp:Lifetime'] = convert_seconds_to_iso8601_duration(lifetime)
+
         if idle_time_out:
-            shell['rsp:Shell']['rsp:IdleTimeOut'] = idle_time_out
-
-        if max_idle_time_out:
-            shell['rsp:Shell']['rsp:MaxIdleTimeOut'] = max_idle_time_out
-
-        if profile_loaded:
-            shell['rsp:Shell']['rsp:ProfileLoaded'] = profile_loaded
-
-        if encoding:
-            shell['rsp:Shell']['rsp:Encoding'] = encoding
-
-        if shell_run_time:
-            shell['rsp:Shell']['rsp:ShellRunTime'] = shell_run_time
-
-        if shell_inactivity:
-            shell['rsp:Shell']['rsp:ShellInactivity'] = locale
+            shell['rsp:Shell']['rsp:IdleTimeOut'] = convert_seconds_to_iso8601_duration(idle_time_out)
 
         # Open content can be anything outside the normal structure.
         if open_content:

@@ -7,7 +7,9 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
+from winrm.client import get_value_of_attribute
 from winrm.contants import PsrpRunspacePoolState, PsrpPSInvocationState, PsrpColor, PsrpMessageType
+from winrm.exceptions import WinRMError
 
 
 class Message(object):
@@ -56,25 +58,21 @@ class PsrpObject(object):
         :param y: String - y coordinate
         :return: dict of the Coordinate object
         """
-        coordinate = {
-            "Obj": {
-                "@N": "Value",
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "S": {"@N": "T", "#text": "System.Management.Automation.Host.Coordinates"},
-                    "Obj": {
-                        "@N": "V",
-                        "@RefId": PsrpObject.get_random_ref_id(),
-                        "MS": {
-                            "I32": [
-                                {"@N": "x", "#text": x},
-                                {"@N": "y","#text": y}
-                            ]
-                        }
-                    }
-                }
-            }
-        }
+        coordinate = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@N", "Value"),
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("S", {"@N": "T", "#text": "System.Management.Automation.Host.Coordinates"}),
+                    ("Obj", OrderedDict([
+                        ("@N", "V"),
+                        ("@RefId", PsrpObject.get_random_ref_id()),
+                        ("MS", {"I32": [{"@N": "x", "#text": x}, {"@N": "y", "#text": y}]})
+                    ]))
+                ]))
+            ]))
+        ])
+
         return coordinate
 
     @staticmethod
@@ -89,25 +87,20 @@ class PsrpObject(object):
         :param height: String - height of the area
         :return: dict of the Size object
         """
-        size = {
-            "Obj": {
-                "@N": "Value",
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "S": {"@N": "T", "#text": "System.Management.Automation.Host.Size"},
-                    "Obj": {
-                        "@N": "V",
-                        "@RefId": PsrpObject.get_random_ref_id(),
-                        "MS": {
-                            "I32": [
-                                {"@N": "width", "#text": width},
-                                {"@N": "height", "#text": height}
-                            ]
-                        }
-                    }
-                }
-            }
-        }
+        size = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@N", "Value"),
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("S", {"@N": "T", "#text": "System.Management.Automation.Host.Size"}),
+                    ("Obj", OrderedDict([
+                        ("@N", "V"),
+                        ("@RefId", PsrpObject.get_random_ref_id()),
+                        ("MS", {"I32": [{"@N": "width", "#text": width}, {"@N": "height", "#text": height}]})
+                    ]))
+                ]))
+            ]))
+        ])
         return size
 
     @staticmethod
@@ -121,16 +114,16 @@ class PsrpObject(object):
         :param color: The color value, use Colors()
         :return: dict of the Color object
         """
-        color = {
-            "Obj": {
-                "@N": "Value",
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "S": {"@N": "T", "#text": "System.ConsoleColor"},
-                    "I32": {"@N": "V", "#text": color}
-                }
-            }
-        }
+        color = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@N", "Value"),
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("S", {"@N": "T", "#text": "System.ConsoleColor"}),
+                    ("I32", {"@N": "V", "#text": color})
+                ]))
+            ]))
+        ])
         return color
 
     @staticmethod
@@ -145,24 +138,23 @@ class PsrpObject(object):
 
         :return: dict of the PSThreadOption object
         """
-        object_ref_id = PsrpObject.get_random_ref_id()
-        ps_thread_options = {
-            "Obj": {
-                "@N": "PSThreadOptions",
-                "@RefId": object_ref_id,
-                "TN": {
-                    "@RefId": PsrpObject.get_random_ref_id(),
-                    "T": [
+        ps_thread_options = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@N", "PSThreadOptions"),
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("TN", OrderedDict([
+                    ("@RefId", PsrpObject.get_random_ref_id()),
+                    ("T", [
                         "System.Management.Automation.Runspaces.PSThreadOptions",
                         "System.Enum",
                         "System.ValueType",
-                        "System.Object",
-                    ]
-                },
-                "ToString": "Default",
-                "I32": "0"
-            }
-        }
+                        "System.Object"
+                    ])
+                ])),
+                ("ToString", "Default"),
+                ("I32", "0")
+            ]))
+        ])
         return ps_thread_options
 
     @staticmethod
@@ -177,24 +169,23 @@ class PsrpObject(object):
 
         :return: dict of the ApartmentState object
         """
-        object_ref_id = PsrpObject.get_random_ref_id()
-        apartment_state = {
-            "Obj": {
-                "@N": "ApartmentState",
-                "@RefId": object_ref_id,
-                "TN": {
-                    "@RefId": PsrpObject.get_random_ref_id(),
-                    "T": [
+        apartment_state = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@N", "ApartmentState"),
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("TN", OrderedDict([
+                    ("@RefId", PsrpObject.get_random_ref_id()),
+                    ("T", [
                         "System.Threading.ApartmentState",
                         "System.Enum",
                         "System.ValueType",
                         "System.Object"
-                    ]
-                },
-                "ToString": "Unknown",
-                "I32": "2"
-            }
-        }
+                    ])
+                ])),
+                ("ToString", "Unknown"),
+                ("I32", "2")
+            ]))
+        ])
         return apartment_state
 
     @staticmethod
@@ -208,23 +199,23 @@ class PsrpObject(object):
 
         :return: dict of the RemoteStreamOptions object
         """
-        remote_stream_options = {
-            "Obj": {
-                "@N": "RemoteStreamOptions",
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "TN": {
-                    "@RefId": PsrpObject.get_random_ref_id(),
-                    "T": [
+        remote_stream_options = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@N", "RemoteStreamOptions"),
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("TN", OrderedDict([
+                    ("@RefId", PsrpObject.get_random_ref_id()),
+                    ("T", [
                         "System.Management.Automation.RemoteStreamOptions",
                         "System.Enum",
                         "System.ValueType",
                         "System.Object"
-                    ]
-                },
-                "ToString": "0",
-                "I32": "0"
-            }
-        }
+                    ])
+                ])),
+                ("ToString", "0"),
+                ("I32", "0")
+            ]))
+        ])
         return remote_stream_options
 
     @staticmethod
@@ -238,33 +229,31 @@ class PsrpObject(object):
         :param commands: A list of commands created by create_command you wish to run
         :return: dict of the Pipeline object
         """
-        pipeline = {
-            "Obj": {
-                "@N": "PowerShell",
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "Obj": {
-                        "@N": "Cmds",
-                        "@RefId": PsrpObject.get_random_ref_id(),
-                        "TN": {
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "T": [
+        pipeline = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@N", "PowerShell"),
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("Obj", OrderedDict([
+                        ("@N", "Cmds"),
+                        ("@RefId", PsrpObject.get_random_ref_id()),
+                        ("TN", OrderedDict([
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("T", [
                                 "System.Collections.Generic.List`1[[System.Management.Automation.PSObject, System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35]]",
                                 "System.Object"
-                            ]
-                        },
-                        "LST": {
-                            "Obj": []
-                        }
-                    },
-                    "B": [
+                            ])
+                        ])),
+                        ("LST", {"Obj": []})
+                    ])),
+                    ("B", [
                         {"@N": "IsNested", "#text": "false"},
                         {"@N": "RedirectShellErrorOutputPipe", "#text": "true"}
-                    ],
-                    "Nil": {"@N": "History"}
-                }
-            }
-        }
+                    ]),
+                    ("Nil", {"@N": "History"})
+                ]))
+            ]))
+        ])
         for command in commands:
             pipeline['Obj']['MS']['Obj']['LST']['Obj'].append(command['Obj'])
 
@@ -287,111 +276,112 @@ class PsrpObject(object):
         for parameter in parameters:
             if parameter.startswith('-'):
                 parameter_split = parameter.split(' ', 1)
-                arguments.append({
-                    "@RefId": PsrpObject.get_random_ref_id(),
-                    "MS": {
-                        "S": {"@N": "N", "#text": parameter_split[0]},
-                        "Nil": {"@N": "V"}
-                    }
-                })
-                if len(parameter_split) > 1:
-                    arguments.append({
-                        "@RefId": PsrpObject.get_random_ref_id(),
-                        "MS": {
-                            "Nil": {"@N": "N"},
-                            "S": {"@N": "V", "#text": parameter_split[1]}
-                        }
-                    })
-            else:
-                arguments.append({
-                    "@RefId": PsrpObject.get_random_ref_id(),
-                    "MS": {
-                        "Nil": {"@N": "N"},
-                        "S": {"@N": "V", "#text": parameter}
-                    }
-                })
+                arguments.append(OrderedDict([
+                    ("@RefId", PsrpObject.get_random_ref_id()),
+                    ("MS", OrderedDict([
+                        ("S", {"@N": "N", "#text": parameter_split[0]}),
+                        ("Nil", {"@N": "V"})
 
-        args_element = {
-            "@N": "Args",
-            "@RefId": PsrpObject.get_random_ref_id(),
-            "TN": {
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "T": [
+                    ]))
+                ]))
+                if len(parameter_split) > 1:
+                    arguments.append(OrderedDict([
+                        ("@RefId", PsrpObject.get_random_ref_id()),
+                        ("MS", OrderedDict([
+                            ("Nil", {"@N": "N"}),
+                            ("S", {"@N": "V", "#text": parameter_split[1]})
+                        ]))
+                    ]))
+            else:
+                arguments.append(OrderedDict([
+                    ("@RefId", PsrpObject.get_random_ref_id()),
+                    ("MS", OrderedDict([
+                        ("Nil", {"@N": "N"}),
+                        ("S", {"@N": "V", "#text": parameter})
+                    ]))
+                ]))
+
+        args_element = OrderedDict([
+            ("@N", "Args"),
+            ("@RefId", PsrpObject.get_random_ref_id()),
+            ("TN", OrderedDict([
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("T", [
                     "System.Collections.Generic.List`1[[System.Management.Automation.PSObject, System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35]]",
                     "System.Object"
-                ]
-            },
-            "LST": {}
-        }
+                ])
+            ])),
+            ("LST", {})
+        ])
         if len(arguments) > 0:
             args_element['LST'] = {'Obj': arguments}
             is_script = "false"
         else:
             is_script = "true"
 
-        command_dict = {
-            "Obj": {
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "S": {"@N": "Cmd", "#text": command},
-                    "B": {"@N": "IsScript","#text": is_script},
-                    "Nil": {"@N": "UseLocalScope"},
-                    "Obj": [
-                        {
-                            "@N": "MergeMyResult",
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "TN": {
-                                "@RefId": merge_reference_id,
-                                "T": [
+        command_dict = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("S", {"@N": "Cmd", "#text": command}),
+                    ("B", {"@N": "IsScript","#text": is_script}),
+                    ("Nil", {"@N": "UseLocalScope"}),
+                    ("Obj", [
+                        OrderedDict([
+                            ("@N", "MergeMyResult"),
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("TN", OrderedDict([
+                                ("@RefId", merge_reference_id),
+                                ("T", [
                                     "System.Management.Automation.Runspaces.PipelineResultTypes",
                                     "System.Enum",
                                     "System.ValueType",
                                     "System.Object"
-                                ],
-                            },
-                            "ToString": "None",
-                            "I32": "0"
-                        }, {
-                            "@N": "MergeToResult",
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "TNRef": {"@RefId": merge_reference_id},
-                            "ToString": "None",
-                            "I32": "0"
-                        }, {
-                            "@N": "MergePreviousResults",
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "TNRef": {"@RefId": merge_reference_id},
-                            "ToString": "None",
-                            "I32": "0"
-                        }, {
-                            "@N": "MergeError",
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "TNRef": {"@RefId": merge_reference_id},
-                            "ToString": "None",
-                            "I32": "0"
-                        }, {
-                            "@N": "MergeWarning",
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "TNRef": {"@RefId": merge_reference_id},
-                            "ToString": "None",
-                            "I32": "0"
-                        }, {
-                            "@N": "MergeVerbose",
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "TNRef": {"@RefId": merge_reference_id},
-                            "ToString": "None",
-                            "I32": "0"
-                        }, {
-                            "@N": "MergeDebug",
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "TNRef": {"@RefId": merge_reference_id},
-                            "ToString": "None",
-                            "I32": "0"
-                        }, args_element
-                    ]
-                }
-            }
-        }
+                                ])
+                            ])),
+                            ("ToString", "None"),
+                            ("I32", "0")
+                        ]), OrderedDict([
+                            ("@N", "MergeToResult"),
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("TNRef", {"@RefId": merge_reference_id}),
+                            ("ToString", "None"),
+                            ("I32", "0")
+                        ]), OrderedDict([
+                            ("@N", "MergePreviousResults"),
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("TNRef", {"@RefId": merge_reference_id}),
+                            ("ToString", "None"),
+                            ("I32", "0")
+                        ]), OrderedDict([
+                            ("@N", "MergeError"),
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("TNRef", {"@RefId": merge_reference_id}),
+                            ("ToString", "None"),
+                            ("I32", "0")
+                        ]), OrderedDict([
+                            ("@N", "MergeWarning"),
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("TNRef", {"@RefId": merge_reference_id}),
+                            ("ToString", "None"),
+                            ("I32", "0")
+                        ]), OrderedDict([
+                            ("@N", "MergeVerbose"),
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("TNRef", {"@RefId": merge_reference_id}),
+                            ("ToString", "None"),
+                            ("I32", "0")
+                        ]), OrderedDict([
+                            ("@N", "MergeDebug"),
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("TNRef", {"@RefId": merge_reference_id}),
+                            ("ToString", "None"),
+                            ("I32", "0")
+                        ]), args_element
+                    ])
+                ]))
+            ]))
+        ])
 
         return command_dict
 
@@ -405,26 +395,24 @@ class PsrpObject(object):
 
         :return: dict of the HostInfo object
         """
-        host_info = {
-            "Obj": {
-                "@N": "HostInfo",
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "Obj": {
-                        "@N": "_hostDefaultData",
-                        "@RefId": PsrpObject.get_random_ref_id(),
-                        "MS": {
-                            "Obj": {
-                                "@N": "data",
-                                "@RefId": PsrpObject.get_random_ref_id(),
-                                "TN": {
-                                    "@RefId": PsrpObject.get_random_ref_id(),
-                                    "T": ["System.Collections.Hashtable", "System.Object"]
-                                },
-                                "DCT": {
-                                    "En": [
-                                        # DCT entries need to keep their order where the key is first
-                                        # Using OrderedDict to do this
+        host_info = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@N", "HostInfo"),
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("Obj", OrderedDict([
+                        ("@N", "_hostDefaultData"),
+                        ("@RefId", PsrpObject.get_random_ref_id()),
+                        ("MS", OrderedDict([
+                            ("Obj", OrderedDict([
+                                ("@N", "data"),
+                                ("@RefId", PsrpObject.get_random_ref_id()),
+                                ("TN", OrderedDict([
+                                    ("@RefId", PsrpObject.get_random_ref_id()),
+                                    ("T", ["System.Collections.Hashtable", "System.Object"])
+                                ])),
+                                ("DCT", OrderedDict([
+                                    ("EN", [
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "0"}),
                                             ("Obj", PsrpObject.create_color(PsrpColor.GRAY)["Obj"])
@@ -443,14 +431,14 @@ class PsrpObject(object):
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "4"}),
-                                            ("Obj", {
-                                                "@N": "Value",
-                                                "@RefId": PsrpObject.get_random_ref_id(),
-                                                "MS": {
-                                                    "S": {"@N": "T", "#text": "System.Int32"},
-                                                    "I32": {"@N": "V", "#text": "25"}
-                                                }
-                                            })
+                                            ("Obj", OrderedDict([
+                                                ("@N", "Value"),
+                                                ("@RefId", PsrpObject.get_random_ref_id()),
+                                                ("MS", OrderedDict([
+                                                    ("S", {"@N": "T", "#text": "System.Int32"}),
+                                                    ("I32", {"@N": "V", "#text": "25"})
+                                                ]))
+                                            ]))
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "5"}),
@@ -470,35 +458,35 @@ class PsrpObject(object):
                                         ]),
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "9"}),
-                                            ("Obj", {
-                                                "@N": "Value",
-                                                "@RefId": PsrpObject.get_random_ref_id(),
-                                                "MS": {
-                                                    "S": [
+                                            ("Obj", OrderedDict([
+                                                ("@N", "Value"),
+                                                ("@RefId", PsrpObject.get_random_ref_id()),
+                                                ("MS", OrderedDict([
+                                                    ("S", [
                                                         {"@N": "T", "#text": "System.String"},
                                                         {"@N": "V", "#text": "Pywinrm PSRP"}
-                                                    ]
-                                                }
-                                            })
+                                                    ])
+                                                ]))
+                                            ]))
                                         ])
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "B": [
+                                    ])
+                                ]))
+                            ]))
+                        ]))
+                    ])),
+                    ("B", [
                         {"@N": "_isHostNull", "#text": "false"},
                         {"@N": "_isHostUINull", "#text": "false"},
                         {"@N": "_isHostRawUINull", "#text": "false"},
-                        {"@N": "_useRunspaceHost", "#text": "false"},
-                    ]
-                }
-            }
-        }
+                        {"@N": "_useRunspaceHost", "#text": "false"}
+                    ])
+                ]))
+            ]))
+        ])
         return host_info
 
     @staticmethod
-    def get_host_method_identifier(method_type, method_id):
+    def create_host_method_identifier(method_type, method_id):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.3.17 Host Method Identifier
@@ -509,22 +497,23 @@ class PsrpObject(object):
         :param method_id: The ID of the method
         :return: dict of the Host Method Identifier object
         """
-        host_method_identifier = {
-            "Obj": {
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "@N": "mi",
-                "TN": {
-                    "T": [
+        host_method_identifier = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("@N", "mi"),
+                ("TN", OrderedDict([
+                    ("@RefId", PsrpObject.get_random_ref_id()),
+                    ("T", [
                         "System.Management.Automation.Remoting.RemoteHostMethodId",
                         "System.Enum",
                         "System.ValueType",
                         "System.Object"
-                    ]
-                },
-                "ToString": method_type,
-                "I32": method_id
-            }
-        }
+                    ])
+                ])),
+                ("ToString", method_type),
+                ("I32", method_id)
+            ]))
+        ])
         return host_method_identifier
 
     @staticmethod
@@ -565,18 +554,18 @@ class SessionCapability(object):
         self.serialization_version = serialization_version
 
     def create_message_data(self):
-        message_data = {
-            "Obj": {
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "Version": [
+        message_data = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("Version", [
                         {"@N": "PSVersion", "#text": self.ps_version},
                         {"@N": "protocolversion", "#text": self.protocol_version},
-                        {"@N": "SerializationVersion", "#text": self.serialization_version},
-                    ]
-                }
-            }
-        }
+                        {"@N": "SerializationVersion", "#text": self.serialization_version}
+                    ])
+                ]))
+            ]))
+        ])
         # TODO: Add timezone support
 
         return message_data
@@ -586,21 +575,11 @@ class SessionCapability(object):
         version_values = message.data["Obj"]["MS"]["Version"]
 
         if len(version_values) != 3:
-            raise Exception("Expecting 3 version properties in SESSION_CAPAIBLITY, actual: %d" % len(version_values))
+            raise WinRMError("Expecting 3 version properties in SESSION_CAPAIBLITY, actual: %d" % len(version_values))
 
-        ps_version = None
-        protocol_version = None
-        serialization_version = None
-        for version in version_values:
-            attribute_value = version['@N']
-            if attribute_value == 'PSVersion':
-                ps_version = version['#text']
-            elif attribute_value == 'protocolversion':
-                protocol_version = version['#text']
-            elif attribute_value == 'SerializationVersion':
-                serialization_version = version['#text']
-            else:
-                raise Exception("Invalid attribute value '%s'" % attribute_value)
+        ps_version = get_value_of_attribute(version_values, "N", "PSVersion", "#text")
+        protocol_version = get_value_of_attribute(version_values, "N", "protocolversion", "#text")
+        serialization_version = get_value_of_attribute(version_values, "N", "SerializationVersion", "#text")
 
         return SessionCapability(ps_version, protocol_version, serialization_version)
 
@@ -625,23 +604,23 @@ class InitRunspacePool(object):
         self.application_arguments = None
 
     def create_message_data(self):
-        message_data = {
-            "Obj": {
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "I32": [
+        message_data = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("I32", [
                         {"@N": "MinRunspaces", "#text": self.min_runspaces},
                         {"@N": "MaxRunspaces", "#text": self.max_runspaces}
-                    ],
-                    "Obj": [
-                        self.ps_thread_options["Obj"],
-                        self.apartment_state["Obj"],
-                        self.host_info["Obj"]
-                    ],
-                    "Nil": {"@N": "ApplicationArguments"}
-                }
-            }
-        }
+                    ])
+                ])),
+                ("Obj", [
+                    self.ps_thread_options["Obj"],
+                    self.apartment_state["Obj"],
+                    self.host_info["Obj"]
+                ]),
+                ("Nil", {"@N": "ApplicationArguments"})
+            ]))
+        ])
 
         return message_data
 
@@ -668,7 +647,7 @@ class RunspacePoolState(object):
         state = raw_state["#text"]
 
         if attribute != 'RunspaceState':
-            raise Exception("Invalid RUNSPACE_STATE message from the server")
+            raise WinRMError("Invalid RUNSPACE_STATE message from the server")
 
         friendly_state = None
         for key, value in PsrpRunspacePoolState.__dict__.items():
@@ -676,7 +655,7 @@ class RunspacePoolState(object):
                 friendly_state = key
 
         if friendly_state is None:
-            raise Exception("Invalid RunspacePoolState value of %s" % state)
+            raise WinRMError("Invalid RunspacePoolState value of %s" % state)
 
         return RunspacePoolState(state, friendly_state)
 
@@ -704,24 +683,24 @@ class CreatePipeline(object):
         self.is_nested = False
 
     def create_message_data(self):
-        message_data = {
-            "Obj": {
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "B": [
+        message_data = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("B", [
                         {"@N": "NoInput", "#text": str(self.no_input).lower()},
                         {"@N": "AddToHistory", "#text": str(self.add_to_history).lower()},
                         {"@N": "IsNested", "#text": str(self.is_nested).lower()}
-                    ],
-                    "Obj": [
+                    ]),
+                    ("Obj", [
                         self.apartment_state["Obj"],
                         self.remote_stream_options["Obj"],
                         self.host_info["Obj"],
                         self.power_shell["Obj"]
-                    ]
-                }
-            }
-        }
+                    ])
+                ]))
+            ]))
+        ])
 
         return message_data
 
@@ -745,8 +724,8 @@ class ApplicationPrivateData(object):
     def parse_message_data(message):
         try:
             bash_version = message.data["Obj"]["MS"]["Obj"]["DCT"]["En"]["Obj"]["DCT"]["En"]["Version"]["#text"]
-        except TypeError:
-            raise Exception("Invalid APPLICATION_PRIVATE_DATA message from the server")
+        except KeyError:
+            raise WinRMError("Invalid APPLICATION_PRIVATE_DATA message from the server")
 
         return ApplicationPrivateData(bash_version)
 
@@ -796,40 +775,40 @@ class PipelineHostResponse(object):
         """
         self.message_type = PsrpMessageType.PIPELINE_HOST_RESPONSE
         self.call_id = call_id
-        self.method_identifier = PsrpObject.get_host_method_identifier(method_type, method_id)
+        self.method_identifier = PsrpObject.create_host_method_identifier(method_type, method_id)
         self.prompt_key = prompt_key
         self.response = response
 
     def create_message_data(self):
-        response_data = {
-            "Obj": {
-                "@RefId": PsrpObject.get_random_ref_id(),
-                "MS": {
-                    "Obj": [
-                        {
-                            "@RefId": PsrpObject.get_random_ref_id(),
-                            "@N": "mr",
-                            "TN": {
-                                "@RefId": PsrpObject.get_random_ref_id(),
-                                "T": [
+        message_data = OrderedDict([
+            ("Obj", OrderedDict([
+                ("@RefId", PsrpObject.get_random_ref_id()),
+                ("MS", OrderedDict([
+                    ("Obj", [
+                        OrderedDict([
+                            ("@RefId", PsrpObject.get_random_ref_id()),
+                            ("@N", "mr"),
+                            ("TN", OrderedDict([
+                                ("@RefId", PsrpObject.get_random_ref_id()),
+                                ("T", [
                                     "System.Collections.Hashtable",
                                     "System.Object"
-                                ]
-                            },
-                            "DCT": {
-                                "En": {
-                                    "S": [
+                                ])
+                            ])),
+                            ("DCT", OrderedDict([
+                                ("En", OrderedDict([
+                                    ("S", [
                                         {"@N": "Key", "#text": self.prompt_key},
                                         {"@N": "Value", "#text": self.response}
-                                    ]
-                                }
-                            }
-                        },
+                                    ])
+                                ]))
+                            ]))
+                        ]),
                         self.method_identifier['Obj']
-                    ],
-                    "I64": {"@N": "ci", "#text": self.call_id},
-                }
-            }
-        }
+                    ]),
+                    ("I64", {"@N": "ci", "#text": self.call_id})
+                ]))
+            ]))
+        ])
 
-        return response_data
+        return message_data

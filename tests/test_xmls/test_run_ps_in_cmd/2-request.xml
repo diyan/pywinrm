@@ -19,12 +19,8 @@
     </s:Header>
     <s:Body>
         <rsp:Shell>
-            <rsp:ProfileLoaded>True</rsp:ProfileLoaded>
             <rsp:InputStreams>stdin</rsp:InputStreams>
-            <rsp:Encoding>utf-8</rsp:Encoding>
             <rsp:OutputStreams>stdout stderr</rsp:OutputStreams>
-            <rsp:Locale>en-US</rsp:Locale>
-            <rsp:DataLocale>en-US</rsp:DataLocale>
         </rsp:Shell>
     </s:Body>
 </s:Envelope>
