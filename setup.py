@@ -27,8 +27,8 @@ setup(
     author_email='alexey.diyan@gmail.com',
     url='http://github.com/diyan/pywinrm/',
     license='MIT license',
-    packages=('winrm', 'winrm.tests'),
-    package_data={'winrm.tests': ['*.ps1']},
+    packages=('winrm', 'tests'),
+    package_data={'tests': ['*.ps1']},
     install_requires=install_requires,
     extras_require = dict(kerberos=['requests-kerberos>=0.10.0'], credssp=['requests-credssp>=0.0.1']),
     classifiers=[
