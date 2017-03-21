@@ -1,6 +1,5 @@
 import mock
 import os
-import pytest
 import uuid
 
 from requests.models import Response
@@ -100,9 +99,14 @@ def test_run_ps_in_cmd_fail(mock_send, mock_uuid):
     assert actual.stdout == b''
     assert actual.return_code == 1
 
-@pytest.mark.skip(reason="Need to setup request/response xml files")
+'''
 def test_run_ps_script():
-    s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01', server_cert_validation='ignore')
+    global test_name
+    global test_message_counter
+    test_name = 'test_run_ps_script'
+    test_message_counter = 1
+
+    s = Session(endpoint='windows-host', username='john.smith', password='secret')
     test_script = """$DebugPreference = 'Continue'
         $VerbosePreference = 'Continue'
         $a = 'Test'
@@ -125,10 +129,8 @@ def test_run_ps_script():
     assert actual.verbose == b'verbose stream\n'
     assert actual.warning == b'warning stream\n'
     assert actual.return_code == 0
-test_run_ps_script()
 
 
-@pytest.mark.skip(reason="Need to setup request/response xml files")
 def test_run_ps_with_parameters():
     s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01',
                 server_cert_validation='ignore')
@@ -145,7 +147,6 @@ def test_run_ps_with_parameters():
     assert actual.return_code == 0
 
 
-@pytest.mark.skip(reason="Need to setup request/response xml files")
 def test_run_ps_with_exit_code():
     s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01',
                 server_cert_validation='ignore')
@@ -162,7 +163,6 @@ def test_run_ps_with_exit_code():
     assert actual.return_code == 1
 
 
-@pytest.mark.skip(reason="Need to setup request/response xml files")
 def test_run_ps_with_error_stop():
     s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01',
                 server_cert_validation='ignore')
@@ -179,7 +179,6 @@ def test_run_ps_with_error_stop():
     assert actual['return_code'] == 5
 
 
-@pytest.mark.skip(reason="Need to setup request/response xml files")
 def test_run_ps_with_input():
     s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01',
                 server_cert_validation='ignore')
@@ -194,6 +193,7 @@ def test_run_ps_with_input():
     assert actual['verbose'] == b''
     assert actual['warning'] == b''
     assert actual['return_code'] == 0
+'''
 
 
 def test_target_as_hostname():
