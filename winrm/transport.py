@@ -203,27 +203,30 @@ class Transport(object):
     def _raise_wsman_error(self, response):
         if response.content:
             response_text = response.content
+            log.warning("Received error from Server, Message response: %s" % response_text)
+            response_dict = xmltodict.parse(response_text)
+            try:
+                wsman_fault = response_dict['s:Envelope']['s:Body']['s:Fault']['s:Detail']['f:WSManFault']
+                code = wsman_fault.get('@Code', 'Unknown')
+                # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
+                if code == '2150858793':
+                    raise WinRMOperationTimeoutError()
+
+                fault_message = wsman_fault['f:Message']
+                if isinstance(fault_message, str):
+                    error_info = 'WSMan Code; %s, Error: %s' % (code, fault_message)
+                else:
+                    provider_fault = fault_message['f:ProviderFault']
+                    provider = provider_fault.get('@provider', 'Unknown')
+                    path = provider_fault.get('@path', 'Unknown')
+                    error = provider_fault.get('#text', 'Unknown')
+                    error_info = 'WSMan Code: %s, Provider: %s, Path: %s, Error: %s' % (code, provider, path, error)
+            except KeyError:
+                error_info = 'Error: Unknown %s' % response_text
+            raise WinRMTransportError('http', 'Bad HTTP response returned from server. Code {0}: {1}'.format(
+                response.status_code, error_info))
         else:
-            response_text = ''
+            raise WinRMTransportError('http',
+                                      'Bad HTTP response returned from server. Code {0}'.format(response.status_code))
 
-        log.warning("Received error from Server, Message response: %s" % response_text)
-        response_dict = xmltodict.parse(response_text)
-        try:
-            wsman_fault = response_dict['s:Envelope']['s:Body']['s:Fault']['s:Detail']['f:WSManFault']
-            code = wsman_fault.get('@Code', 'Unknown')
-            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
-            if code == '2150858793':
-                raise WinRMOperationTimeoutError()
 
-            fault_message = wsman_fault['f:Message']
-            if isinstance(fault_message, str):
-                error_info = 'WSMan Code; %s, Error: %s' % (code, fault_message)
-            else:
-                provider_fault = fault_message['f:ProviderFault']
-                provider = provider_fault.get('@provider', 'Unknown')
-                path = provider_fault.get('@path', 'Unknown')
-                error = provider_fault.get('#text', 'Unknown')
-                error_info = 'WSMan Code: %s, Provider: %s, Path: %s, Error: %s' % (code, provider, path, error)
-        except KeyError:
-            error_info = 'Error: Unknown %s' % response_text
-        raise WinRMTransportError('http', 'Bad HTTP response returned from server. Code {0}: {1}'.format(response.status_code, error_info))

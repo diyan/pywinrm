@@ -2,7 +2,7 @@ import base64
 import struct
 import xmltodict
 
-from winrm.contants import WsmvAction, WsmvConstant, WsmvResourceURI
+from winrm.contants import WsmvAction, WsmvConstant
 from winrm.wsmv.message_objects import WsmvObject
 from winrm.psrp.message_objects import Message
 
@@ -110,15 +110,15 @@ class Fragmenter(object):
         bytes_fragmented = 0
         start_bit = Fragment.IS_START_FRAGMENT
 
-        while bytes_fragmented < len(blob):
+        while bytes_fragmented < blob_size:
             end_bit = Fragment.IS_MIDDLE_FRAGMENT
             last_byte = bytes_fragmented + max_blob_size
-            if last_byte > fragment_id:
+            if last_byte > blob_size:
                 last_byte = blob_size
                 end_bit = Fragment.IS_END_FRAGMENT
 
             blob_fragment = blob[bytes_fragmented:last_byte]
-            fragment = Fragment(self.object_id, fragment_id, end_bit, start_bit, blob_fragment)
+            fragment = Fragment(self.object_id, fragment_id, start_bit, end_bit, blob_fragment)
             fragments.append(fragment.create_fragment())
 
             start_bit = Fragment.IS_MIDDLE_FRAGMENT
@@ -166,6 +166,7 @@ class Fragmenter(object):
 
 class Defragmenter(object):
     def __init__(self):
+        self.fragments = {}
         self.fragments = b''
 
     def defragment_message(self, message):

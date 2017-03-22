@@ -52,7 +52,7 @@ class WsmvObject(object):
         return receive
 
     @staticmethod
-    def send(stream_name, command_id, stream, end=False):
+    def send(stream_name, stream, command_id=None, end=False):
         """
         [MS-WSMV] v30.0 2017-07-14
         2.2.4.32 Send
@@ -68,11 +68,13 @@ class WsmvObject(object):
             'rsp:Send': {
                 'rsp:Stream': {
                     '@Name': stream_name,
-                    '@CommandId': command_id,
                     '#text': stream
                 }
             }
         }
+        if command_id:
+            send['rsp:Send']['rsp:Stream']['@CommandId'] = command_id
+
         if end:
             send['rsp:Send']['rsp:Stream']['@End'] = 'true'
 

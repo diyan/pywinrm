@@ -11,7 +11,7 @@ from winrm.wsmv.message_objects import WsmvObject
 from winrm.psrp.response_reader import Reader
 from winrm.psrp.fragmenter import Fragmenter, Defragmenter
 from winrm.psrp.message_objects import CreatePipeline, SessionCapability, InitRunspacePool, Message, \
-    RunspacePoolState, PsrpObject, PipelineHostResponse
+    RunspacePoolState, PsrpObject, PipelineHostResponse, ApplicationPrivateData
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +46,7 @@ class PsrpClient(Client):
         self.state = PsrpRunspacePoolState.BEFORE_OPEN
         self.rpid = uuid.uuid4()
         self.pipelines = []
+        self.application_private_data = None
 
     def open_shell(self,
                    ps_version=PsrpConstant.DEFAULT_PS_VERSION,
@@ -63,22 +64,21 @@ class PsrpClient(Client):
                             uuid.UUID(WsmvConstant.EMPTY_UUID), init_runspace_pool)
 
         fragments = self.fragmenter.fragment_messages([sc, init_pool])
-
-        for fragment in fragments:
-            open_content = {
-                'creationXml': {
-                    '@xmlns': 'http://schemas.microsoft.com/powershell',
-                    '#text': fragment
-                }
+        # Send the first fragment using the WSMV Create message
+        open_content = {
+            'creationXml': {
+                '@xmlns': 'http://schemas.microsoft.com/powershell',
+                '#text': fragments[0]
             }
-            body = WsmvObject.shell(shell_id=self.shell_id, input_streams='stdin pr', output_streams='stdout',
-                                          open_content=open_content)
-            option_set = {
-                'protocolversion': protocol_version
-            }
-            self.send(WsmvAction.CREATE, body=body, option_set=option_set)
-
+        }
+        body = WsmvObject.shell(shell_id=self.shell_id, input_streams='stdin pr', output_streams='stdout',
+                                      open_content=open_content)
+        option_set = {
+            'protocolversion': protocol_version
+        }
+        a = self.send(WsmvAction.CREATE, body=body, option_set=option_set)
         self.state = PsrpRunspacePoolState.NEGOTIATION_SENT
+
         self._wait_for_open_pool()
 
     def run_command(self, command, parameters=(), responses=()):
@@ -156,6 +156,7 @@ class PsrpClient(Client):
 
         while self.state != PsrpRunspacePoolState.OPENED:
             body = self.send(WsmvAction.RECEIVE, body=receive_body, selector_set=selector_set, option_set=option_set)
+
             streams = body['s:Envelope']['s:Body']['rsp:ReceiveResponse']['rsp:Stream']
             messages = []
             if isinstance(streams, list):
@@ -178,6 +179,10 @@ class PsrpClient(Client):
                                         runspace_state == PsrpRunspacePoolState.CLOSED:
                             raise WinRMError("Failed to initialised a PSRP Runspace Pool, state set to %s"
                                              % runspace_state.friendly_state)
+                    elif message_type == PsrpMessageType.APPLICATION_PRIVATE_DATA:
+                        application_private_data = ApplicationPrivateData.parse_message_data(message)
+                        self.application_private_data = application_private_data.application_info
+                        log.debug("Retrieved server application private data: %s" % str(self.application_private_data))
 
         log.debug("PSRP RunspacePool created: Shell ID: %s, Resource URI: %s" % (self.shell_id, self.resource_uri))
 
@@ -241,9 +246,8 @@ class Pipeline(object):
         # Send the remaining fragments using the Send message
         for idx, fragment in enumerate(fragments):
             if idx != 0:
-                body = WsmvObject.send('stdin', command_id, fragment[idx])
-                self.client.send(WsmvAction.SEND, body=body,
-                                        selector_set={'ShellId': self.client.shell_id})
+                body = WsmvObject.send('stdin', fragments[idx], command_id=command_id)
+                self.client.send(WsmvAction.SEND, body=body, selector_set={'ShellId': self.client.shell_id})
 
     def get_output(self):
         """
@@ -301,7 +305,7 @@ class Pipeline(object):
         fragments = self.client.fragmenter.fragment_messages(input_message)
         selector_set = {"ShellId": self.client.shell_id}
         for fragment in fragments:
-            body = WsmvObject.send('pr', self.command_id, fragment)
+            body = WsmvObject.send('pr', fragment, self.command_id)
             self.client.send(WsmvAction.SEND, body=body, selector_set=selector_set)
 
     def stop(self):

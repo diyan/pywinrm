@@ -1145,25 +1145,67 @@ def test_create_create_pipeline(mock_uuid):
     assert xml_str_compare(actual, expected)
 
 
-def test_parse_application_private_data():
+def test_parse_application_private_data_win_2016():
     message = xmltodict.parse("""
         <Obj RefId="0">
             <MS>
                 <Obj N="ApplicationPrivateData" RefId="1">
-                    <TN RefID="0">
+                    <TN RefId="0">
                         <T>System.Management.Automation.PSPrimitiveDictionary</T>
                         <T>System.Collections.Hashtable</T>
                         <T>System.Object</T>
                     </TN>
                     <DCT>
                         <En>
-                            <S N="Key">BashPrivateData</S>
+                            <S N="Key">PSVersionTable</S>
                             <Obj N="Value" RefId="2">
-                                <TNRef RefID="0" />
+                                <TNRef RefId="0"></TNRef>
                                 <DCT>
                                     <En>
-                                        <S N="Key">BashVersion</S>
-                                        <Version N="Value">2.0</Version>
+                                        <S N="Key">PSVersion</S>
+                                        <Version N="Value">5.1.14393.953</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">PSEdition</S>
+                                        <S N="Value">Desktop</S>
+                                    </En>
+                                    <En>
+                                        <S N="Key">PSCompatibleVersions</S>
+                                        <Obj N="Value" RefId="3">
+                                            <TN RefId="1">
+                                                <T>System.Version[]</T>
+                                                <T>System.Array</T>
+                                                <T>System.Object</T>
+                                            </TN>
+                                            <LST>
+                                                <Version>1.0</Version>
+                                                <Version>2.0</Version>
+                                                <Version>3.0</Version>
+                                                <Version>4.0</Version>
+                                                <Version>5.0</Version>
+                                                <Version>5.1.14393.953</Version>
+                                            </LST>
+                                        </Obj>
+                                    </En>
+                                    <En>
+                                        <S N="Key">CLRVersion</S>
+                                        <Version N="Value">4.0.30319.42000</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">BuildVersion</S>
+                                        <Version N="Value">10.0.14393.953</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">WSManStackVersion</S>
+                                        <Version N="Value">3.0</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">PSRemotingProtocolVersion</S>
+                                        <Version N="Value">2.3</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">SerializationVersion</S>
+                                        <Version N="Value">1.1.0.1</Version>
                                     </En>
                                 </DCT>
                             </Obj>
@@ -1174,7 +1216,125 @@ def test_parse_application_private_data():
         </Obj>""")
     actual = ApplicationPrivateData.parse_message_data(
         Message(1, mock_uuid(), mock_uuid(), PrimitiveMessage(PsrpMessageType.APPLICATION_PRIVATE_DATA, message)))
-    assert actual.bash_version == '2.0'
+    expected = {
+        'PSVersionTable': {
+            'BuildVersion': '10.0.14393.953',
+            'CLRVersion': '4.0.30319.42000',
+            'PSCompatibleVersions': [
+                '1.0',
+                '2.0',
+                '3.0',
+                '4.0',
+                '5.0',
+                '5.1.14393.953'
+            ],
+            'PSEdition': 'Desktop',
+            'PSRemotingProtocolVersion': '2.3',
+            'PSVersion': '5.1.14393.953',
+            'SerializationVersion': '1.1.0.1',
+            'WSManStackVersion': '3.0'
+        }
+    }
+    assert actual.application_info == expected
+
+
+def test_parse_application_private_data_win_2012():
+    message = xmltodict.parse("""
+        <Obj RefId="0">
+            <MS>
+                <Obj N="ApplicationPrivateData" RefId="1">
+                    <TN RefId="0">
+                        <T>System.Management.Automation.PSPrimitiveDictionary</T>
+                        <T>System.Collections.Hashtable</T>
+                        <T>System.Object</T>
+                    </TN>
+                    <DCT>
+                        <En>
+                            <S N="Key">DebugMode</S>
+                            <I32 N="Value">1</I32>
+                        </En>
+                        <En>
+                            <S N="Key">DebugStop</S>
+                            <B N="Value">false</B>
+                        </En>
+                        <En>
+                            <S N="Key">PSVersionTable</S>
+                            <Obj N="Value" RefId="2">
+                                <TNRef RefId="0"></TNRef>
+                                <DCT>
+                                    <En>
+                                        <S N="Key">PSVersion</S>
+                                        <Version N="Value">2.0</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">PSCompatibleVersions</S>
+                                        <Obj N="Value" RefId="3">
+                                            <TN RefId="1">
+                                                <T>System.Version[]</T>
+                                                <T>System.Array</T>
+                                                <T>System.Object</T>
+                                            </TN>
+                                            <LST>
+                                                <Version>1.0</Version>
+                                                <Version>2.0</Version>
+                                                <Version>3.0</Version>
+                                                <Version>4.0</Version>
+                                            </LST>
+                                        </Obj>
+                                    </En>
+                                    <En>
+                                        <S N="Key">BuildVersion</S>
+                                        <Version N="Value">6.3.9600.17400</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">CLRVersion</S>
+                                        <Version N="Value">4.0.30319.42000</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">WSManStackVersion</S>
+                                        <Version N="Value">3.0</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">PSRemotingProtocolVersion</S>
+                                        <Version N="Value">2.2</Version>
+                                    </En>
+                                    <En>
+                                        <S N="Key">SerializationVersion</S>
+                                        <Version N="Value">1.1.0.1</Version>
+                                    </En>
+                                </DCT>
+                            </Obj>
+                        </En>
+                        <En>
+                            <S N="Key">DebugBreakpointCount</S>
+                            <I32 N="Value">0</I32>
+                        </En>
+                    </DCT>
+                </Obj>
+            </MS>
+        </Obj>""")
+    actual = ApplicationPrivateData.parse_message_data(
+        Message(1, mock_uuid(), mock_uuid(), PrimitiveMessage(PsrpMessageType.APPLICATION_PRIVATE_DATA, message)))
+    expected = {
+        'DebugBreakpointCount': '0',
+        'DebugMode': '1',
+        'DebugStop': 'false',
+        'PSVersionTable': {
+            'BuildVersion': '6.3.9600.17400',
+            'CLRVersion': '4.0.30319.42000',
+            'PSCompatibleVersions': [
+                '1.0',
+                '2.0',
+                '3.0',
+                '4.0'
+            ],
+            'PSRemotingProtocolVersion': '2.2',
+            'PSVersion': '2.0',
+            'SerializationVersion': '1.1.0.1',
+            'WSManStackVersion': '3.0'
+        }
+    }
+    assert actual.application_info == expected
 
 
 def test_parse_application_private_data_invalid_message():

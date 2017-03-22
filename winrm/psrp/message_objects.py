@@ -706,7 +706,7 @@ class CreatePipeline(object):
 
 
 class ApplicationPrivateData(object):
-    def __init__(self, bash_version):
+    def __init__(self, application_info):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.2.13 APPLICATION_PRIVATE_DATA Message
@@ -718,16 +718,45 @@ class ApplicationPrivateData(object):
         Target: RunspacePool
         """
         self.message_type = PsrpMessageType.APPLICATION_PRIVATE_DATA
-        self.bash_version = bash_version
+        self.application_info = application_info
 
     @staticmethod
     def parse_message_data(message):
         try:
-            bash_version = message.data["Obj"]["MS"]["Obj"]["DCT"]["En"]["Obj"]["DCT"]["En"]["Version"]["#text"]
+            raw_info = message.data["Obj"]["MS"]["Obj"]["DCT"]["En"]
+            application_info = ApplicationPrivateData.parse_raw_application_raw_data(raw_info)
         except KeyError:
             raise WinRMError("Invalid APPLICATION_PRIVATE_DATA message from the server")
 
-        return ApplicationPrivateData(bash_version)
+        return ApplicationPrivateData(application_info)
+
+    @staticmethod
+    def parse_raw_application_raw_data(raw_info):
+        application_info = {}
+        if isinstance(raw_info, dict):
+            raw_info = [raw_info]
+        for info in raw_info:
+            key = None
+            value = None
+
+            for node in info:
+                child_node = info[node]
+                raw_key = get_value_of_attribute(child_node, 'N', 'Key', '#text')
+                if raw_key:
+                    key = raw_key
+                raw_value = get_value_of_attribute(child_node, 'N', 'Value')
+                if raw_value:
+                    if '#text' in raw_value.keys():
+                        value = raw_value['#text']
+                    elif 'DCT' in raw_value.keys():
+                        value = ApplicationPrivateData.parse_raw_application_raw_data(raw_value['DCT']['En'])
+                    elif 'LST' in raw_value.keys():
+                        value_key = next(iter(raw_value['LST']))
+                        value = raw_value['LST'][value_key]
+            if key:
+                application_info[key] = value
+
+        return application_info
 
 
 class PipelineState(object):

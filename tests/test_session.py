@@ -283,7 +283,27 @@ def test_run_ps_with_input(mock_send, mock_uuid):
     assert actual['return_code'] == 0
 
 
-# def test_run_with_multiple_fragments():
+@mock.patch('requests.sessions.Session.send', side_effect=send)
+@mock.patch('uuid.uuid4', side_effect=mock_uuid)
+def test_run_with_multiple_fragments(mock_send, mock_uuid):
+    # This was run on a Server 2012 R2 box
+    global test_name
+    global test_message_counter
+    test_name = 'test_run_with_multiple_fragments'
+    test_message_counter = 1
+
+    s = Session(endpoint='windows-host', username='john.smith', password='secret')
+    long_string = 'Long String' * 5000
+    actual = s.run_ps('Write-Host', [long_string])
+
+    assert actual['error'] == b''
+    assert actual['stderr'] == b''
+    assert actual['debug'] == b''
+    assert actual['output'] == b''
+    assert actual['stdout'] == long_string.encode() + b'\n\n'
+    assert actual['verbose'] == b''
+    assert actual['warning'] == b''
+    assert actual['return_code'] == 0
 
 
 def test_target_as_hostname():

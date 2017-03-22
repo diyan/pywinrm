@@ -57,7 +57,7 @@ def test_send_not_end():
         <rsp:Send>
             <rsp:Stream Name="stdin" CommandId="1111-1111">stream</rsp:Stream>
         </rsp:Send>"""
-    actual = xmltodict.unparse(WsmvObject.send('stdin', '1111-1111', 'stream'), pretty=True, full_document=False)
+    actual = xmltodict.unparse(WsmvObject.send('stdin', 'stream', '1111-1111'), pretty=True, full_document=False)
 
     assert xml_str_compare(expected, actual)
 
@@ -67,7 +67,7 @@ def test_send_at_end():
         <rsp:Send>
             <rsp:Stream Name="pr" CommandId="1111-1111" End="true">AADD==</rsp:Stream>
         </rsp:Send>"""
-    actual = xmltodict.unparse(WsmvObject.send('pr', '1111-1111', 'AADD==', True), pretty=True, full_document=False)
+    actual = xmltodict.unparse(WsmvObject.send('pr', 'AADD==', '1111-1111', True), pretty=True, full_document=False)
 
     assert xml_str_compare(expected, actual)
 
