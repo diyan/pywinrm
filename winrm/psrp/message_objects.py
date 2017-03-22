@@ -412,7 +412,7 @@ class PsrpObject(object):
                                     ("T", ["System.Collections.Hashtable", "System.Object"])
                                 ])),
                                 ("DCT", OrderedDict([
-                                    ("EN", [
+                                    ("En", [
                                         OrderedDict([
                                             ("I32", {"@N": "Key", "#text": "0"}),
                                             ("Obj", PsrpObject.create_color(PsrpColor.GRAY)["Obj"])
@@ -611,14 +611,14 @@ class InitRunspacePool(object):
                     ("I32", [
                         {"@N": "MinRunspaces", "#text": self.min_runspaces},
                         {"@N": "MaxRunspaces", "#text": self.max_runspaces}
-                    ])
-                ])),
-                ("Obj", [
-                    self.ps_thread_options["Obj"],
-                    self.apartment_state["Obj"],
-                    self.host_info["Obj"]
-                ]),
-                ("Nil", {"@N": "ApplicationArguments"})
+                    ]),
+                    ("Obj", [
+                        self.ps_thread_options["Obj"],
+                        self.apartment_state["Obj"],
+                        self.host_info["Obj"]
+                    ]),
+                    ("Nil", {"@N": "ApplicationArguments"})
+                ]))
             ]))
         ])
 

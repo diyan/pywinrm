@@ -462,6 +462,74 @@ def test_create_command_with_two_parameters(mock_uuid):
 
 
 @mock.patch('uuid.uuid4', side_effect=mock_uuid)
+def test_create_command_with_parameter_key(mock_uuid):
+    expected = """
+        <Obj RefId="286331153">
+            <MS>
+                <S N="Cmd">New-Item</S>
+                <B N="IsScript">false</B>
+                <Nil N="UseLocalScope"></Nil>
+                <Obj N="MergeMyResult" RefId="286331153">
+                    <TN RefId="286331153">
+                        <T>System.Management.Automation.Runspaces.PipelineResultTypes</T>
+                        <T>System.Enum</T>
+                        <T>System.ValueType</T>
+                        <T>System.Object</T>
+                    </TN>
+                    <ToString>None</ToString>
+                    <I32>0</I32>
+                </Obj>
+                <Obj N="MergeToResult" RefId="286331153">
+                    <TNRef RefId="286331153"></TNRef>
+                    <ToString>None</ToString>
+                    <I32>0</I32>
+                </Obj>
+                <Obj N="MergePreviousResults" RefId="286331153">
+                    <TNRef RefId="286331153"></TNRef>
+                    <ToString>None</ToString>
+                    <I32>0</I32>
+                </Obj>
+                <Obj N="MergeError" RefId="286331153">
+                    <TNRef RefId="286331153"></TNRef>
+                    <ToString>None</ToString>
+                    <I32>0</I32>
+                </Obj>
+                <Obj N="MergeWarning" RefId="286331153">
+                    <TNRef RefId="286331153"></TNRef>
+                    <ToString>None</ToString>
+                    <I32>0</I32>
+                </Obj>
+                <Obj N="MergeVerbose" RefId="286331153">
+                    <TNRef RefId="286331153"></TNRef>
+                    <ToString>None</ToString>
+                    <I32>0</I32>
+                </Obj>
+                <Obj N="MergeDebug" RefId="286331153">
+                    <TNRef RefId="286331153"></TNRef>
+                    <ToString>None</ToString>
+                    <I32>0</I32>
+                </Obj>
+                <Obj N="Args" RefId="286331153">
+                    <TN RefId="286331153">
+                        <T>System.Collections.Generic.List`1[[System.Management.Automation.PSObject, System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35]]</T>
+                        <T>System.Object</T>
+                    </TN>
+                    <LST>
+                        <Obj RefId="286331153">
+                            <MS>
+                                <S N="N">-Force</S>
+                                <Nil N="V"></Nil>
+                            </MS>
+                        </Obj>
+                    </LST>
+                </Obj>
+            </MS>
+        </Obj>"""
+    actual = xmltodict.unparse(PsrpObject.create_command('New-Item', ['-Force']), pretty=True, full_document=False)
+    assert xml_str_compare(actual, expected)
+
+
+@mock.patch('uuid.uuid4', side_effect=mock_uuid)
 def test_create_host_info(mock_uuid):
     expected = """
         <Obj N="HostInfo" RefId="286331153">
@@ -474,7 +542,7 @@ def test_create_host_info(mock_uuid):
                                 <T>System.Object</T>
                             </TN>
                             <DCT>
-                                <EN>
+                                <En>
                                     <I32 N="Key">0</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -482,8 +550,8 @@ def test_create_host_info(mock_uuid):
                                             <I32 N="V">7</I32>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">1</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -491,8 +559,8 @@ def test_create_host_info(mock_uuid):
                                             <I32 N="V">9</I32>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">2</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -505,8 +573,8 @@ def test_create_host_info(mock_uuid):
                                             </Obj>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">3</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -519,8 +587,8 @@ def test_create_host_info(mock_uuid):
                                             </Obj>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">4</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -528,8 +596,8 @@ def test_create_host_info(mock_uuid):
                                             <I32 N="V">25</I32>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">5</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -542,8 +610,8 @@ def test_create_host_info(mock_uuid):
                                             </Obj>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">6</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -556,8 +624,8 @@ def test_create_host_info(mock_uuid):
                                             </Obj>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">7</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -570,8 +638,8 @@ def test_create_host_info(mock_uuid):
                                             </Obj>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">8</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -584,8 +652,8 @@ def test_create_host_info(mock_uuid):
                                             </Obj>
                                         </MS>
                                     </Obj>
-                                </EN>
-                                <EN>
+                                </En>
+                                <En>
                                     <I32 N="Key">9</I32>
                                     <Obj N="Value" RefId="286331153">
                                         <MS>
@@ -593,7 +661,7 @@ def test_create_host_info(mock_uuid):
                                             <S N="V">Pywinrm PSRP</S>
                                         </MS>
                                     </Obj>
-                                </EN>
+                                </En>
                             </DCT>
                         </Obj>
                     </MS>
@@ -679,168 +747,168 @@ def test_init_runspace_pool(mock_uuid):
             <MS>
                 <I32 N="MinRunspaces">1</I32>
                 <I32 N="MaxRunspaces">1</I32>
+                <Obj N="PSThreadOptions" RefId="286331153">
+                    <TN RefId="286331153">
+                        <T>System.Management.Automation.Runspaces.PSThreadOptions</T>
+                        <T>System.Enum</T>
+                        <T>System.ValueType</T>
+                        <T>System.Object</T>
+                    </TN>
+                    <ToString>Default</ToString>
+                    <I32>0</I32>
+                </Obj>
+                <Obj N="ApartmentState" RefId="286331153">
+                    <TN RefId="286331153">
+                        <T>System.Threading.ApartmentState</T>
+                        <T>System.Enum</T>
+                        <T>System.ValueType</T>
+                        <T>System.Object</T>
+                    </TN>
+                    <ToString>Unknown</ToString>
+                    <I32>2</I32>
+                </Obj>
+                <Obj N="HostInfo" RefId="286331153">
+                    <MS>
+                        <Obj N="_hostDefaultData" RefId="286331153">
+                            <MS>
+                                <Obj N="data" RefId="286331153">
+                                    <TN RefId="286331153">
+                                        <T>System.Collections.Hashtable</T>
+                                        <T>System.Object</T>
+                                    </TN>
+                                    <DCT>
+                                        <En>
+                                            <I32 N="Key">0</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.ConsoleColor</S>
+                                                    <I32 N="V">7</I32>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">1</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.ConsoleColor</S>
+                                                    <I32 N="V">9</I32>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">2</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.Management.Automation.Host.Coordinates</S>
+                                                    <Obj N="V" RefId="286331153">
+                                                        <MS>
+                                                            <I32 N="x">0</I32>
+                                                            <I32 N="y">4</I32>
+                                                        </MS>
+                                                    </Obj>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">3</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.Management.Automation.Host.Coordinates</S>
+                                                    <Obj N="V" RefId="286331153">
+                                                        <MS>
+                                                            <I32 N="x">0</I32>
+                                                            <I32 N="y">0</I32>
+                                                        </MS>
+                                                    </Obj>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">4</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.Int32</S>
+                                                    <I32 N="V">25</I32>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">5</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.Management.Automation.Host.Size</S>
+                                                    <Obj N="V" RefId="286331153">
+                                                        <MS>
+                                                            <I32 N="width">120</I32>
+                                                            <I32 N="height">3000</I32>
+                                                        </MS>
+                                                    </Obj>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">6</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.Management.Automation.Host.Size</S>
+                                                    <Obj N="V" RefId="286331153">
+                                                        <MS>
+                                                            <I32 N="width">120</I32>
+                                                            <I32 N="height">79</I32>
+                                                        </MS>
+                                                    </Obj>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">7</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.Management.Automation.Host.Size</S>
+                                                    <Obj N="V" RefId="286331153">
+                                                        <MS>
+                                                            <I32 N="width">120</I32>
+                                                            <I32 N="height">98</I32>
+                                                        </MS>
+                                                    </Obj>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">8</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.Management.Automation.Host.Size</S>
+                                                    <Obj N="V" RefId="286331153">
+                                                        <MS>
+                                                            <I32 N="width">181</I32>
+                                                            <I32 N="height">98</I32>
+                                                        </MS>
+                                                    </Obj>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                        <En>
+                                            <I32 N="Key">9</I32>
+                                            <Obj N="Value" RefId="286331153">
+                                                <MS>
+                                                    <S N="T">System.String</S>
+                                                    <S N="V">Pywinrm PSRP</S>
+                                                </MS>
+                                            </Obj>
+                                        </En>
+                                    </DCT>
+                                </Obj>
+                            </MS>
+                        </Obj>
+                        <B N="_isHostNull">false</B>
+                        <B N="_isHostUINull">false</B>
+                        <B N="_isHostRawUINull">false</B>
+                        <B N="_useRunspaceHost">false</B>
+                    </MS>
+                </Obj>
+                <Nil N="ApplicationArguments"></Nil>
             </MS>
-            <Obj N="PSThreadOptions" RefId="286331153">
-                <TN RefId="286331153">
-                    <T>System.Management.Automation.Runspaces.PSThreadOptions</T>
-                    <T>System.Enum</T>
-                    <T>System.ValueType</T>
-                    <T>System.Object</T>
-                </TN>
-                <ToString>Default</ToString>
-                <I32>0</I32>
-            </Obj>
-            <Obj N="ApartmentState" RefId="286331153">
-                <TN RefId="286331153">
-                    <T>System.Threading.ApartmentState</T>
-                    <T>System.Enum</T>
-                    <T>System.ValueType</T>
-                    <T>System.Object</T>
-                </TN>
-                <ToString>Unknown</ToString>
-                <I32>2</I32>
-            </Obj>
-            <Obj N="HostInfo" RefId="286331153">
-                <MS>
-                    <Obj N="_hostDefaultData" RefId="286331153">
-                        <MS>
-                            <Obj N="data" RefId="286331153">
-                                <TN RefId="286331153">
-                                    <T>System.Collections.Hashtable</T>
-                                    <T>System.Object</T>
-                                </TN>
-                                <DCT>
-                                    <EN>
-                                        <I32 N="Key">0</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.ConsoleColor</S>
-                                                <I32 N="V">7</I32>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">1</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.ConsoleColor</S>
-                                                <I32 N="V">9</I32>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">2</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.Management.Automation.Host.Coordinates</S>
-                                                <Obj N="V" RefId="286331153">
-                                                    <MS>
-                                                        <I32 N="x">0</I32>
-                                                        <I32 N="y">4</I32>
-                                                    </MS>
-                                                </Obj>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">3</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.Management.Automation.Host.Coordinates</S>
-                                                <Obj N="V" RefId="286331153">
-                                                    <MS>
-                                                        <I32 N="x">0</I32>
-                                                        <I32 N="y">0</I32>
-                                                    </MS>
-                                                </Obj>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">4</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.Int32</S>
-                                                <I32 N="V">25</I32>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">5</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.Management.Automation.Host.Size</S>
-                                                <Obj N="V" RefId="286331153">
-                                                    <MS>
-                                                        <I32 N="width">120</I32>
-                                                        <I32 N="height">3000</I32>
-                                                    </MS>
-                                                </Obj>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">6</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.Management.Automation.Host.Size</S>
-                                                <Obj N="V" RefId="286331153">
-                                                    <MS>
-                                                        <I32 N="width">120</I32>
-                                                        <I32 N="height">79</I32>
-                                                    </MS>
-                                                </Obj>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">7</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.Management.Automation.Host.Size</S>
-                                                <Obj N="V" RefId="286331153">
-                                                    <MS>
-                                                        <I32 N="width">120</I32>
-                                                        <I32 N="height">98</I32>
-                                                    </MS>
-                                                </Obj>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">8</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.Management.Automation.Host.Size</S>
-                                                <Obj N="V" RefId="286331153">
-                                                    <MS>
-                                                        <I32 N="width">181</I32>
-                                                        <I32 N="height">98</I32>
-                                                    </MS>
-                                                </Obj>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                    <EN>
-                                        <I32 N="Key">9</I32>
-                                        <Obj N="Value" RefId="286331153">
-                                            <MS>
-                                                <S N="T">System.String</S>
-                                                <S N="V">Pywinrm PSRP</S>
-                                            </MS>
-                                        </Obj>
-                                    </EN>
-                                </DCT>
-                            </Obj>
-                        </MS>
-                    </Obj>
-                    <B N="_isHostNull">false</B>
-                    <B N="_isHostUINull">false</B>
-                    <B N="_isHostRawUINull">false</B>
-                    <B N="_useRunspaceHost">false</B>
-                </MS>
-            </Obj>
-            <Nil N="ApplicationArguments"></Nil>
         </Obj>"""
     actual = xmltodict.unparse(InitRunspacePool("1", "1").create_message_data(), pretty=True, full_document=False)
     assert xml_str_compare(actual, expected)
@@ -925,7 +993,7 @@ def test_create_create_pipeline(mock_uuid):
                                         <T>System.Object</T>
                                     </TN>
                                     <DCT>
-                                        <EN>
+                                        <En>
                                             <I32 N="Key">0</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -933,8 +1001,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     <I32 N="V">7</I32>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">1</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -942,8 +1010,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     <I32 N="V">9</I32>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">2</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -956,8 +1024,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     </Obj>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">3</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -970,8 +1038,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     </Obj>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">4</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -979,8 +1047,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     <I32 N="V">25</I32>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">5</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -993,8 +1061,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     </Obj>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">6</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -1007,8 +1075,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     </Obj>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">7</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -1021,8 +1089,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     </Obj>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">8</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -1035,8 +1103,8 @@ def test_create_create_pipeline(mock_uuid):
                                                     </Obj>
                                                 </MS>
                                             </Obj>
-                                        </EN>
-                                        <EN>
+                                        </En>
+                                        <En>
                                             <I32 N="Key">9</I32>
                                             <Obj N="Value" RefId="286331153">
                                                 <MS>
@@ -1044,7 +1112,7 @@ def test_create_create_pipeline(mock_uuid):
                                                     <S N="V">Pywinrm PSRP</S>
                                                 </MS>
                                             </Obj>
-                                        </EN>
+                                        </En>
                                     </DCT>
                                 </Obj>
                             </MS>

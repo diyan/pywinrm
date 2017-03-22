@@ -272,12 +272,7 @@ def xml_str_compare(first, second):
     second_dict = xmltodict.parse(second)
     sort_dict(first_dict)
     sort_dict(second_dict)
-    abc = first_dict == second_dict
-    if not abc:
-        print(xmltodict.unparse(first_dict, pretty=True))
-        print(xmltodict.unparse(second_dict, pretty=True))
-
-    return abc
+    return first_dict == second_dict
 
 
 class TransportStub(object):
