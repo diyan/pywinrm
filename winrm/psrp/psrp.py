@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from winrm.client import Client
@@ -11,6 +12,9 @@ from winrm.psrp.response_reader import Reader
 from winrm.psrp.fragmenter import Fragmenter, Defragmenter
 from winrm.psrp.message_objects import CreatePipeline, SessionCapability, InitRunspacePool, Message, \
     RunspacePoolState, PsrpObject, PipelineHostResponse
+
+log = logging.getLogger(__name__)
+
 
 class PsrpClient(Client):
     def __init__(self,
@@ -174,6 +178,8 @@ class PsrpClient(Client):
                                         runspace_state == PsrpRunspacePoolState.CLOSED:
                             raise WinRMError("Failed to initialised a PSRP Runspace Pool, state set to %s"
                                              % runspace_state.friendly_state)
+
+        log.debug("PSRP RunspacePool created: Shell ID: %s, Resource URI: %s" % (self.shell_id, self.resource_uri))
 
     def _set_max_envelope_size(self, server_protocol_version):
         """

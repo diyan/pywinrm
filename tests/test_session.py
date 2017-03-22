@@ -1,12 +1,13 @@
 import mock
 import os
+import pytest
 import uuid
 
 from requests.models import Response
 
 from tests.conftest import xml_str_compare
 from winrm import Session
-from winrm.exceptions import WinRMOperationTimeoutError, WinRMTransportError
+from winrm.exceptions import WinRMOperationTimeoutError, WinRMTransportError, WinRMError
 
 
 test_name = ''
@@ -143,7 +144,23 @@ def test_run_ps_in_cmd_fail(mock_send, mock_uuid):
 
 @mock.patch('requests.sessions.Session.send', side_effect=send)
 @mock.patch('uuid.uuid4', side_effect=mock_uuid)
+def test_wsmv_mismatch_message_id(mock_send, mock_uuid):
+    global test_name
+    global test_message_counter
+    test_name = 'test_wsmv_mismatch_message_id'
+    test_message_counter = 1
+    with pytest.raises(WinRMError) as excinfo:
+        s = Session(endpoint='windows-host', username='john.smith', password='secret')
+        s.run_cmd('test')
+
+    assert str(excinfo.value) == "Response related to Message ID: 'uuid:11111111-1111-1111-1111-111111111112' " \
+                                 "does not match request Message ID: 'uuid:11111111-1111-1111-1111-111111111111'"
+
+
+@mock.patch('requests.sessions.Session.send', side_effect=send)
+@mock.patch('uuid.uuid4', side_effect=mock_uuid)
 def test_run_ps_script(mock_send, mock_uuid):
+    # This was run on a Server 2016 box so Write-Information was available
     global test_name
     global test_message_counter
     test_name = 'test_run_ps_script'
@@ -165,20 +182,25 @@ def test_run_ps_script(mock_send, mock_uuid):
     assert b'error stream\n   + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException' in actual.error
     assert b'error stream\n   + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException' in actual.stderr
     assert actual.debug == b'debug stream\n'
-    # assert actual.information[0]['message_data'] == b'Test' # Get message from Win2016 Host
-    # assert actual.information[1]['message_data'] == b'info stream' # Get message from Win2016 Host
+    assert actual.information[0]['message_data'] == b'Test'
+    assert actual.information[1]['message_data'] == b'info stream'
     assert actual.output == b'output stream\n'
-    # assert actual.stdout == b'Test\nDEBUG: debug stream\nVERBOSE: verbose stream\noutput stream\nWARNING: warning stream\n' # Get message from Win2016 Host
-    assert actual.stdout == b'Test\n\nDEBUG: debug stream\nVERBOSE: verbose stream\noutput stream\nWARNING: warning stream\n'
+    assert actual.stdout == b'Test\nDEBUG: debug stream\nVERBOSE: verbose stream\noutput stream\nWARNING: warning stream\n'
     assert actual.verbose == b'verbose stream\n'
     assert actual.warning == b'warning stream\n'
     assert actual.return_code == 0
 
 
-'''
-def test_run_ps_with_parameters():
-    s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01',
-                server_cert_validation='ignore')
+@mock.patch('requests.sessions.Session.send', side_effect=send)
+@mock.patch('uuid.uuid4', side_effect=mock_uuid)
+def test_run_ps_with_parameters(mock_send, mock_uuid):
+    # This was run on a Server 2012 R2 box
+    global test_name
+    global test_message_counter
+    test_name = 'test_run_ps_with_parameters'
+    test_message_counter = 1
+
+    s = Session(endpoint='windows-host', username='john.smith', password='secret')
     actual = s.run_ps('Test-Path', ['-Path C:\Windows'])
 
     assert actual.error == b''
@@ -192,9 +214,16 @@ def test_run_ps_with_parameters():
     assert actual.return_code == 0
 
 
-def test_run_ps_with_exit_code():
-    s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01',
-                server_cert_validation='ignore')
+@mock.patch('requests.sessions.Session.send', side_effect=send)
+@mock.patch('uuid.uuid4', side_effect=mock_uuid)
+def test_run_ps_with_exit_code(mock_send, mock_uuid):
+    # This was run on a Server 2012 box
+    global test_name
+    global test_message_counter
+    test_name = 'test_run_ps_with_exit_code'
+    test_message_counter = 1
+
+    s = Session(endpoint='windows-host', username='john.smith', password='secret')
     actual = s.run_ps('exit 1')
 
     assert actual.error == b''
@@ -208,9 +237,16 @@ def test_run_ps_with_exit_code():
     assert actual.return_code == 1
 
 
-def test_run_ps_with_error_stop():
-    s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01',
-                server_cert_validation='ignore')
+@mock.patch('requests.sessions.Session.send', side_effect=send)
+@mock.patch('uuid.uuid4', side_effect=mock_uuid)
+def test_run_ps_with_error_stop(mock_send, mock_uuid):
+    # This was run on a Server 2008 R2 box
+    global test_name
+    global test_message_counter
+    test_name = 'test_run_ps_with_error_stop'
+    test_message_counter = 1
+
+    s = Session(endpoint='windows-host', username='john.smith', password='secret')
     actual = s.run_ps("$ErrorActionPreference = 'Stop'; Write-Error test")
 
     assert b'Write-Error test : test' in actual['error']
@@ -224,9 +260,16 @@ def test_run_ps_with_error_stop():
     assert actual['return_code'] == 5
 
 
-def test_run_ps_with_input():
-    s = Session(endpoint='192.168.1.6', username='Administrator', password='Password01',
-                server_cert_validation='ignore')
+@mock.patch('requests.sessions.Session.send', side_effect=send)
+@mock.patch('uuid.uuid4', side_effect=mock_uuid)
+def test_run_ps_with_input(mock_send, mock_uuid):
+    # This was run on a Server 2008 box
+    global test_name
+    global test_message_counter
+    test_name = 'test_run_ps_with_input'
+    test_message_counter = 1
+
+    s = Session(endpoint='windows-host', username='john.smith', password='secret')
     test_script = "$a = Read-Host -Prompt message; Write-Host $a; $b = Read-Host -Prompt message2; Write-Host $b"
     actual = s.run_ps(test_script, responses=['first prompt', 'second prompt'])
 
@@ -234,11 +277,13 @@ def test_run_ps_with_input():
     assert actual['stderr'] == b''
     assert actual['debug'] == b''
     assert actual['output'] == b''
-    assert actual['stdout'] == b'first prompt\nsecond prompt\n'
+    assert actual['stdout'] == b'first prompt\n\nsecond prompt\n\n'
     assert actual['verbose'] == b''
     assert actual['warning'] == b''
     assert actual['return_code'] == 0
-'''
+
+
+# def test_run_with_multiple_fragments():
 
 
 def test_target_as_hostname():

@@ -1,3 +1,4 @@
+import logging
 try:
     from collections import OrderedDict
 except ImportError:
@@ -9,6 +10,8 @@ from winrm.exceptions import WinRMOperationTimeoutError
 
 from winrm.wsmv.message_objects import WsmvObject
 from winrm.wsmv.response_reader import Reader
+
+log = logging.getLogger(__name__)
 
 
 class WsmvClient(Client):
@@ -58,6 +61,7 @@ class WsmvClient(Client):
 
         res = self.send(WsmvAction.CREATE, body=body, option_set=option_set)
         self.shell_id = res['s:Envelope']['s:Body']['rsp:Shell']['rsp:ShellId']
+        log.debug("WSMV Shell created: Shell ID: %s, Resource URI: %s" % (self.shell_id, self.resource_uri))
 
     def run_command(self, command, arguments=(), consolemode_stdin=True, skip_cmd_shell=False):
         """

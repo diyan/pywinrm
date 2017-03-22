@@ -2,6 +2,11 @@ import logging
 import uuid
 import xmltodict
 
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
+
 from winrm.contants import WsmvAction, WsmvResourceURI, WsmvConstant
 from winrm.exceptions import WinRMError
 from winrm.transport import Transport
@@ -32,7 +37,6 @@ class Client(object):
         self.shell_id = str(uuid.uuid4()).upper()
         self.resource_uri = resource_uri
         self.set_server_config(max_envelope_size)
-        log.debug("Creating new Shell class: Shell ID: %s, Resource URI: %s" % (self.shell_id, self.resource_uri))
 
 
     def set_server_config(self, default_max_envelope_size):
@@ -103,12 +107,12 @@ class Client(object):
 
     def create_message(self, body, action, resource_uri, selector_set=None, option_set=None):
         headers = self._create_headers(action, resource_uri, selector_set, option_set)
-        message = {
-            's:Envelope': {
-                's:Header': headers,
-                's:Body': {}
-            }
-        }
+        message = OrderedDict([
+            ('s:Envelope', OrderedDict([
+                ('s:Header', headers),
+                ('s:Body', OrderedDict([]))
+            ]))
+        ])
         for alias, namespace in WsmvConstant.NAMESPACES.items():
             message['s:Envelope']["@xmlns:%s" % alias] = namespace
 
@@ -118,38 +122,38 @@ class Client(object):
         return message
 
     def _create_headers(self, action, resource_uri, selector_set, option_set):
-        headers = {
-            'a:Action': {
-                '@s:mustUnderstand': 'true',
-                '#text': action
-            },
-            'p:DataLocale': {
-                '@s:mustUnderstand': 'false',
-                '@xml:lang': self.locale
-            },
-            'w:Locale': {
-                '@s:mustUnderstand': 'false',
-                '@xml:lang': self.locale
-            },
-            'a:To': self.transport.endpoint,
-            'w:ResourceURI': {
-                '@s:mustUnderstand': 'true',
-                '#text': resource_uri
-            },
-            'w:OperationTimeout': convert_seconds_to_iso8601_duration(self.operation_timeout_sec),
-            'a:ReplyTo': {
-                "a:Address": {
-                    "@s:mustUnderstand": 'true',
-                    '#text': 'http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous'
-                }
-            },
-            'w:MaxEnvelopeSize': '%s' % str(self.server_config['max_envelope_size']),
-            'a:MessageID': 'uuid:%s' % str(uuid.uuid4()).upper(),
-            'p:SessionId': {
-                '@s:mustUnderstand': 'false',
-                '#text': 'uuid:%s' % self.session_id
-            }
-        }
+        headers = OrderedDict([
+            ('a:Action', OrderedDict([
+                ('@s:mustUnderstand', 'true'),
+                ('#text', action)
+            ])),
+            ('p:DataLocale', OrderedDict([
+                ('@s:mustUnderstand', 'false'),
+                ('@xml:lang', self.locale)
+            ])),
+            ('w:Locale', OrderedDict([
+                ('@s:mustUnderstand', 'false'),
+                ('@xml:lang', self.locale)
+            ])),
+            ('a:To', self.transport.endpoint),
+            ('w:ResourceURI', OrderedDict([
+                ('@s:mustUnderstand', 'true'),
+                ('#text', resource_uri)
+            ])),
+            ('w:OperationTimeout', convert_seconds_to_iso8601_duration(self.operation_timeout_sec)),
+            ('a:ReplyTo', OrderedDict([
+                ('a:Address', OrderedDict([
+                    ('@s:mustUnderstand', 'true'),
+                    ('#text', 'http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous')
+                ]))
+            ])),
+            ('w:MaxEnvelopeSize', str(self.server_config['max_envelope_size'])),
+            ('a:MessageID', 'uuid:%s' % str(uuid.uuid4()).upper()),
+            ('p:SessionId', OrderedDict([
+                ('@s:mustUnderstand', 'false'),
+                ('#text', 'uuid:%s' % self.session_id)
+            ]))
+        ])
 
         if selector_set:
             selector_set_list = []

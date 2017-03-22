@@ -1,13 +1,14 @@
 <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
 <s:Header>
     <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/ReceiveResponse</a:Action>
-    <a:MessageID>uuid:A22BA2C2-B13B-4645-B305-F5ED56903D34</a:MessageID>
+    <a:MessageID>uuid:2D8C44FB-3960-4A1A-83B7-BAD573CCEBA1</a:MessageID>
+    <p:ActivityId>DF5453BF-A2E1-0000-7F56-54DFE1A2D201</p:ActivityId>
     <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
     <a:RelatesTo>uuid:11111111-1111-1111-1111-111111111111</a:RelatesTo>
 </s:Header>
 <s:Body>
     <rsp:ReceiveResponse>
-        <rsp:Stream Name="stdout">AAAAAAAAAAMAAAAAAAAAAAMAAABnAQAAAAUQAgD1ZLpKIEFK4ZWdgtv4ocdFAAAAAAAAAAAAAAAAAAAAAO+7vzxPYmogUmVmSWQ9IjAiPjxNUz48STMyIE49IlJ1bnNwYWNlU3RhdGUiPjI8L0kzMj48L01TPjwvT2JqPg==</rsp:Stream>
+        <rsp:Stream Name="stdout">AAAAAAAAAAIAAAAAAAAAAAMAAASqAQAAAAkQAgDtNzSF2J5Kq7NZT+iP292MAAAAAAAAAAAAAAAAAAAAAO+7vzxPYmogUmVmSWQ9IjAiPjxNUz48T2JqIE49IkFwcGxpY2F0aW9uUHJpdmF0ZURhdGEiIFJlZklkPSIxIj48VE4gUmVmSWQ9IjAiPjxUPlN5c3RlbS5NYW5hZ2VtZW50LkF1dG9tYXRpb24uUFNQcmltaXRpdmVEaWN0aW9uYXJ5PC9UPjxUPlN5c3RlbS5Db2xsZWN0aW9ucy5IYXNodGFibGU8L1Q+PFQ+U3lzdGVtLk9iamVjdDwvVD48L1ROPjxEQ1Q+PEVuPjxTIE49IktleSI+UFNWZXJzaW9uVGFibGU8L1M+PE9iaiBOPSJWYWx1ZSIgUmVmSWQ9IjIiPjxUTlJlZiBSZWZJZD0iMCIgLz48RENUPjxFbj48UyBOPSJLZXkiPlBTVmVyc2lvbjwvUz48VmVyc2lvbiBOPSJWYWx1ZSI+NS4xLjE0MzkzLjY5MzwvVmVyc2lvbj48L0VuPjxFbj48UyBOPSJLZXkiPlBTRWRpdGlvbjwvUz48UyBOPSJWYWx1ZSI+RGVza3RvcDwvUz48L0VuPjxFbj48UyBOPSJLZXkiPlBTQ29tcGF0aWJsZVZlcnNpb25zPC9TPjxPYmogTj0iVmFsdWUiIFJlZklkPSIzIj48VE4gUmVmSWQ9IjEiPjxUPlN5c3RlbS5WZXJzaW9uW108L1Q+PFQ+U3lzdGVtLkFycmF5PC9UPjxUPlN5c3RlbS5PYmplY3Q8L1Q+PC9UTj48TFNUPjxWZXJzaW9uPjEuMDwvVmVyc2lvbj48VmVyc2lvbj4yLjA8L1ZlcnNpb24+PFZlcnNpb24+My4wPC9WZXJzaW9uPjxWZXJzaW9uPjQuMDwvVmVyc2lvbj48VmVyc2lvbj41LjA8L1ZlcnNpb24+PFZlcnNpb24+NS4xLjE0MzkzLjY5MzwvVmVyc2lvbj48L0xTVD48L09iaj48L0VuPjxFbj48UyBOPSJLZXkiPkNMUlZlcnNpb248L1M+PFZlcnNpb24gTj0iVmFsdWUiPjQuMC4zMDMxOS40MjAwMDwvVmVyc2lvbj48L0VuPjxFbj48UyBOPSJLZXkiPkJ1aWxkVmVyc2lvbjwvUz48VmVyc2lvbiBOPSJWYWx1ZSI+MTAuMC4xNDM5My42OTM8L1ZlcnNpb24+PC9Fbj48RW4+PFMgTj0iS2V5Ij5XU01hblN0YWNrVmVyc2lvbjwvUz48VmVyc2lvbiBOPSJWYWx1ZSI+My4wPC9WZXJzaW9uPjwvRW4+PEVuPjxTIE49IktleSI+UFNSZW1vdGluZ1Byb3RvY29sVmVyc2lvbjwvUz48VmVyc2lvbiBOPSJWYWx1ZSI+Mi4zPC9WZXJzaW9uPjwvRW4+PEVuPjxTIE49IktleSI+U2VyaWFsaXphdGlvblZlcnNpb248L1M+PFZlcnNpb24gTj0iVmFsdWUiPjEuMS4wLjE8L1ZlcnNpb24+PC9Fbj48L0RDVD48L09iaj48L0VuPjwvRENUPjwvT2JqPjwvTVM+PC9PYmo+</rsp:Stream>
     </rsp:ReceiveResponse>
 </s:Body>
 </s:Envelope>

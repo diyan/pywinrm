@@ -1,0 +1,14 @@
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+<s:Header>
+    <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/ReceiveResponse</a:Action>
+    <a:MessageID>uuid:A728D760-A1BB-42EF-9368-3FC9C515FF8D</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:11111111-1111-1111-1111-111111111111</a:RelatesTo>
+</s:Header>
+<s:Body>
+    <rsp:ReceiveResponse>
+        <rsp:Stream Name="stdout">AAAAAAAAAAEAAAAAAAAAAAMAAADKAQAAAAIAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO+7vzxPYmogUmVmSWQ9IjAiPjxNUz48VmVyc2lvbiBOPSJwcm90b2NvbHZlcnNpb24iPjIuMjwvVmVyc2lvbj48VmVyc2lvbiBOPSJQU1ZlcnNpb24iPjIuMDwvVmVyc2lvbj48VmVyc2lvbiBOPSJTZXJpYWxpemF0aW9uVmVyc2lvbiI+MS4xLjAuMTwvVmVyc2lvbj48L01TPjwvT2JqPg==</rsp:Stream>
+        <rsp:Stream Name="stdout">AAAAAAAAAAIAAAAAAAAAAAMAAAThAQAAAAkQAgB5YR0JgxZMo7N7kg6win7lAAAAAAAAAAAAAAAAAAAAAO+7vzxPYmogUmVmSWQ9IjAiPjxNUz48T2JqIE49IkFwcGxpY2F0aW9uUHJpdmF0ZURhdGEiIFJlZklkPSIxIj48VE4gUmVmSWQ9IjAiPjxUPlN5c3RlbS5NYW5hZ2VtZW50LkF1dG9tYXRpb24uUFNQcmltaXRpdmVEaWN0aW9uYXJ5PC9UPjxUPlN5c3RlbS5Db2xsZWN0aW9ucy5IYXNodGFibGU8L1Q+PFQ+U3lzdGVtLk9iamVjdDwvVD48L1ROPjxEQ1Q+PEVuPjxTIE49IktleSI+RGVidWdNb2RlPC9TPjxJMzIgTj0iVmFsdWUiPjE8L0kzMj48L0VuPjxFbj48UyBOPSJLZXkiPkRlYnVnU3RvcDwvUz48QiBOPSJWYWx1ZSI+ZmFsc2U8L0I+PC9Fbj48RW4+PFMgTj0iS2V5Ij5QU1ZlcnNpb25UYWJsZTwvUz48T2JqIE49IlZhbHVlIiBSZWZJZD0iMiI+PFROUmVmIFJlZklkPSIwIiAvPjxEQ1Q+PEVuPjxTIE49IktleSI+UFNWZXJzaW9uPC9TPjxWZXJzaW9uIE49IlZhbHVlIj4yLjA8L1ZlcnNpb24+PC9Fbj48RW4+PFMgTj0iS2V5Ij5QU0NvbXBhdGlibGVWZXJzaW9uczwvUz48T2JqIE49IlZhbHVlIiBSZWZJZD0iMyI+PFROIFJlZklkPSIxIj48VD5TeXN0ZW0uVmVyc2lvbltdPC9UPjxUPlN5c3RlbS5BcnJheTwvVD48VD5TeXN0ZW0uT2JqZWN0PC9UPjwvVE4+PExTVD48VmVyc2lvbj4xLjA8L1ZlcnNpb24+PFZlcnNpb24+Mi4wPC9WZXJzaW9uPjxWZXJzaW9uPjMuMDwvVmVyc2lvbj48VmVyc2lvbj40LjA8L1ZlcnNpb24+PC9MU1Q+PC9PYmo+PC9Fbj48RW4+PFMgTj0iS2V5Ij5CdWlsZFZlcnNpb248L1M+PFZlcnNpb24gTj0iVmFsdWUiPjYuMy45NjAwLjE3NDAwPC9WZXJzaW9uPjwvRW4+PEVuPjxTIE49IktleSI+Q0xSVmVyc2lvbjwvUz48VmVyc2lvbiBOPSJWYWx1ZSI+NC4wLjMwMzE5LjQyMDAwPC9WZXJzaW9uPjwvRW4+PEVuPjxTIE49IktleSI+V1NNYW5TdGFja1ZlcnNpb248L1M+PFZlcnNpb24gTj0iVmFsdWUiPjMuMDwvVmVyc2lvbj48L0VuPjxFbj48UyBOPSJLZXkiPlBTUmVtb3RpbmdQcm90b2NvbFZlcnNpb248L1M+PFZlcnNpb24gTj0iVmFsdWUiPjIuMjwvVmVyc2lvbj48L0VuPjxFbj48UyBOPSJLZXkiPlNlcmlhbGl6YXRpb25WZXJzaW9uPC9TPjxWZXJzaW9uIE49IlZhbHVlIj4xLjEuMC4xPC9WZXJzaW9uPjwvRW4+PC9EQ1Q+PC9PYmo+PC9Fbj48RW4+PFMgTj0iS2V5Ij5EZWJ1Z0JyZWFrcG9pbnRDb3VudDwvUz48STMyIE49IlZhbHVlIj4wPC9JMzI+PC9Fbj48L0RDVD48L09iaj48L01TPjwvT2JqPg==</rsp:Stream>
+    </rsp:ReceiveResponse>
+</s:Body>
+</s:Envelope>

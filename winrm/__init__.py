@@ -39,8 +39,8 @@ class Session(object):
 
     def run_cmd(self, command, arguments=()):
         protocol = WsmvClient(self.transport_opts)
+        protocol.open_shell()
         try:
-            protocol.open_shell()
             output = protocol.run_command(command, arguments)
         finally:
             protocol.close_shell()
@@ -49,8 +49,9 @@ class Session(object):
 
     def run_ps(self, command, parameters=(), responses=()):
         protocol = PsrpClient(self.transport_opts)
+        protocol.open_shell()
         try:
-            protocol.open_shell()
+
             output = protocol.run_command(command, parameters, responses)
         finally:
             protocol.close_shell()

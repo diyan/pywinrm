@@ -1,0 +1,14 @@
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+<s:Header>
+    <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/ReceiveResponse</a:Action>
+    <a:MessageID>uuid:4B59F4BC-98D5-4368-8F68-155291FA58E1</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:11111111-1111-1111-1111-111111111111</a:RelatesTo>
+</s:Header>
+<s:Body>
+    <rsp:ReceiveResponse>
+        <rsp:Stream Name="stdout" CommandId="11111111-1111-1111-1111-111111111111">AAAAAAAAAAQAAAAAAAAAAAMAAAOxAQAAAAARBACOV2l0jG1O/auwBwPDxyHeA/1PfgNERWiYCd17EJnc5O+7vzxPYmogUmVmSWQ9IjAiPjxNUz48STY0IE49ImNpIj4xPC9JNjQ+PE9iaiBOPSJtaSIgUmVmSWQ9IjEiPjxUTiBSZWZJZD0iMCI+PFQ+U3lzdGVtLk1hbmFnZW1lbnQuQXV0b21hdGlvbi5SZW1vdGluZy5SZW1vdGVIb3N0TWV0aG9kSWQ8L1Q+PFQ+U3lzdGVtLkVudW08L1Q+PFQ+U3lzdGVtLlZhbHVlVHlwZTwvVD48VD5TeXN0ZW0uT2JqZWN0PC9UPjwvVE4+PFRvU3RyaW5nPlByb21wdDwvVG9TdHJpbmc+PEkzMj4yMzwvSTMyPjwvT2JqPjxPYmogTj0ibXAiIFJlZklkPSIyIj48VE4gUmVmSWQ9IjEiPjxUPlN5c3RlbS5Db2xsZWN0aW9ucy5BcnJheUxpc3Q8L1Q+PFQ+U3lzdGVtLk9iamVjdDwvVD48L1ROPjxMU1Q+PFM+PC9TPjxTPjwvUz48T2JqIFJlZklkPSIzIj48VE5SZWYgUmVmSWQ9IjEiIC8+PExTVD48T2JqIFJlZklkPSI0Ij48TVM+PFMgTj0ibmFtZSI+bWVzc2FnZTwvUz48UyBOPSJsYWJlbCI+PC9TPjxTIE49InBhcmFtZXRlclR5cGVOYW1lIj5TdHJpbmc8L1M+PFMgTj0icGFyYW1ldGVyVHlwZUZ1bGxOYW1lIj5TeXN0ZW0uU3RyaW5nPC9TPjxTIE49InBhcmFtZXRlckFzc2VtYmx5RnVsbE5hbWUiPlN5c3RlbS5TdHJpbmcsIG1zY29ybGliLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49Yjc3YTVjNTYxOTM0ZTA4OTwvUz48UyBOPSJoZWxwTWVzc2FnZSI+PC9TPjxCIE49ImlzTWFuZGF0b3J5Ij50cnVlPC9CPjxPYmogTj0ibWV0YWRhdGEiIFJlZklkPSI1Ij48VE5SZWYgUmVmSWQ9IjEiIC8+PExTVCAvPjwvT2JqPjxCIE49Im1vZGlmaWVkQnlSZW1vdGluZ1Byb3RvY29sIj5mYWxzZTwvQj48QiBOPSJpc0Zyb21SZW1vdGVIb3N0Ij5mYWxzZTwvQj48L01TPjwvT2JqPjwvTFNUPjwvT2JqPjwvTFNUPjwvT2JqPjwvTVM+PC9PYmo+</rsp:Stream>
+        <rsp:CommandState CommandId="11111111-1111-1111-1111-111111111111" State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Pending"/>
+    </rsp:ReceiveResponse>
+</s:Body>
+</s:Envelope>

@@ -119,11 +119,11 @@ class Reader(object):
                         full_output += test.encode()
 
             if method_identifier == 'WriteDebugLine':
-                full_output = b'DEBUG: %s' % full_output
+                full_output = b'DEBUG: ' + full_output
             elif method_identifier == 'WriteWarningLine':
-                full_output = b'WARNING: %s' % full_output
+                full_output = b'WARNING: ' + full_output
             elif method_identifier == 'WriteVerboseLine':
-                full_output = b'VERBOSE: %s' % full_output
+                full_output = b'VERBOSE: ' + full_output
 
             self.stdout += full_output + b"\n"
 
