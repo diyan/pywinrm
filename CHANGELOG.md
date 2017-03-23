@@ -12,7 +12,7 @@ This is a major release which changes the inner workings of Pywinrm
 - Many fixes over the previous WSMV like multiple environment variable support and better Python 3 compatibility
 - Updated README to cover all the changes in this release
 - Tests, tests and more tests
-- Added logging events for easier debugging
+- Added some initial logging events for easier debugging
 
 #### Deprecations
 - Deprecated the existing protocol class in favour of WsmvClient or PsrpClient. Will be removed in a future version

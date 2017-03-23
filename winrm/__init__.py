@@ -26,7 +26,6 @@ FEATURE_PSRP_CLIENT=True
 FEATURE_WSMV_CLIENT=True
 
 logging.getLogger(__name__).addHandler(NullHandler())
-logging.basicConfig(level=logging.DEBUG)
 
 
 class Session(object):
