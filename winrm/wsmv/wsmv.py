@@ -28,13 +28,13 @@ class WsmvClient(Client):
         to create a shell, run a command and then close the shell through the
         WSMV protocol. WSMV executes commands in a cmd.exe context, if you
         want to run a command in a powershell.exe context please use
-        winrm.psrp.protocol.PsrpHandler instead.
+        winrm.psrp.psrp.PsrpClient instead.
 
-        :param Transport transport: A initialised Transport() object for handling message transport
-        :param int read_timeout_sec: The maximum amount of seconds to wait before a HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long.
-        :param int operation_timeout_sec: The maximum allows time in seconds for any single WSMan HTTP operation (default 20). Note that operation timeouts while receiving output (the only WSMan operation that should take any singificant time, and where these timeouts are expected) will be silently retried indefinitely.
-        :param string locale: The locale value to use when creating a Shell on the remote host (default en-US).
-        :param string encoding: The encoding format when creating XML strings to send to the server (default utf-8).
+        :param transport_opts: See winrm.client Client() for more info
+        :param int operation_timeout_sec: See winrm.client Client() for more info
+        :param string locale: See winrm.client Client() for more info
+        :param string encoding: See winrm.client Client() for more info
+        :param int max_envelope_size: See winrm.client Client() for more info
         """
         Client.__init__(self, transport_opts, operation_timeout_sec, locale, encoding, max_envelope_size,
                         WsmvResourceURI.SHELL_CMD)
@@ -70,7 +70,6 @@ class WsmvClient(Client):
 
         Will run a command through WSMV on the server.
 
-        :param shell_id: The Shell ID to run the command in
         :param command: The command without any arguments
         :param arguments: Optional arguments to add to the command
         :param consolemode_stdin: Standard input is console if True
@@ -98,7 +97,6 @@ class WsmvClient(Client):
         In the Text-based Command Shell scenario, the Receive message is used
         to collect output from a running command
 
-        :param shell_id: The Shell ID the command is running in
         :param command_id: The Command ID for the command to get the ouput for
         :return: Reader: A class containing the stdout, stderr and return_code of the command
         """
@@ -128,8 +126,6 @@ class WsmvClient(Client):
         Will disconnect from a remote Shell based on the ID that has been
         passed through. This should be run at the end of all process to
         ensure any left over shells on the host are removed.
-
-        :param shell_id: The Shell ID to disconnect from
         """
         selector_set = {
             'ShellId': self.shell_id
@@ -144,7 +140,6 @@ class WsmvClient(Client):
         This will send the terminate signal to a command based on the ID that
         has been passed through.
 
-        :param shell_id: The Shell ID the command is running in
         :param command_id: The Command ID for the command to get the ouput for
         """
         body = WsmvObject.signal(WsmvSignal.TERMINATE, command_id)

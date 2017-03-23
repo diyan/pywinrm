@@ -58,6 +58,14 @@ class Fragmenter(object):
         self.object_id = 0
 
     def fragment_messages(self, messages):
+        """
+        Returns a list of fragments produced. This can be a list of a single
+        fragment of multiple fragments that need to be sent individually to
+        the server
+
+        :param messages: A message or list of messages to frgment
+        :return: A list of base64 encoded fragments
+        """
         if not isinstance(messages, list):
             messages = [messages]
 

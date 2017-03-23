@@ -90,6 +90,7 @@ class PsrpClient(Client):
         :param command: A PS command or script to run
         :param parameters: If using a PS command, this contains a list of parameter key value pairs to run with the command
         :param responses: A list of optional responses to pass onto the script when prompted. Useful for scripts that doesn't handle input parameters
+        :param no_input: Whether the command takes in pipeline input sent with the send_input method before retrieving the message output
         :return winrm.psrp.response_reader.Reader() object containing the powershell output streams
         """
         if self.state != PsrpRunspacePoolState.OPENED:
@@ -120,10 +121,23 @@ class PsrpClient(Client):
         return pipeline.command_id
 
     def send_input(self, command_id, input):
+        """
+        If the pipeline accepts input, this can be called multiple times for
+        sending pipeline input
+
+        :param command_id: The command_id for the pipeline to send input to
+        :param input: A string of the input to send
+        """
         pipeline = self._find_pipeline_by_command_id(command_id)
         pipeline.send_input(input)
 
     def get_command_output(self, command_id):
+        """
+        Will retrieve the output information for the command_id specified.
+
+        :param command_id: THe command_id for the pipeline to get the output info
+        :return: A Reader class containing the command output information
+        """
         pipeline = self._find_pipeline_by_command_id(command_id)
         try:
             output = pipeline.get_output()
@@ -249,6 +263,7 @@ class Pipeline(object):
         :param command: A PS command or script to run
         :param parameters: If using a PS command, this contains a list of parameter key value pairs to run with the command
         :param responses: A list of optional responses to pass onto the script when prompted. Useful for scripts that doesn't handle input parameters
+        :param no_input: Whether the pipeline does not accept input or not
         """
         self.responses = responses
         self.current_response_count = 0

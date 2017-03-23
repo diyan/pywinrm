@@ -35,8 +35,8 @@ class WsmvObject(object):
 
         Describes the output data blocks received from the server.
 
-        :param command_id: The ID of the command to get the output for
-        :param arguments: The desired stream to get the output for
+        :param desired_stream: The desired stream to receive
+        :param command_id: If the recieve is directed to a command, the ID can be set here
         :return: dict used when converting to xml
         """
         receive = {
@@ -62,6 +62,7 @@ class WsmvObject(object):
         :param stream_name: The stream name, e.g. stdin or pr
         :param command_id: The CommandID that the send relates to
         :param stream: The value of the stream to send to the server
+        :param end: Whether this send message is the last in a list of sends
         :return: dict used when converting to xml
         """
         send = {

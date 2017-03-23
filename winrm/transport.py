@@ -56,8 +56,6 @@ class Transport(object):
         self.username = kwargs.get('username', None)
         self.password = kwargs.get('password', None)
         self.realm = kwargs.get('realm', None)
-        self.service = kwargs.get('service', None)
-        self.keytab = kwargs.get('keytab', None)
         self.ca_trust_path = kwargs.get('ca_trust_path', None)
         self.cert_pem = kwargs.get('cert_pem', None)
         self.cert_key_pem = kwargs.get('cert_key_pem', None)
@@ -65,6 +63,7 @@ class Transport(object):
         self.server_cert_validation = kwargs.get('server_cert_validation', 'validate')
         self.kerberos_delegation = kwargs.get('kerberos_delegation', False)
         self.kerberos_hostname_override = kwargs.get('kerberos_hostname_override', None)
+        self.credssp_disable_tlsv1_2 = kwargs.get('credssp_disable_tlsv1_2', False)
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -175,7 +174,8 @@ class Transport(object):
                 "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"
         elif self.auth_method == 'credssp':
             log.debug("Connecting using CredSSP Authentication")
-            session.auth = HttpCredSSPAuth(username=self.username, password=self.password)
+            session.auth = HttpCredSSPAuth(username=self.username, password=self.password,
+                                           disable_tlsv1_2=self.credssp_disable_tlsv1_2)
 
         session.headers.update(self.default_headers)
 
