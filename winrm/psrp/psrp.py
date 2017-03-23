@@ -298,8 +298,9 @@ class Pipeline(object):
         pipeline_input = Message(Message.DESTINATION_SERVER, self.client.rpid,
                                  self.pid, PipelineInput(input))
         fragments = self.client.fragmenter.fragment_messages(pipeline_input)
-        body = WsmvObject.send('stdin',fragments[0].decode(), self.command_id)
-        self.client.send(WsmvAction.SEND, body=body, selector_set={'ShellId': self.client.shell_id})
+        for fragment in fragments:
+            body = WsmvObject.send('stdin', fragment.decode(), self.command_id)
+            self.client.send(WsmvAction.SEND, body=body, selector_set={'ShellId': self.client.shell_id})
 
     def get_output(self):
         """

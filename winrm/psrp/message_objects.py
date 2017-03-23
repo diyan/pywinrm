@@ -776,8 +776,12 @@ class PipelineInput(object):
         self.input = input
 
     def create_message_data(self):
+        input = self.input
+        if isinstance(self.input, bytes):
+            input = self.input.decode()
+
         message_data = {
-            "S": self.input
+            "S": input
         }
 
         return message_data
