@@ -13,7 +13,8 @@ from winrm.contants import PsrpMessageType
 from winrm.exceptions import WinRMError
 from winrm.psrp.message_objects import Message, PsrpObject, PrimitiveMessage, \
     SessionCapability, InitRunspacePool, RunspacePoolState, CreatePipeline, \
-    ApplicationPrivateData, PipelineState, PipelineHostResponse
+    ApplicationPrivateData, PipelineState, PipelineHostResponse, PipelineInput, \
+    EndOfPipelineInput
 
 
 def mock_uuid():
@@ -29,6 +30,18 @@ def test_create_message():
                b'\xef\xbb\xbf<S>A</S>'
     actual = Message(Message.DESTINATION_CLIENT, mock_uuid(), mock_uuid(),
                      PrimitiveMessage(PsrpMessageType.SESSION_CAPABILITY, {"S": "A"}))
+    assert actual.create_message() == expected
+
+
+def test_create_message_no_data():
+    expected = b'\x01\x00\x00\x00\x03\x10\x04\x00' \
+               b'\x11\x11\x11\x11\x11\x11\x11\x11' \
+               b'\x11\x11\x11\x11\x11\x11\x11\x11' \
+               b'\x11\x11\x11\x11\x11\x11\x11\x11' \
+               b'\x11\x11\x11\x11\x11\x11\x11\x11'
+    actual = Message(Message.DESTINATION_CLIENT, mock_uuid(), mock_uuid(),
+                     PrimitiveMessage(PsrpMessageType.END_OF_PIPELINE_INPUT, ""))
+    a = actual.create_message()
     assert actual.create_message() == expected
 
 
@@ -960,7 +973,7 @@ def test_create_create_pipeline(mock_uuid):
     expected = """
         <Obj RefId="286331153">
             <MS>
-                <B N="NoInput">true</B>
+                <B N="NoInput">false</B>
                 <B N="AddToHistory">true</B>
                 <B N="IsNested">false</B>
                 <Obj N="ApartmentState" RefId="286331153">
@@ -1141,7 +1154,7 @@ def test_create_create_pipeline(mock_uuid):
                 </Obj>
             </MS>
         </Obj>"""
-    actual = xmltodict.unparse(CreatePipeline([{"Obj": "Test"}]).create_message_data(), pretty=True, full_document=False)
+    actual = xmltodict.unparse(CreatePipeline([{"Obj": "Test"}], False).create_message_data(), pretty=True, full_document=False)
     assert xml_str_compare(actual, expected)
 
 
@@ -1335,6 +1348,18 @@ def test_parse_application_private_data_win_2012():
         }
     }
     assert actual.application_info == expected
+
+
+def test_create_pipeline_input():
+    expected = "<S>test input</S>"
+    actual = xmltodict.unparse(PipelineInput("test input").create_message_data(), pretty=True, full_document=False)
+    assert xml_str_compare(actual, expected)
+
+
+def test_create_end_of_pipeline_input():
+    expected = ""
+    actual = EndOfPipelineInput().create_message_data()
+    assert actual == expected
 
 
 def test_parse_application_private_data_invalid_message():

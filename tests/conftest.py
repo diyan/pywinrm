@@ -326,7 +326,7 @@ def wsmv_client_real():
     if endpoint:
         transport_opts = dict(
             endpoint=endpoint,
-            read_timeout_sec=7
+            read_timeout_sec=7,
         )
         if auth_method:
             transport_opts['auth_method'] = auth_method
@@ -352,7 +352,7 @@ def psrp_client_real():
     if endpoint:
         transport_opts = dict(
             endpoint=endpoint,
-            read_timeout_sec=7
+            read_timeout_sec=7,
         )
         if auth_method:
             transport_opts['auth_method'] = auth_method

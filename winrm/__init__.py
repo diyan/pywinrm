@@ -26,6 +26,7 @@ FEATURE_PSRP_CLIENT=True
 FEATURE_WSMV_CLIENT=True
 
 logging.getLogger(__name__).addHandler(NullHandler())
+logging.basicConfig(level=logging.DEBUG)
 
 
 class Session(object):
@@ -37,23 +38,30 @@ class Session(object):
             self.transport_opts['auth_method'] = 'basic'
 
     def run_cmd(self, command, arguments=()):
-        protocol = WsmvClient(self.transport_opts)
-        protocol.open_shell()
+        client = WsmvClient(self.transport_opts)
+        client.open_shell()
         try:
-            output = protocol.run_command(command, arguments)
+            command_id = client.run_command(command, arguments)
+            output = client.get_command_output(command_id)
         finally:
-            protocol.close_shell()
+            client.close_shell()
 
         return output
 
-    def run_ps(self, command, parameters=(), responses=()):
-        protocol = PsrpClient(self.transport_opts)
-        protocol.open_shell()
+    def run_ps(self, command, parameters=(), inputs=(), responses=()):
+        client = PsrpClient(self.transport_opts)
+        client.open_shell()
         try:
-
-            output = protocol.run_command(command, parameters, responses)
+            if len(inputs) > 0:
+                no_input = False
+            else:
+                no_input = True
+            command_id = client.run_command(command, parameters, responses, no_input)
+            for input in inputs:
+                client.send_input(command_id, input)
+            output = client.get_command_output(command_id)
         finally:
-            protocol.close_shell()
+            client.close_shell()
 
         return output
 

@@ -73,8 +73,8 @@ class WsmvClient(Client):
         :param shell_id: The Shell ID to run the command in
         :param command: The command without any arguments
         :param arguments: Optional arguments to add to the command
-        :param consolemode_stdin: Standard input is console if True or pip if False
-        :param skip_cmd_shell: If True will run outside cmd.exe, if True will run with cmd.exe
+        :param consolemode_stdin: Standard input is console if True
+        :param skip_cmd_shell: If True will run outside cmd.exe, if False will run with cmd.exe
         :return: The Command ID to be used later when retrieving the stdout
         """
         body = WsmvObject.command_line(command, arguments)
@@ -88,12 +88,37 @@ class WsmvClient(Client):
         res = self.send(WsmvAction.COMMAND, body=body, selector_set=selector_set, option_set=option_set)
         command_id = res['s:Envelope']['s:Body']['rsp:CommandResponse']['rsp:CommandId']
 
+        return command_id
+
+    def get_command_output(self, command_id):
+        """
+        [MS-WSMV] v30.0 2016-07-14
+        3.1.4.14 Receive
+
+        In the Text-based Command Shell scenario, the Receive message is used
+        to collect output from a running command
+
+        :param shell_id: The Shell ID the command is running in
+        :param command_id: The Command ID for the command to get the ouput for
+        :return: Reader: A class containing the stdout, stderr and return_code of the command
+        """
         try:
-            output = self._get_command_output(command_id)
+            state = WsmvCommandState.RUNNING
+            body = WsmvObject.receive('stdout stderr', command_id)
+            selector_set = {'ShellId': self.shell_id}
+            reader = Reader()
+
+            while state != WsmvCommandState.DONE:
+                try:
+                    response = self.send(WsmvAction.RECEIVE, body=body, selector_set=selector_set)
+                    state = reader.parse_receive_response(response)
+                except WinRMOperationTimeoutError:
+                    # this is an expected error when waiting for a long-running process, just silently retry
+                    pass
         finally:
             self._cleanup_command(command_id)
 
-        return output
+        return reader
 
     def close_shell(self):
         """
@@ -110,33 +135,6 @@ class WsmvClient(Client):
             'ShellId': self.shell_id
         }
         self.send(WsmvAction.DELETE, selector_set=selector_set)
-
-    def _get_command_output(self, command_id):
-        """
-        [MS-WSMV] v30.0 2016-07-14
-        3.1.4.14 Receive
-
-        In the Text-based Command Shell scenario, the Receive message is used
-        to collect output from a running command
-
-        :param shell_id: The Shell ID the command is running in
-        :param command_id: The Command ID for the command to get the ouput for
-        :return: Reader: A class containing the stdout, stderr and return_code of the command
-        """
-        state = WsmvCommandState.RUNNING
-        body = WsmvObject.receive('stdout stderr', command_id)
-        selector_set = {'ShellId': self.shell_id}
-        reader = Reader()
-
-        while state != WsmvCommandState.DONE:
-            try:
-                response = self.send(WsmvAction.RECEIVE, body=body, selector_set=selector_set)
-                state = reader.parse_receive_response(response)
-            except WinRMOperationTimeoutError:
-                # this is an expected error when waiting for a long-running process, just silently retry
-                pass
-
-        return reader
 
     def _cleanup_command(self, command_id):
         """

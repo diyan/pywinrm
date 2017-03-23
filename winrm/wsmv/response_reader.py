@@ -23,7 +23,10 @@ class Reader(object):
     def parse_receive_response(self, message):
         receive_response = message['s:Envelope']['s:Body']['rsp:ReceiveResponse']
         try:
-            for stream_node in receive_response['rsp:Stream']:
+            stream_nodes = receive_response['rsp:Stream']
+            if isinstance(stream_nodes, dict):
+                stream_nodes = [stream_nodes]
+            for stream_node in stream_nodes:
                 raw_text = stream_node['#text']
                 text = base64.b64decode(raw_text.encode('ascii'))
                 if stream_node['@Name'] == 'stdout':

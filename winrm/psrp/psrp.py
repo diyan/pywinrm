@@ -11,7 +11,7 @@ from winrm.wsmv.message_objects import WsmvObject
 from winrm.psrp.response_reader import Reader
 from winrm.psrp.fragmenter import Fragmenter, Defragmenter
 from winrm.psrp.message_objects import CreatePipeline, SessionCapability, InitRunspacePool, Message, \
-    RunspacePoolState, PsrpObject, PipelineHostResponse, ApplicationPrivateData
+    RunspacePoolState, PsrpObject, PipelineHostResponse, ApplicationPrivateData, PipelineInput, EndOfPipelineInput
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class PsrpClient(Client):
 
         self._wait_for_open_pool()
 
-    def run_command(self, command, parameters=(), responses=()):
+    def run_command(self, command, parameters=(), responses=(), no_input=True):
         """
         Will run a command in a new pipeline on the RunspacePool. It will first
         check to see if the pool will accept a new runspace/pipeline based on
@@ -115,8 +115,17 @@ class PsrpClient(Client):
 
         pipeline = Pipeline(self)
         self.pipelines.append(pipeline)
+        pipeline.create(command, parameters, responses, no_input)
+
+        return pipeline.command_id
+
+    def send_input(self, command_id, input):
+        pipeline = self._find_pipeline_by_command_id(command_id)
+        pipeline.send_input(input)
+
+    def get_command_output(self, command_id):
+        pipeline = self._find_pipeline_by_command_id(command_id)
         try:
-            pipeline.create(command, parameters, responses)
             output = pipeline.get_output()
         finally:
             pipeline.stop()
@@ -201,6 +210,18 @@ class PsrpClient(Client):
              if server_protocol_version > '2.1':
                 self.server_config['max_envelope_size'] = 512000
 
+    def _find_pipeline_by_command_id(self, command_id):
+        pipeline = None
+        for iter_pipeline in self.pipelines:
+            if iter_pipeline.command_id == command_id:
+                pipeline = iter_pipeline
+                break
+
+        if not pipeline:
+            raise WinRMError("Cannot find pipeline that matches command_id %s" % command_id)
+
+        return pipeline
+
 
 class Pipeline(object):
     def __init__(self, client):
@@ -219,8 +240,9 @@ class Pipeline(object):
         self.state = PsrpPSInvocationState.NOT_STARTED
         self.responses = []
         self.current_response_count = 0
+        self.no_input = True
 
-    def create(self, command, parameters, responses):
+    def create(self, command, parameters, responses, no_input=True):
         """
         Will create a command pipeline to run on the server
 
@@ -230,12 +252,13 @@ class Pipeline(object):
         """
         self.responses = responses
         self.current_response_count = 0
+        self.no_input = no_input
         commands = [PsrpObject.create_command(command, parameters)]
 
         # We pipe the resulting command to a string so PSRP doesn't return a complex object
         commands.append(PsrpObject.create_command('Out-String', ['-Stream']))
         create_pipeline = Message(Message.DESTINATION_SERVER, self.client.rpid,
-                                  self.pid, CreatePipeline(commands))
+                                  self.pid, CreatePipeline(commands, self.no_input))
 
         fragments = self.client.fragmenter.fragment_messages(create_pipeline)
         body = WsmvObject.command_line('', fragments[0].decode(), self.command_id)
@@ -251,6 +274,18 @@ class Pipeline(object):
                 body = WsmvObject.send('stdin', fragments[idx], command_id=command_id)
                 self.client.send(WsmvAction.SEND, body=body, selector_set={'ShellId': self.client.shell_id})
 
+    def send_input(self, input):
+        """
+        Can be used to send the input to a pipeline before we retrieve the output
+
+        :param input: A string to send as an input to the pipeline
+        """
+        pipeline_input = Message(Message.DESTINATION_SERVER, self.client.rpid,
+                                 self.pid, PipelineInput(input))
+        fragments = self.client.fragmenter.fragment_messages(pipeline_input)
+        body = WsmvObject.send('stdin',fragments[0].decode(), self.command_id)
+        self.client.send(WsmvAction.SEND, body=body, selector_set={'ShellId': self.client.shell_id})
+
     def get_output(self):
         """
         Will extract the command output from the server into a Reader()
@@ -262,9 +297,17 @@ class Pipeline(object):
         :return: winrm.psrp.response_reader.Reader() object containing the powershell streams
         """
         defragmenter = Defragmenter()
-        reader = Reader(self.input_callback)
-        body = WsmvObject.receive('stdout', self.command_id)
+        reader = Reader(self._input_callback)
 
+        if not self.no_input:
+            # Once we have sent everything to the pipeline we need to tell it we have finalised it
+            end_of_pipeline_input = Message(Message.DESTINATION_SERVER, self.client.rpid,
+                                            self.pid, EndOfPipelineInput())
+            fragments = self.client.fragmenter.fragment_messages(end_of_pipeline_input)
+            body = WsmvObject.send('stdin', fragments[0].decode(), self.command_id)
+            self.client.send(WsmvAction.SEND, body=body, selector_set={'ShellId': self.client.shell_id})
+
+        body = WsmvObject.receive('stdout', self.command_id)
         while self.state == PsrpPSInvocationState.RUNNING:
             response = self.client.send(WsmvAction.RECEIVE, body=body, selector_set={'ShellId': self.client.shell_id})
 
@@ -285,7 +328,7 @@ class Pipeline(object):
 
         return reader
 
-    def input_callback(self, method_identifier, name, type):
+    def _input_callback(self, method_identifier, name, type):
         """
         Will take in the input request and pass in the pre-set input responses
         passed in when we started the command. If the response count is less than

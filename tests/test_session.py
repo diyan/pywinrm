@@ -262,11 +262,11 @@ def test_run_ps_with_error_stop(mock_send, mock_uuid):
 
 @mock.patch('requests.sessions.Session.send', side_effect=send)
 @mock.patch('uuid.uuid4', side_effect=mock_uuid)
-def test_run_ps_with_input(mock_send, mock_uuid):
+def test_run_ps_with_responses(mock_send, mock_uuid):
     # This was run on a Server 2008 box
     global test_name
     global test_message_counter
-    test_name = 'test_run_ps_with_input'
+    test_name = 'test_run_ps_with_responses'
     test_message_counter = 1
 
     s = Session(endpoint='windows-host', username='john.smith', password='secret')
@@ -304,6 +304,38 @@ def test_run_with_multiple_fragments(mock_send, mock_uuid):
     assert actual['verbose'] == b''
     assert actual['warning'] == b''
     assert actual['return_code'] == 0
+
+
+@mock.patch('requests.sessions.Session.send', side_effect=send)
+@mock.patch('uuid.uuid4', side_effect=mock_uuid)
+def test_run_with_pipeline_input(mock_send, mock_uuid):
+    # This was run on a Server 2012 R2 box
+    global test_name
+    global test_message_counter
+    test_name = 'test_run_with_pipeline_input'
+    test_message_counter = 1
+
+    s = Session(endpoint='windows-host', username='john.smith', password='secret')
+    script = """
+        begin {
+            $DebugPreference = 'Continue'
+            Write-Debug "Start Block"
+        }
+        process {
+            Write-Debug "Process Block $input"
+        }
+        end {
+            Write-Debug "End Block"
+        }"""
+    actual = s.run_ps(script, inputs=['input 1', 'input 2'])
+    assert actual.error == b''
+    assert actual.stderr == b''
+    assert actual.debug == b'Start Block\nProcess Block\nProcess Block\nEnd Block\n'
+    assert actual.output == b'input 1\ninput 2\n'
+    assert actual.stdout == b'DEBUG: Start Block\nDEBUG: Process Block\ninput 1\nDEBUG: Process Block\ninput 2\nDEBUG: End Block\n'
+    assert actual.verbose == b''
+    assert actual.warning == b''
+    assert actual.return_code == 0
 
 
 def test_target_as_hostname():

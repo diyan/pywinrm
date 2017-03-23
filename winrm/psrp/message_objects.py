@@ -29,8 +29,9 @@ class Message(object):
         message += struct.pack("<I", self.message_type)
         message += self.rpid.bytes
         message += self.pid.bytes
-        message += self.BYTE_ORDER_MARK
-        message += xmltodict.unparse(self.data, full_document=False, encoding='utf-8').encode()
+        if self.data != "":
+            message += self.BYTE_ORDER_MARK
+            message += xmltodict.unparse(self.data, full_document=False, encoding='utf-8').encode()
 
         return message
 
@@ -661,7 +662,7 @@ class RunspacePoolState(object):
 
 
 class CreatePipeline(object):
-    def __init__(self, commands):
+    def __init__(self, commands, no_input):
         """
         [MS-PSRP] v16.0 2016-07-14
         2.2.2.10 CREATE_PIPELINE Message
@@ -674,7 +675,7 @@ class CreatePipeline(object):
         """
         self.message_type = PsrpMessageType.CREATE_PIPELINE
 
-        self.no_input = True
+        self.no_input = no_input
         self.apartment_state = PsrpObject.create_apartment_state()
         self.remote_stream_options = PsrpObject.create_remote_stream_options()
         self.add_to_history = True
@@ -757,6 +758,47 @@ class ApplicationPrivateData(object):
                 application_info[key] = value
 
         return application_info
+
+
+class PipelineInput(object):
+
+    def __init__(self, input):
+        """
+        [MS-PSRP] v16.0 2016-07-14
+        2.2.2.17 PIPELINE_INPUT Message
+
+        Input to a command pipeline on the server
+
+        Direction: Client to Server
+        Target: pipeline
+        """
+        self.message_type = PsrpMessageType.PIPELINE_INPUT
+        self.input = input
+
+    def create_message_data(self):
+        message_data = {
+            "S": self.input
+        }
+
+        return message_data
+
+
+class EndOfPipelineInput(object):
+
+    def __init__(self):
+        """
+        [MS-PSRP] v16.0 2016-07-14
+        2.2.2.18 END_OF_PIPELINE_INPUT Message
+
+        Close the input collection for the command pipeline on the server.
+
+        Direction: Client to Server
+        Target: pipeline
+        """
+        self.message_type = PsrpMessageType.END_OF_PIPELINE_INPUT
+
+    def create_message_data(self):
+        return ""
 
 
 class PipelineState(object):

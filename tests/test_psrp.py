@@ -50,6 +50,6 @@ def test_input_callback_in_pipeline_not_enough_responses():
     with pytest.raises(WinRMError) as excinfo:
         c = PsrpClient({'endpoint': 'windows-host', 'username': 'test', 'password': 'test', 'auth_method': 'basic'})
         p = Pipeline(c)
-        p.input_callback('', '', '')
+        p._input_callback('', '', '')
 
     assert str(excinfo.value) == 'Expecting response index at 1 but only 0 responses have been pre-set'
