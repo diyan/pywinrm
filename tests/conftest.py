@@ -318,26 +318,52 @@ def protocol_fake(request):
 
 
 @fixture(scope='module')
-def protocol_real():
+def wsmv_client_real():
     endpoint = os.environ.get('WINRM_ENDPOINT', None)
-    transport = os.environ.get('WINRM_TRANSPORT', None)
+    auth_method = os.environ.get('WINRM_AUTH_METHOD', None)
     username = os.environ.get('WINRM_USERNAME', None)
     password = os.environ.get('WINRM_PASSWORD', None)
     if endpoint:
-        settings = dict(
+        transport_opts = dict(
             endpoint=endpoint,
-            operation_timeout_sec=5,
             read_timeout_sec=7
         )
-        if transport:
-            settings['transport'] = transport
+        if auth_method:
+            transport_opts['auth_method'] = auth_method
         if username:
-            settings['username'] = username
+            transport_opts['username'] = username
         if password:
-            settings['password'] = password
+            transport_opts['password'] = password
 
-        from winrm.protocol import Protocol
-        protocol = Protocol(**settings)
-        return protocol
+        from winrm.wsmv.wsmv import WsmvClient
+        client = WsmvClient(transport_opts, operation_timeout_sec=5)
+
+        return client
+    else:
+        skip('WINRM_ENDPOINT environment variable was not set. Integration tests will be skipped')
+
+
+@fixture(scope='module')
+def psrp_client_real():
+    endpoint = os.environ.get('WINRM_ENDPOINT', None)
+    auth_method = os.environ.get('WINRM_AUTH_METHOD', None)
+    username = os.environ.get('WINRM_USERNAME', None)
+    password = os.environ.get('WINRM_PASSWORD', None)
+    if endpoint:
+        transport_opts = dict(
+            endpoint=endpoint,
+            read_timeout_sec=7
+        )
+        if auth_method:
+            transport_opts['auth_method'] = auth_method
+        if username:
+            transport_opts['username'] = username
+        if password:
+            transport_opts['password'] = password
+
+        from winrm.psrp.psrp import PsrpClient
+        client = PsrpClient(transport_opts, operation_timeout_sec=5)
+
+        return client
     else:
         skip('WINRM_ENDPOINT environment variable was not set. Integration tests will be skipped')
