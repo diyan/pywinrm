@@ -7,7 +7,11 @@ import os
 import warnings
 import xmltodict
 
+from six import string_types
+from xml.parsers.expat import ExpatError
+
 from distutils.util import strtobool
+
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +45,7 @@ from winrm.exceptions import InvalidCredentialsError, \
     WinRMError, WinRMTransportError, WinRMOperationTimeoutError
 
 __all__ = ['Transport']
+
 
 class Transport(object):
 
@@ -85,8 +90,8 @@ class Transport(object):
     def _validate_auth_method(self):
         valid_auth_methods = ['basic', 'kerberos', 'ntlm', 'certificate', 'credssp', 'plaintext', 'ssl']
         if self.auth_method not in valid_auth_methods:
-            raise InvalidCredentialsError("requested auth method is %s, but valid auth methods are %s" %
-                                          (self.auth_method, ''.join(valid_auth_methods)))
+            raise WinRMError("requested auth method is %s, but valid auth methods are %s" %
+                                          (self.auth_method, ' '.join(valid_auth_methods)))
 
         if self.auth_method == 'kerberos':
             if not HAVE_KERBEROS:
@@ -110,7 +115,7 @@ class Transport(object):
             if self.username is None:
                 raise InvalidCredentialsError("auth method %s requires a username" % self.auth_method)
             if self.password is None:
-                raise InvalidCredentialsError("auth method %s requires a username" % self.auth_method)
+                raise InvalidCredentialsError("auth method %s requires a password" % self.auth_method)
 
             if self.auth_method == 'ntlm' and not HAVE_NTLM:
                 raise InvalidCredentialsError("requested auth method is ntlm, but requests_ntlm is not installed")
@@ -200,11 +205,17 @@ class Transport(object):
                 raise InvalidCredentialsError("the specified credentials were rejected by the server")
             self._raise_wsman_error(ex.response)
 
-    def _raise_wsman_error(self, response):
+    @staticmethod
+    def _raise_wsman_error(response):
         if response.content:
             response_text = response.content
             log.warning("Received error from Server, Message response: %s" % response_text)
-            response_dict = xmltodict.parse(response_text)
+
+            try:
+                response_dict = xmltodict.parse(response_text)
+            except ExpatError:
+                response_dict = {}
+
             try:
                 wsman_fault = response_dict['s:Envelope']['s:Body']['s:Fault']['s:Detail']['f:WSManFault']
                 code = wsman_fault.get('@Code', 'Unknown')
@@ -213,7 +224,7 @@ class Transport(object):
                     raise WinRMOperationTimeoutError()
 
                 fault_message = wsman_fault['f:Message']
-                if isinstance(fault_message, str):
+                if isinstance(fault_message, string_types):
                     error_info = 'WSMan Code; %s, Error: %s' % (code, fault_message)
                 else:
                     provider_fault = fault_message['f:ProviderFault']
@@ -228,5 +239,3 @@ class Transport(object):
         else:
             raise WinRMTransportError('http',
                                       'Bad HTTP response returned from server. Code {0}'.format(response.status_code))
-
-

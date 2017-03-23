@@ -72,6 +72,7 @@ class Fragmenter(object):
             blob_size = len(blob)
             if blob_size > max_blob_size:
                 # The individual blob needs to split into multiple fragments
+
                 if len(raw_fragment) > 0:
                     fragments.append(base64.b64encode(raw_fragment))
 
@@ -149,7 +150,6 @@ class Fragmenter(object):
 
         return int(allowed_fragment_size)
 
-
     def _get_empty_wsmv_command_size(self):
         """
         Creates an empty WSMV CommandLine message to use when calculating how
@@ -163,6 +163,7 @@ class Fragmenter(object):
         message = self.client.create_message(body, WsmvAction.COMMAND, resource_uri=self.client.resource_uri,
                                              selector_set=selector_set)
         return len(xmltodict.unparse(message))
+
 
 class Defragmenter(object):
     def __init__(self):

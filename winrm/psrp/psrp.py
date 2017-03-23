@@ -108,7 +108,7 @@ class PsrpClient(Client):
             if running:
                 running_pipelines += 1
 
-        if running_pipelines > self.max_runspaces:
+        if running_pipelines >= self.max_runspaces:
             raise WinRMError(
                 "Cannot create new command pipeline as Runspace Pool already has %d running, max allowed %d" % (
                 running_pipelines, self.max_runspaces))
@@ -198,7 +198,7 @@ class PsrpClient(Client):
         """
         current_envelope_size = self.server_config['max_envelope_size']
         if current_envelope_size == WsmvConstant.DEFAULT_MAX_ENVELOPE_SIZE:
-            if server_protocol_version > '2.1':
+             if server_protocol_version > '2.1':
                 self.server_config['max_envelope_size'] = 512000
 
 
@@ -217,6 +217,8 @@ class Pipeline(object):
         self.pid = uuid.uuid4()
         self.command_id = str(uuid.uuid4()).upper()
         self.state = PsrpPSInvocationState.NOT_STARTED
+        self.responses = []
+        self.current_response_count = 0
 
     def create(self, command, parameters, responses):
         """
@@ -295,7 +297,8 @@ class Pipeline(object):
         """
         responses = self.responses
         if len(responses) < self.current_response_count + 1:
-            raise WinRMError("Expecting another response than what was specified")
+            raise WinRMError("Expecting response index at %d but only "
+                             "%d responses have been pre-set" % (self.current_response_count + 1, len(responses)))
 
         current_response = self.responses[self.current_response_count]
         self.current_response_count += 1
