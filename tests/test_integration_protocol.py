@@ -90,7 +90,7 @@ def test_run_ps_script_psrp(psrp_client_real):
         assert b'error stream\n   + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException' in output.stderr
         assert output.debug == b'debug stream\n'
         assert output.output == b'output stream\n'
-        assert output.stdout == b'Test\n\nDEBUG: debug stream\nVERBOSE: verbose stream\noutput stream\nWARNING: warning stream\n'
+        assert output.stdout == b'Test\nDEBUG: debug stream\nVERBOSE: verbose stream\noutput stream\nWARNING: warning stream\n'
         assert output.verbose == b'verbose stream\n'
         assert output.warning == b'warning stream\n'
         assert output.return_code == 0
@@ -159,7 +159,7 @@ def test_run_ps_with_input_psrp(psrp_client_real):
         assert output.stderr == b''
         assert output.debug == b''
         assert output.output == b''
-        assert output.stdout == b'first prompt\n\nsecond prompt\n\n'
+        assert output.stdout == b'first prompt\nsecond prompt\n'
         assert output.verbose == b''
         assert output.warning == b''
         assert output.return_code == 0
@@ -177,7 +177,7 @@ def test_run_with_multiple_fragments_psrp(psrp_client_real):
         assert output.stderr == b''
         assert output.debug == b''
         assert output.output == b''
-        assert output.stdout == long_string.encode() + b'\n\n'
+        assert output.stdout == long_string.encode() + b'\n'
         assert output.verbose == b''
         assert output.warning == b''
         assert output.return_code == 0
