@@ -212,9 +212,11 @@ When creating a session or a low level client you need to pass in some transport
 * `cert_pem`: If using `certificate` authentication, this is the file path to the authentication certificate
 * `read_timeout_sec`: Maximum seconds to wait before a HTTP connect/read times out (Default `30`). This value should be slightly higher than `operation_timeout_sec` set in the client options below
 * `server_cert_validation`: Whether server certificate should be validated on Python versions that support it (Default: `validate`), Options: `validate`, `ignore`
+* `kerberos_service`: The kerberos service name to pass onto requests-kerberos (Default: `HTTP`)
 * `kerberos_delegation`: If True, TGT is sent to the endpoint to allow multiple hops/credential delegation (Default: `False`)
 * `kerberos_hostname_override`: The hostname to use for the Kerberos exchange (Default: hostname in the endpoint URL)
 * `credssp_disable_tlsv1_2`: Whether to allow pre TLS 1.2 encrypted transport for CredSSP authentication for older servers (Default: `False`)
+* `proxies`: A dictionary of proxies to pass onto Python requests (Default: use environment variables)
 
 ### Client Options
 

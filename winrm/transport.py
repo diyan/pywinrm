@@ -61,9 +61,11 @@ class Transport(object):
         self.cert_key_pem = kwargs.get('cert_key_pem', None)
         self.read_timeout_sec = kwargs.get('read_timeout_sec', None)
         self.server_cert_validation = kwargs.get('server_cert_validation', 'validate')
+        self.kerberos_service = kwargs.get('kerberos_service', 'HTTP')
         self.kerberos_delegation = kwargs.get('kerberos_delegation', False)
         self.kerberos_hostname_override = kwargs.get('kerberos_hostname_override', None)
         self.credssp_disable_tlsv1_2 = kwargs.get('credssp_disable_tlsv1_2', False)
+        self.proxies = kwargs.get('proxies', None)
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -146,10 +148,13 @@ class Transport(object):
 
         # configure proxies from HTTP/HTTPS_PROXY envvars
         session.trust_env = True
-        settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
+        settings = session.merge_environment_settings(url=self.endpoint, proxies=self.proxies, stream=None,
                                                       verify=None, cert=None)
 
         # we're only applying proxies from env, other settings are ignored
+        session.proxies = settings['proxies']
+
+        # Applying proxy settings
         session.proxies = settings['proxies']
 
         if self.auth_method == 'basic':
@@ -163,7 +168,8 @@ class Transport(object):
                                             force_preemptive=True,
                                             principal=self.username,
                                             hostname_override=self.kerberos_hostname_override,
-                                            sanitize_mutual_error_response=False)
+                                            sanitize_mutual_error_response=False,
+                                            service=self.kerberos_service)
         elif self.auth_method == 'ntlm':
             log.debug("Connecting using NTLM Authentication")
             session.auth = HttpNtlmAuth(username=self.username, password=self.password)
