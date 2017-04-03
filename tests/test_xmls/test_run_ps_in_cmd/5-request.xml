@@ -1,0 +1,24 @@
+<s:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:i="http://schemas.microsoft.com/wbem/wsman/1/cim/interactive.xsd" xmlns:wsmanfault="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault" xmlns:wsmid="http://schemas.dmtf.org/wbem/wsman/identify/1/wsmanidentity.xsd" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:plugin="http://schemas.microsoft.com/wbem/wsman/1/config/PluginConfiguration" xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:wse="http://schemas.xmlsoap.org/ws/2004/08/eventing" xmlns:cert="http://schemas.microsoft.com/wbem/wsman/1/config/service/certmapping" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:m="http://schemas.microsoft.com/wbem/wsman/1/machineid" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:sub="http://schemas.microsoft.com/wbem/wsman/1/subscription" xmlns:wsen="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
+<s:Header>
+    <w:SelectorSet>
+        <w:Selector Name="ShellId">4C7F3BB5-B508-4F20-9B6E-C8980CFCADCA</w:Selector>
+    </w:SelectorSet>
+    <p:SessionId s:mustUnderstand="false">uuid:11111111-1111-1111-1111-111111111111</p:SessionId>
+    <a:Action s:mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal</a:Action>
+    <a:To>https://windows-host:5986/wsman</a:To>
+    <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+    <a:ReplyTo>
+        <a:Address s:mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+    </a:ReplyTo>
+    <w:ResourceURI s:mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+    <w:Locale xml:lang="en-US" s:mustUnderstand="false"/>
+    <w:MaxEnvelopeSize>512000</w:MaxEnvelopeSize>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
+    <p:DataLocale xml:lang="en-US" s:mustUnderstand="false"/>
+</s:Header>
+<s:Body>
+    <rsp:Signal CommandId="0DA15A6E-0960-43FF-B54A-91A1A9D36131">
+        <rsp:Code>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate</rsp:Code>
+    </rsp:Signal>
+</s:Body>
+</s:Envelope>

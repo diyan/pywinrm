@@ -1,0 +1,71 @@
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+<s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/09/transfer/GetResponse</a:Action>
+    <a:MessageID>uuid:2E495706-B039-4E24-AD87-0268A785C4BF</a:MessageID>
+    <p:ActivityId>4AAEC1B6-A395-0000-84E2-AE4A95A3D201</p:ActivityId>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:11111111-1111-1111-1111-111111111111</a:RelatesTo>
+</s:Header>
+<s:Body>
+    <cfg:Config xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config">
+    <cfg:MaxEnvelopeSizekb>500</cfg:MaxEnvelopeSizekb>
+    <cfg:MaxTimeoutms>60000</cfg:MaxTimeoutms>
+    <cfg:MaxBatchItems>32000</cfg:MaxBatchItems>
+    <cfg:MaxProviderRequests>4294967295</cfg:MaxProviderRequests>
+    <cfg:Client>
+        <cfg:NetworkDelayms>5000</cfg:NetworkDelayms>
+        <cfg:URLPrefix>wsman</cfg:URLPrefix>
+        <cfg:AllowUnencrypted>true</cfg:AllowUnencrypted>
+        <cfg:Auth>
+            <cfg:Basic>true</cfg:Basic>
+            <cfg:Digest>true</cfg:Digest>
+            <cfg:Kerberos>true</cfg:Kerberos>
+            <cfg:Negotiate>true</cfg:Negotiate>
+            <cfg:Certificate>true</cfg:Certificate>
+            <cfg:CredSSP>false</cfg:CredSSP>
+        </cfg:Auth>
+        <cfg:DefaultPorts>
+            <cfg:HTTP>5985</cfg:HTTP>
+            <cfg:HTTPS>5986</cfg:HTTPS>
+        </cfg:DefaultPorts>
+        <cfg:TrustedHosts/>
+    </cfg:Client>
+    <cfg:Service>
+        <cfg:RootSDDL>O:NSG:BAD:P(A;;GA;;;BA)(A;;GR;;;IU)S:P(AU;FA;GA;;;WD)(AU;SA;GXGW;;;WD)</cfg:RootSDDL>
+        <cfg:MaxConcurrentOperations>4294967295</cfg:MaxConcurrentOperations>
+        <cfg:MaxConcurrentOperationsPerUser>1500</cfg:MaxConcurrentOperationsPerUser>
+        <cfg:EnumerationTimeoutms>240000</cfg:EnumerationTimeoutms>
+        <cfg:MaxConnections>300</cfg:MaxConnections>
+        <cfg:MaxPacketRetrievalTimeSeconds>120</cfg:MaxPacketRetrievalTimeSeconds>
+        <cfg:AllowUnencrypted>true</cfg:AllowUnencrypted>
+        <cfg:Auth>
+            <cfg:Basic>true</cfg:Basic>
+            <cfg:Kerberos>true</cfg:Kerberos>
+            <cfg:Negotiate>true</cfg:Negotiate>
+            <cfg:Certificate>false</cfg:Certificate>
+            <cfg:CredSSP>true</cfg:CredSSP>
+            <cfg:CbtHardeningLevel>Relaxed</cfg:CbtHardeningLevel>
+        </cfg:Auth>
+        <cfg:DefaultPorts>
+            <cfg:HTTP>5985</cfg:HTTP>
+            <cfg:HTTPS>5986</cfg:HTTPS>
+        </cfg:DefaultPorts>
+        <cfg:IPv4Filter>*</cfg:IPv4Filter>
+        <cfg:IPv6Filter>*</cfg:IPv6Filter>
+        <cfg:EnableCompatibilityHttpListener>false</cfg:EnableCompatibilityHttpListener>
+        <cfg:EnableCompatibilityHttpsListener>false</cfg:EnableCompatibilityHttpsListener>
+        <cfg:CertificateThumbprint/>
+        <cfg:AllowRemoteAccess>true</cfg:AllowRemoteAccess>
+    </cfg:Service>
+    <cfg:Winrs>
+        <cfg:AllowRemoteShellAccess>true</cfg:AllowRemoteShellAccess>
+        <cfg:IdleTimeout>7200000</cfg:IdleTimeout>
+        <cfg:MaxConcurrentUsers>2147483647</cfg:MaxConcurrentUsers>
+        <cfg:MaxShellRunTime>2147483647</cfg:MaxShellRunTime>
+        <cfg:MaxProcessesPerShell>2147483647</cfg:MaxProcessesPerShell>
+        <cfg:MaxMemoryPerShellMB>2147483647</cfg:MaxMemoryPerShellMB>
+        <cfg:MaxShellsPerUser>2147483647</cfg:MaxShellsPerUser>
+    </cfg:Winrs>
+</cfg:Config>
+</s:Body>
+</s:Envelope>

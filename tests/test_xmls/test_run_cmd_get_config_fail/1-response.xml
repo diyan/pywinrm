@@ -1,0 +1,25 @@
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:e="http://schemas.xmlsoap.org/ws/2004/08/eventing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+<s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/08/addressing/fault</a:Action>
+    <a:MessageID>uuid:99AB70AE-B305-4CC8-BCBE-D4EB3DD1F30E</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+</s:Header>
+<s:Body>
+    <s:Fault>
+        <s:Code>
+            <s:Value>s:Sender</s:Value>
+            <s:Subcode>
+                <s:Value>a:InvalidMessageInformationHeader</s:Value>
+            </s:Subcode>
+        </s:Code>
+        <s:Reason>
+            <s:Text xml:lang="">The WS-Management service cannot process the request. The request contains one or more invalid SOAP headers. </s:Text>
+        </s:Reason>
+        <s:Detail>
+            <f:WSManFault xmlns:f="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault" Code="2150858767" Machine="windows-host">
+            <f:Message>The WS-Management service cannot process the request. The SOAP packet that WS-Management received did not contain a valid Body element. </f:Message>
+        </f:WSManFault>
+    </s:Detail>
+</s:Fault>
+</s:Body>
+</s:Envelope>

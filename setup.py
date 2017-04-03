@@ -1,6 +1,6 @@
 from setuptools import setup
 
-__version__ = '0.2.2'
+__version__ = '1.0.0'
 project_name = 'pywinrm'
 
 # PyPi supports only reStructuredText, so pandoc should be installed
@@ -10,6 +10,12 @@ try:
     long_description = pypandoc.convert('README.md', 'rst')
 except ImportError:
     long_description = ''
+
+install_requires = ['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six']
+try:
+    from collections import OrderedDict
+except ImportError:
+    install_requires.append('ordereddict')
 
 setup(
     name=project_name,
@@ -21,9 +27,9 @@ setup(
     author_email='alexey.diyan@gmail.com',
     url='http://github.com/diyan/pywinrm/',
     license='MIT license',
-    packages=('winrm', 'winrm.tests'),
-    package_data={'winrm.tests': ['*.ps1']},
-    install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
+    packages=('winrm', 'tests'),
+    package_data={'tests': ['*.ps1']},
+    install_requires=install_requires,
     extras_require = dict(kerberos=['requests-kerberos>=0.10.0'], credssp=['requests-credssp>=0.0.1']),
     classifiers=[
         'Development Status :: 4 - Beta',

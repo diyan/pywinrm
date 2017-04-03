@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 import base64
 import uuid
+import warnings
 
 import xml.etree.ElementTree as ET
 import xmltodict
@@ -48,6 +49,9 @@ class Protocol(object):
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
         """
+
+        warnings.warn("winrm.protocol is a deprecated class, all functionality should"
+                      " be moved over to use winrm.client instead")
 
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")

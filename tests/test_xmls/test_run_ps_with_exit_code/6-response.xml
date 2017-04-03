@@ -1,0 +1,17 @@
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+<s:Header>
+    <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/ReceiveResponse</a:Action>
+    <a:MessageID>uuid:9DDFC4C7-7CA5-40A5-A559-356B0AA7FD21</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:11111111-1111-1111-1111-111111111111</a:RelatesTo>
+</s:Header>
+<s:Body>
+    <rsp:ReceiveResponse>
+        <rsp:Stream Name="stdout" CommandId="11111111-1111-1111-1111-111111111111">AAAAAAAAAAQAAAAAAAAAAAMAAAG1AQAAAAARBACbR2+cUFRBU5Pg6vW7XAbmLTHMvGCRTeuI9XJUWjiFzO+7vzxPYmogUmVmSWQ9IjAiPjxNUz48STY0IE49ImNpIj4tMTAwPC9JNjQ+PE9iaiBOPSJtaSIgUmVmSWQ9IjEiPjxUTiBSZWZJZD0iMCI+PFQ+U3lzdGVtLk1hbmFnZW1lbnQuQXV0b21hdGlvbi5SZW1vdGluZy5SZW1vdGVIb3N0TWV0aG9kSWQ8L1Q+PFQ+U3lzdGVtLkVudW08L1Q+PFQ+U3lzdGVtLlZhbHVlVHlwZTwvVD48VD5TeXN0ZW0uT2JqZWN0PC9UPjwvVE4+PFRvU3RyaW5nPlNldFNob3VsZEV4aXQ8L1RvU3RyaW5nPjxJMzI+NjwvSTMyPjwvT2JqPjxPYmogTj0ibXAiIFJlZklkPSIyIj48VE4gUmVmSWQ9IjEiPjxUPlN5c3RlbS5Db2xsZWN0aW9ucy5BcnJheUxpc3Q8L1Q+PFQ+U3lzdGVtLk9iamVjdDwvVD48L1ROPjxMU1Q+PEkzMj4xPC9JMzI+PC9MU1Q+PC9PYmo+PC9NUz48L09iaj4=</rsp:Stream>
+        <rsp:Stream Name="stdout" CommandId="11111111-1111-1111-1111-111111111111">AAAAAAAAAAUAAAAAAAAAAAMAAABnAQAAAAYQBACbR2+cUFRBU5Pg6vW7XAbmLTHMvGCRTeuI9XJUWjiFzO+7vzxPYmogUmVmSWQ9IjAiPjxNUz48STMyIE49IlBpcGVsaW5lU3RhdGUiPjQ8L0kzMj48L01TPjwvT2JqPg==</rsp:Stream>
+        <rsp:CommandState CommandId="11111111-1111-1111-1111-111111111111" State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
+        <rsp:ExitCode>0</rsp:ExitCode>
+    </rsp:CommandState>
+</rsp:ReceiveResponse>
+</s:Body>
+</s:Envelope>
