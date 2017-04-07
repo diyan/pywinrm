@@ -30,6 +30,8 @@ class Protocol(object):
             read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
             operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
             kerberos_hostname_override=None,
+            http_proxy=None,
+            https_proxy=None,
         ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -47,6 +49,8 @@ class Protocol(object):
         @param int read_timeout_sec: maximum seconds to wait before an HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long. # NOQA
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
+        @param string http_proxy: to override the current environment http_proxy var
+        @param string https_proxy: to override the current environment https_proxy var
         """
 
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
@@ -65,7 +69,8 @@ class Protocol(object):
             server_cert_validation=server_cert_validation,
             kerberos_delegation=kerberos_delegation,
             kerberos_hostname_override=kerberos_hostname_override,
-            auth_method=transport)
+            auth_method=transport,
+            http_proxy=http_proxy, https_proxy=https_proxy)
 
         self.username = username
         self.password = password
@@ -75,6 +80,8 @@ class Protocol(object):
         self.server_cert_validation = server_cert_validation
         self.kerberos_delegation = kerberos_delegation
         self.kerberos_hostname_override = kerberos_hostname_override
+        self.http_proxy = http_proxy
+        self.https_proxy = https_proxy
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,
