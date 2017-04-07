@@ -59,7 +59,9 @@ class Transport(object):
             cert_key_pem=None, read_timeout_sec=None, server_cert_validation='validate',
             kerberos_delegation=False,
             kerberos_hostname_override=None,
-            auth_method='auto'):
+            auth_method='auto',
+            http_proxy=None,
+            https_proxy=None):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -72,6 +74,8 @@ class Transport(object):
         self.read_timeout_sec = read_timeout_sec
         self.server_cert_validation = server_cert_validation
         self.kerberos_hostname_override = kerberos_hostname_override
+        self.http_proxy = http_proxy
+        self.https_proxy = https_proxy
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -138,6 +142,10 @@ class Transport(object):
         # we're only applying proxies from env, other settings are ignored
         session.proxies = settings['proxies']
 
+        # We override the environment with passed values when they're defined
+        if self.http_proxy: session.proxies['http'] = self.http_proxy
+        if self.https_proxy: session.proxies['https'] = self.https_proxy
+        
         if self.auth_method == 'kerberos':
             if not HAVE_KERBEROS:
                 raise WinRMError("requested auth method is kerberos, but requests_kerberos is not installed")
