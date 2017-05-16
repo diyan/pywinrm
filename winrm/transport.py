@@ -52,7 +52,7 @@ __all__ = ['Transport']
 import ssl
 
 class Transport(object):
-    
+
     def __init__(
             self, endpoint, username=None, password=None, realm=None,
             service=None, keytab=None, ca_trust_path=None, cert_pem=None,
@@ -205,6 +205,6 @@ class Transport(object):
             if b'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and b'Code="2150858793"' in response_text:
                 raise WinRMOperationTimeoutError()
 
-            error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
+            error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code).encode('utf-8')
 
-            raise WinRMTransportError('http', error_message)
+            raise WinRMTransportError('http'.encode('utf-8'), error_message)
