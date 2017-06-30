@@ -17,11 +17,13 @@ class Response(object):
     """Response from a remote command execution"""
     def __init__(self, args):
         self.std_out, self.std_err, self.status_code = args
+        self.verbose = ""
+        self.warning = ""
 
     def __repr__(self):
         # TODO put tree dots at the end if out/err was truncated
-        return '<Response code {0}, out "{1}", err "{2}">'.format(
-            self.status_code, self.std_out[:20], self.std_err[:20])
+        return '<Response code {0}, out "{1}", err "{2}" verbose "{3}" warning "{4}">'.format(
+            self.status_code, self.std_out[:20], self.std_err[:20], self.verbose[:20], self.warning[:20])
 
 
 class Session(object):
@@ -51,13 +53,16 @@ class Session(object):
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
-            rs.std_err = self._clean_error_msg(rs.std_err)
+            (rs.std_err,rs.verbose,rs.warning) = self._clean_error_msg(rs.std_err)
         return rs
 
     def _clean_error_msg(self, msg):
         """converts a Powershell CLIXML message to a more human readable string
         """
         # TODO prepare unit test, beautify code
+        new_errmsg = msg
+        warning = ""
+        verbose = ""
         # if the msg does not start with this, return it as is
         if msg.startswith("#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
@@ -67,26 +72,29 @@ class Session(object):
                 # remove the namespaces from the xml for easier processing
                 msg_xml = self._strip_namespace(msg_xml)
                 root = ET.fromstring(msg_xml)
-                # the S node is the error message, find all S nodes
+                new_errmsg = "" # at this point it's XML so clear out default, and only add error messages
+
+                # find all S nodes that are error, verbose, and warning messages
+                # ignore Obj nodes, that are information (PSv5+), and progress messages since information also
+                # goes to stdout, and simply ignore progress
                 nodes = root.findall("./S")
-                new_msg = ""
                 for s in nodes:
-                    # append error msg string to result, also
-                    # the hex chars represent CRLF so we replace with newline
-                    new_msg += s.text.replace("_x000D__x000A_", "\n")
+                    if s.attrib["S"] == "verbose":
+                        verbose += "VERBOSE: "+s.text+"\n"
+                    elif s.attrib["S"] == "warning":
+                        warning += "WARNING: "+s.text+"\n"
+                    elif s.attrib["S"] == "Error":
+                        # append error msg string to result, also
+                        # the hex chars represent CRLF so we replace with newline
+                        new_errmsg += s.text.replace("_x000D__x000A_", "\n")
             except Exception as e:
                 # if any of the above fails, the msg was not true xml
                 # print a warning and return the orignal string
                 # TODO do not print, raise user defined error instead
                 print("Warning: there was a problem converting the Powershell"
                       " error message: %s" % (e))
-            else:
-                # if new_msg was populated, that's our error message
-                # otherwise the original error message will be used
-                if len(new_msg):
-                    # remove leading and trailing whitespace while we are here
-                    msg = new_msg.strip()
-        return msg
+
+        return new_errmsg.strip(), verbose.strip(), warning.strip();
 
     def _strip_namespace(self, xml):
         """strips any namespaces from an xml string"""
