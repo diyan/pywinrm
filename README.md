@@ -139,7 +139,7 @@ By default WinRM will not accept unencrypted messages from a client and Pywinrm
 currently has 2 ways to do this.
 
 1. Using a HTTPS endpoint instead of HTTP (Recommended)
-2. Use NTLM as the transport auth and setting `message_encryption` to `auto` or `always`
+2. Use NTLM or CredSSP as the transport auth and setting `message_encryption` to `auto` or `always`
 
 Using a HTTPS endpoint is recommended as it will encrypt all the data sent
 through to the server including the credentials and works with all transport
@@ -147,12 +147,12 @@ auth types. You can use [this script](https://github.com/ansible/ansible/blob/de
 to easily set up a HTTPS endpoint on WinRM with a self signed certificate but
 in a production environment this should be hardened with your own process.
 
-The second option is to use NTLM and set the `message_encryption` arg to
-protocol to `auto` or `always`. This will use the authention GSS-API Wrap and
-Unwrap methods if available to encrypt the message contents sent to the server.
-This form of encryption is independent from the transport layer like TLS and is
-currently only supported by the NTLM transport auth. Kerberos and CredSSP do
-have the methods available but currently are not supported in Pywinrm.
+The second option is to use NTLM or CredSSP and set the `message_encryption`
+arg to protocol to `auto` or `always`. This will use the authentication GSS-API
+Wrap and Unwrap methods if available to encrypt the message contents sent to
+the server. This form of encryption is independent from the transport layer
+like TLS and is currently only supported by the NTLM and CredSSP transport
+auth. Kerberos currently does not have the methods available to achieve this.
 
 To configure message encryption you can use the `message_encryption` argument
 when initialising protocol. This option has 3 values that can be set as shown
@@ -160,7 +160,7 @@ below.
 
 * `auto`: Default, Will only use message encryption if it is available for the auth method and HTTPS isn't used.
 * `never`: Will never use message encryption even when not over HTTPS.
-* `always`: Will always use message encryption evevn when running over HTTPS.
+* `always`: Will always use message encryption even when running over HTTPS.
 
 If you set the value to `always` and the transport opt doesn't support message
 encryption i.e. Basic auth, Pywinrm will throw an exception.

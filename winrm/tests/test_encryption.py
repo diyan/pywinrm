@@ -26,7 +26,7 @@ def test_encrypt_message():
     signature_length = struct.pack("<i", len(expected_signature))
 
     assert actual.headers == {
-        "Content-Length": "270",
+        "Content-Length": "272",
         "Content-Type": 'multipart/encrypted;protocol="application/HTTP-SPNEGO-session-encrypted";boundary="Encrypted Boundary"'
     }
     assert actual.body == b"--Encrypted Boundary\r\n" \
@@ -35,7 +35,7 @@ def test_encrypt_message():
                           b"--Encrypted Boundary\r\n" \
                           b"\tContent-Type: application/octet-stream\r\n" + \
                           signature_length + expected_signature + expected_encrypted_message + \
-                          b"--Encrypted Boundary\r\n"
+                          b"--Encrypted Boundary--\r\n"
 
 
 def test_decrypt_message():
@@ -91,7 +91,7 @@ def test_decrypt_message_length_mismatch():
                    b"--Encrypted Boundary\r\n" \
                    b"\tContent-Type: application/octet-stream\r\n" + \
                    test_signature_length + test_signature + test_encrypted_message + \
-                   b"--Encrypted Boundary\r\n"
+                   b"--Encrypted Boundary--\r\n"
     test_response = TestResponse('protocol="application/HTTP-SPNEGO-session-encrypted"', test_message)
 
     encryption = Encryption(test_session, 'ntlm')

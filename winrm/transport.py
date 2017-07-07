@@ -9,10 +9,12 @@ is_py2 = sys.version[0] == '2'
 
 if is_py2:
     from urlparse import urlsplit, urlunsplit
+
     # use six for this instead?
     unicode_type = type(u'')
 else:
     from urllib.parse import urlsplit, urlunsplit
+
     # use six for this instead?
     unicode_type = type(u'')
 
@@ -26,6 +28,7 @@ from requests.adapters import HTTPAdapter
 HAVE_KERBEROS = False
 try:
     from requests_kerberos import HTTPKerberosAuth, REQUIRED, OPTIONAL, DISABLED
+
     HAVE_KERBEROS = True
 except ImportError:
     pass
@@ -33,6 +36,7 @@ except ImportError:
 HAVE_NTLM = False
 try:
     from requests_ntlm import HttpNtlmAuth
+
     HAVE_NTLM = True
 except ImportError as ie:
     pass
@@ -40,6 +44,7 @@ except ImportError as ie:
 HAVE_CREDSSP = False
 try:
     from requests_credssp import HttpCredSSPAuth
+
     HAVE_CREDSSP = True
 except ImportError as ie:
     pass
@@ -50,8 +55,8 @@ from winrm.encryption import Encryption
 
 __all__ = ['Transport']
 
+
 class Transport(object):
-    
     def __init__(
             self, endpoint, username=None, password=None, realm=None,
             service=None, keytab=None, ca_trust_path=None, cert_pem=None,
@@ -93,19 +98,22 @@ class Transport(object):
         try:
             from requests.packages.urllib3.exceptions import InsecurePlatformWarning
             warnings.simplefilter('ignore', category=InsecurePlatformWarning)
-        except: pass # oh well, we tried...
+        except:
+            pass  # oh well, we tried...
 
         try:
             from requests.packages.urllib3.exceptions import SNIMissingWarning
             warnings.simplefilter('ignore', category=SNIMissingWarning)
-        except: pass # oh well, we tried...
+        except:
+            pass  # oh well, we tried...
 
         # if we're explicitly ignoring validation, try to suppress InsecureRequestWarning, since the user opted-in
         if self.server_cert_validation == 'ignore':
             try:
                 from requests.packages.urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
-            except: pass # oh well, we tried...
+            except:
+                pass  # oh well, we tried...
 
         # validate credential requirements for various auth types
         if self.auth_method != 'kerberos':
@@ -127,11 +135,10 @@ class Transport(object):
         self.session = None
 
         # Used for encrypting messages
-        self.encryption = None # The Pywinrm Encryption class used to encrypt/decrypt messages
+        self.encryption = None  # The Pywinrm Encryption class used to encrypt/decrypt messages
         if self.message_encryption not in ['auto', 'always', 'never']:
             raise WinRMError(
                 "invalid message_encryption arg: %s. Should be 'auto', 'always', or 'never'" % self.message_encryption)
-
 
     def build_session(self):
         session = requests.Session()
@@ -155,7 +162,7 @@ class Transport(object):
                                             force_preemptive=True, principal=self.username,
                                             hostname_override=self.kerberos_hostname_override,
                                             sanitize_mutual_error_response=False)
-        elif self.auth_method in ['certificate','ssl']:
+        elif self.auth_method in ['certificate', 'ssl']:
             if self.auth_method == 'ssl' and not self.cert_pem and not self.cert_key_pem:
                 # 'ssl' was overloaded for HTTPS with optional certificate auth,
                 # fall back to basic auth if no cert specified
@@ -171,12 +178,13 @@ class Transport(object):
             # check if requests_ntlm has the session_security attribute available for encryption
             encryption_available = hasattr(session.auth, 'session_security')
         # TODO: ssl is not exactly right here- should really be client_cert
-        elif self.auth_method in ['basic','plaintext']:
+        elif self.auth_method in ['basic', 'plaintext']:
             session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
         elif self.auth_method == 'credssp':
             if not HAVE_CREDSSP:
                 raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
             session.auth = HttpCredSSPAuth(username=self.username, password=self.password)
+            encryption_available = hasattr(session.auth, 'wrap') and hasattr(session.auth, 'unwrap')
         else:
             raise WinRMError("unsupported auth method: %s" % self.auth_method)
 
@@ -185,7 +193,8 @@ class Transport(object):
 
         # Will check the current config and see if we need to setup message encryption
         if self.message_encryption == 'always' and not encryption_available:
-            raise WinRMError("message encryption is set to 'always' but the selected auth method %s does not support it" % self.auth_method)
+            raise WinRMError(
+                "message encryption is set to 'always' but the selected auth method %s does not support it" % self.auth_method)
         elif encryption_available:
             if self.message_encryption == 'always':
                 self.setup_encryption()
