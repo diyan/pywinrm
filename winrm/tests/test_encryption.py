@@ -38,6 +38,45 @@ def test_encrypt_message():
                           b"--Encrypted Boundary--\r\n"
 
 
+def test_encrypt_large_credssp_message():
+    test_session = TestSession()
+    test_message = b"unencrypted message " * 2048
+    test_endpoint = b"endpoint"
+    message_chunks = [test_message[i:i + 16384] for i in range(0, len(test_message), 16384)]
+
+    encryption = Encryption(test_session, 'credssp')
+
+    actual = encryption.prepare_encrypted_request(test_session, test_endpoint, test_message)
+    expected_encrypted_message1 = base64.b64encode(message_chunks[0])
+    expected_encrypted_message2 = base64.b64encode(message_chunks[1])
+    expected_encrypted_message3 = base64.b64encode(message_chunks[2])
+
+    assert actual.headers == {
+        "Content-Length": "55303",
+        "Content-Type": 'multipart/x-multi-encrypted;protocol="application/HTTP-CredSSP-session-encrypted";boundary="Encrypted Boundary"'
+    }
+
+    assert actual.body == b"--Encrypted Boundary\r\n" \
+                          b"\tContent-Type: application/HTTP-CredSSP-session-encrypted\r\n" \
+                          b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=16384\r\n" \
+                          b"--Encrypted Boundary\r\n" \
+                          b"\tContent-Type: application/octet-stream\r\n" + \
+                          struct.pack("<i", 5443) + expected_encrypted_message1 + \
+                          b"--Encrypted Boundary\r\n" \
+                          b"\tContent-Type: application/HTTP-CredSSP-session-encrypted\r\n" \
+                          b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=16384\r\n" \
+                          b"--Encrypted Boundary\r\n" \
+                          b"\tContent-Type: application/octet-stream\r\n" + \
+                          struct.pack("<i", 5443) + expected_encrypted_message2 + \
+                          b"--Encrypted Boundary\r\n" \
+                          b"\tContent-Type: application/HTTP-CredSSP-session-encrypted\r\n" \
+                          b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=8192\r\n" \
+                          b"--Encrypted Boundary\r\n" \
+                          b"\tContent-Type: application/octet-stream\r\n" + \
+                          struct.pack("<i", 2711) + expected_encrypted_message3 + \
+                          b"--Encrypted Boundary--\r\n"
+
+
 def test_decrypt_message():
     test_session = TestSession()
     test_encrypted_message = b"dW5lbmNyeXB0ZWQgbWVzc2FnZQ=="
@@ -102,6 +141,45 @@ def test_decrypt_message_length_mismatch():
     assert "Encrypted length from server does not match the expected size, message has been tampered with" in str(excinfo.value)
 
 
+def test_decrypt_large_credssp_message():
+    test_session = TestSession()
+
+    test_unencrypted_message = b"unencrypted message " * 2048
+    test_encrypted_message_chunks = [test_unencrypted_message[i:i + 16384] for i in range(0, len(test_unencrypted_message), 16384)]
+
+    test_encrypted_message1 = base64.b64encode(test_encrypted_message_chunks[0])
+    test_encrypted_message2 = base64.b64encode(test_encrypted_message_chunks[1])
+    test_encrypted_message3 = base64.b64encode(test_encrypted_message_chunks[2])
+
+    test_message = b"--Encrypted Boundary\r\n" \
+                   b"\tContent-Type: application/HTTP-CredSSP-session-encrypted\r\n" \
+                   b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=16384\r\n" \
+                   b"--Encrypted Boundary\r\n" \
+                   b"\tContent-Type: application/octet-stream\r\n" + \
+                   struct.pack("<i", 5443) + test_encrypted_message1 + \
+                   b"--Encrypted Boundary\r\n" \
+                   b"\tContent-Type: application/HTTP-CredSSP-session-encrypted\r\n" \
+                   b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=16384\r\n" \
+                   b"--Encrypted Boundary\r\n" \
+                   b"\tContent-Type: application/octet-stream\r\n" + \
+                   struct.pack("<i", 5443) + test_encrypted_message2 + \
+                   b"--Encrypted Boundary\r\n" \
+                   b"\tContent-Type: application/HTTP-CredSSP-session-encrypted\r\n" \
+                   b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=8192\r\n" \
+                   b"--Encrypted Boundary\r\n" \
+                   b"\tContent-Type: application/octet-stream\r\n" + \
+                   struct.pack("<i", 2711) + test_encrypted_message3 + \
+                   b"--Encrypted Boundary--\r\n"
+
+    test_response = TestResponse('protocol="application/HTTP-CredSSP-session-encrypted"', test_message)
+
+    encryption = Encryption(test_session, 'credssp')
+
+    actual = encryption.parse_encrypted_response(test_response)
+
+    assert actual == test_unencrypted_message
+
+
 def test_decrypt_message_decryption_not_needed():
     test_session = TestSession()
     test_response = TestResponse('application/soap+xml', 'unencrypted message')
@@ -124,7 +202,18 @@ class TestSession(object):
 
 class TestAuth(object):
     def __init__(self):
+        # used with NTLM
         self.session_security = TestSessionSecurity()
+
+    # used with CredSSP
+    def wrap(self, message):
+        encoded_message, signature = self.session_security.wrap(message)
+        return encoded_message
+
+    # used with CredSSP
+    def unwrap(self, message):
+        decoded_mesage = self.session_security.unwrap(message, b"1234")
+        return decoded_mesage
 
 
 class TestSessionSecurity(object):
