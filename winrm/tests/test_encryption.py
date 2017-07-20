@@ -14,7 +14,7 @@ def test_init_with_invalid_protocol():
 
 
 def test_encrypt_message():
-    test_session = TestSession()
+    test_session = SessionTest()
     test_message = b"unencrypted message"
     test_endpoint = b"endpoint"
 
@@ -39,7 +39,7 @@ def test_encrypt_message():
 
 
 def test_encrypt_large_credssp_message():
-    test_session = TestSession()
+    test_session = SessionTest()
     test_message = b"unencrypted message " * 2048
     test_endpoint = b"endpoint"
     message_chunks = [test_message[i:i + 16384] for i in range(0, len(test_message), 16384)]
@@ -61,24 +61,24 @@ def test_encrypt_large_credssp_message():
                           b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=16384\r\n" \
                           b"--Encrypted Boundary\r\n" \
                           b"\tContent-Type: application/octet-stream\r\n" + \
-                          struct.pack("<i", 5443) + expected_encrypted_message1 + \
+                          struct.pack("<i", 32) + expected_encrypted_message1 + \
                           b"--Encrypted Boundary\r\n" \
                           b"\tContent-Type: application/HTTP-CredSSP-session-encrypted\r\n" \
                           b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=16384\r\n" \
                           b"--Encrypted Boundary\r\n" \
                           b"\tContent-Type: application/octet-stream\r\n" + \
-                          struct.pack("<i", 5443) + expected_encrypted_message2 + \
+                          struct.pack("<i", 32) + expected_encrypted_message2 + \
                           b"--Encrypted Boundary\r\n" \
                           b"\tContent-Type: application/HTTP-CredSSP-session-encrypted\r\n" \
                           b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=8192\r\n" \
                           b"--Encrypted Boundary\r\n" \
                           b"\tContent-Type: application/octet-stream\r\n" + \
-                          struct.pack("<i", 2711) + expected_encrypted_message3 + \
+                          struct.pack("<i", 32) + expected_encrypted_message3 + \
                           b"--Encrypted Boundary--\r\n"
 
 
 def test_decrypt_message():
-    test_session = TestSession()
+    test_session = SessionTest()
     test_encrypted_message = b"dW5lbmNyeXB0ZWQgbWVzc2FnZQ=="
     test_signature = b"1234"
     test_signature_length = struct.pack("<i", len(test_signature))
@@ -89,7 +89,7 @@ def test_decrypt_message():
                    b"\tContent-Type: application/octet-stream\r\n" + \
                    test_signature_length + test_signature + test_encrypted_message + \
                    b"--Encrypted Boundary\r\n"
-    test_response = TestResponse('protocol="application/HTTP-SPNEGO-session-encrypted"', test_message)
+    test_response = ResponseTest('protocol="application/HTTP-SPNEGO-session-encrypted"', test_message)
 
     encryption = Encryption(test_session, 'ntlm')
 
@@ -99,7 +99,7 @@ def test_decrypt_message():
 
 
 def test_decrypt_message_boundary_with_end_hyphens():
-    test_session = TestSession()
+    test_session = SessionTest()
     test_encrypted_message = b"dW5lbmNyeXB0ZWQgbWVzc2FnZQ=="
     test_signature = b"1234"
     test_signature_length = struct.pack("<i", len(test_signature))
@@ -110,7 +110,7 @@ def test_decrypt_message_boundary_with_end_hyphens():
                    b"\tContent-Type: application/octet-stream\r\n" + \
                    test_signature_length + test_signature + test_encrypted_message + \
                    b"--Encrypted Boundary--\r\n"
-    test_response = TestResponse('protocol="application/HTTP-SPNEGO-session-encrypted"', test_message)
+    test_response = ResponseTest('protocol="application/HTTP-SPNEGO-session-encrypted"', test_message)
 
     encryption = Encryption(test_session, 'ntlm')
 
@@ -120,7 +120,7 @@ def test_decrypt_message_boundary_with_end_hyphens():
 
 
 def test_decrypt_message_length_mismatch():
-    test_session = TestSession()
+    test_session = SessionTest()
     test_encrypted_message = b"dW5lbmNyeXB0ZWQgbWVzc2FnZQ=="
     test_signature = b"1234"
     test_signature_length = struct.pack("<i", len(test_signature))
@@ -131,7 +131,7 @@ def test_decrypt_message_length_mismatch():
                    b"\tContent-Type: application/octet-stream\r\n" + \
                    test_signature_length + test_signature + test_encrypted_message + \
                    b"--Encrypted Boundary--\r\n"
-    test_response = TestResponse('protocol="application/HTTP-SPNEGO-session-encrypted"', test_message)
+    test_response = ResponseTest('protocol="application/HTTP-SPNEGO-session-encrypted"', test_message)
 
     encryption = Encryption(test_session, 'ntlm')
 
@@ -142,7 +142,7 @@ def test_decrypt_message_length_mismatch():
 
 
 def test_decrypt_large_credssp_message():
-    test_session = TestSession()
+    test_session = SessionTest()
 
     test_unencrypted_message = b"unencrypted message " * 2048
     test_encrypted_message_chunks = [test_unencrypted_message[i:i + 16384] for i in range(0, len(test_unencrypted_message), 16384)]
@@ -171,7 +171,7 @@ def test_decrypt_large_credssp_message():
                    struct.pack("<i", 2711) + test_encrypted_message3 + \
                    b"--Encrypted Boundary--\r\n"
 
-    test_response = TestResponse('protocol="application/HTTP-CredSSP-session-encrypted"', test_message)
+    test_response = ResponseTest('protocol="application/HTTP-CredSSP-session-encrypted"', test_message)
 
     encryption = Encryption(test_session, 'credssp')
 
@@ -181,8 +181,8 @@ def test_decrypt_large_credssp_message():
 
 
 def test_decrypt_message_decryption_not_needed():
-    test_session = TestSession()
-    test_response = TestResponse('application/soap+xml', 'unencrypted message')
+    test_session = SessionTest()
+    test_response = ResponseTest('application/soap+xml', 'unencrypted message')
 
     encryption = Encryption(test_session, 'ntlm')
 
@@ -191,19 +191,66 @@ def test_decrypt_message_decryption_not_needed():
     assert actual == 'unencrypted message'
 
 
-class TestSession(object):
+def test_get_credssp_trailer_length_gcm():
+    test_session = SessionTest()
+    encryption = Encryption(test_session, 'credssp')
+    expected = 16
+    actual = encryption._get_credssp_trailer_length(30, 'ECDHE-RSA-AES128-GCM-SHA256')
+
+    assert actual == expected
+
+
+def test_get_credssp_trailer_length_md5_rc4():
+    test_session = SessionTest()
+    encryption = Encryption(test_session, 'credssp')
+    expected = 16
+    actual = encryption._get_credssp_trailer_length(30, 'RC4-MD5')
+
+    assert actual == expected
+
+
+def test_get_credssp_trailer_length_sha256_3des():
+    test_session = SessionTest()
+    encryption = Encryption(test_session, 'credssp')
+    expected = 34
+    actual = encryption._get_credssp_trailer_length(30, 'ECDH-ECDSA-3DES-SHA256')
+
+    assert actual == expected
+
+
+def test_get_credssp_trailer_length_sha384_aes():
+    test_session = SessionTest()
+    encryption = Encryption(test_session, 'credssp')
+    expected = 50
+    actual = encryption._get_credssp_trailer_length(30, 'ECDH-RSA-AES-SHA384')
+
+    assert actual == expected
+
+
+def test_get_credssp_trailer_length_no_hash():
+    test_session = SessionTest()
+    encryption = Encryption(test_session, 'credssp')
+    expected = 2
+    actual = encryption._get_credssp_trailer_length(30, 'ECDH-RSA-AES')
+
+    assert actual == expected
+
+
+class SessionTest(object):
     def __init__(self):
-        self.auth = TestAuth()
+        self.auth = AuthTest()
 
     def prepare_request(self, request):
         request.body = request.data
         return request
 
 
-class TestAuth(object):
+class AuthTest(object):
     def __init__(self):
         # used with NTLM
-        self.session_security = TestSessionSecurity()
+        self.session_security = SessionSecurityTest()
+        # used with CredSSP
+        self.cipher_negotiated = 'ECDH-RSA-AES256-SHA'
 
     # used with CredSSP
     def wrap(self, message):
@@ -216,7 +263,7 @@ class TestAuth(object):
         return decoded_mesage
 
 
-class TestSessionSecurity(object):
+class SessionSecurityTest(object):
     def wrap(self, message):
         encoded_message = base64.b64encode(message)
         signature = b"1234"
@@ -228,7 +275,7 @@ class TestSessionSecurity(object):
         return decoded_message
 
 
-class TestResponse(object):
+class ResponseTest(object):
     def __init__(self, content_type, content):
         self.headers = {
             'Content-Type': content_type

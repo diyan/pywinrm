@@ -30,7 +30,8 @@ class Protocol(object):
             read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
             operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
             kerberos_hostname_override=None,
-            message_encryption='auto'
+            message_encryption='auto',
+            credssp_disable_tlsv1_2=False
         ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -68,7 +69,8 @@ class Protocol(object):
             kerberos_delegation=kerberos_delegation,
             kerberos_hostname_override=kerberos_hostname_override,
             auth_method=transport,
-            message_encryption=message_encryption
+            message_encryption=message_encryption,
+            credssp_disable_tlsv1_2=credssp_disable_tlsv1_2
         )
 
         self.username = username
@@ -79,6 +81,7 @@ class Protocol(object):
         self.server_cert_validation = server_cert_validation
         self.kerberos_delegation = kerberos_delegation
         self.kerberos_hostname_override = kerberos_hostname_override
+        self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,

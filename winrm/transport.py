@@ -64,7 +64,8 @@ class Transport(object):
             kerberos_delegation=False,
             kerberos_hostname_override=None,
             auth_method='auto',
-            message_encryption='auto'):
+            message_encryption='auto',
+            credssp_disable_tlsv1_2=False):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -78,6 +79,7 @@ class Transport(object):
         self.server_cert_validation = server_cert_validation
         self.kerberos_hostname_override = kerberos_hostname_override
         self.message_encryption = message_encryption
+        self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -183,7 +185,8 @@ class Transport(object):
         elif self.auth_method == 'credssp':
             if not HAVE_CREDSSP:
                 raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
-            session.auth = HttpCredSSPAuth(username=self.username, password=self.password)
+            session.auth = HttpCredSSPAuth(username=self.username, password=self.password,
+                                               disable_tlsv1_2=self.credssp_disable_tlsv1_2)
             encryption_available = hasattr(session.auth, 'wrap') and hasattr(session.auth, 'unwrap')
         else:
             raise WinRMError("unsupported auth method: %s" % self.auth_method)
