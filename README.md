@@ -143,8 +143,12 @@ While either a HTTP or HTTPS endpoint can be used as the transport method, using
 
 If you still wish to use a HTTP endpoint and loose confidentiality in your messages you will need to enable unencrypted messages in the server by running the following command
 ```
+# from powershell:
+winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+
 # from cmd:
 winrm set winrm/config/service @{AllowUnencrypted="true"}
+
 ```
 As a repeat this should definitely not be used as your credentials and messages will allow anybody to see what is sent over the wire.
 
