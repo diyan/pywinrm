@@ -52,7 +52,7 @@ __all__ = ['Transport']
 import ssl
 
 class Transport(object):
-    
+
     def __init__(
             self, endpoint, username=None, password=None, realm=None,
             service=None, keytab=None, ca_trust_path=None, cert_pem=None,
@@ -174,7 +174,7 @@ class Transport(object):
 
         return session
 
-    def send_message(self, message):
+    def send_message(self, message, retry_count=1):
         # TODO support kerberos/ntlm session with message encryption
 
         if not self.session:
@@ -188,23 +188,32 @@ class Transport(object):
         request = requests.Request('POST', self.endpoint, data=message)
         prepared_request = self.session.prepare_request(request)
 
-        try:
-            response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
-            response_text = response.text
-            response.raise_for_status()
-            return response_text
-        except requests.HTTPError as ex:
-            if ex.response.status_code == 401:
-                raise InvalidCredentialsError("the specified credentials were rejected by the server")
-            if ex.response.content:
-                response_text = ex.response.content
-            else:
-                response_text = ''
-            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
-            # should handle this 500 error and retry receiving command output.
-            if b'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and b'Code="2150858793"' in response_text:
-                raise WinRMOperationTimeoutError()
+        # Make sure send request is executed at least once
+        retry_count = max(0, retry_count)
 
-            error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
+        while retry_count >= 0:
+            try:
+                response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
+                response_text = response.text
+                response.raise_for_status()
+                return response_text
+            except requests.HTTPError as ex:
+                if ex.response.status_code == 401:
+                    raise InvalidCredentialsError("the specified credentials were rejected by the server")
+                if ex.response.content:
+                    response_text = ex.response.content
+                else:
+                    response_text = ''
+                # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
+                # should handle this 500 error and retry receiving command output.
+                if b'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and b'Code="2150858793"' in response_text:
+                    raise WinRMOperationTimeoutError()
 
-            raise WinRMTransportError('http', error_message)
+                error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
+
+                raise WinRMTransportError('http', error_message)
+            except requests.exceptions.ConnectionError as e:
+                if retry_count <= 0 or 'Connection reset by peer' not in str(e):
+                    raise
+            finally:
+                retry_count -= 1
