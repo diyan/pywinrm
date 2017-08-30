@@ -105,6 +105,11 @@ class Transport(object):
                 from requests.packages.urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
             except: pass # oh well, we tried...
+            
+            try:
+                from urllib3.exceptions import InsecureRequestWarning
+                warnings.simplefilter('ignore', category=InsecureRequestWarning)
+            except: pass # oh well, we tried...
 
         # validate credential requirements for various auth types
         if self.auth_method != 'kerberos':
