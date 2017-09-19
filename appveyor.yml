@@ -49,5 +49,10 @@ test_script:
 
       py.test -v --cov-report=term-missing --cov=.
 
+      # Run integration tests with NTLM to check message encryption
+      $env:WINRM_TRANSPORT="ntlm"
+      Set-Item WSMan:\localhost\Service\AllowUnencrypted $false
+      py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
+
 after_test:
   - echo after_test
