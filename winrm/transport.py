@@ -145,7 +145,10 @@ class Transport(object):
     def build_session(self):
         session = requests.Session()
 
-        session.verify = self.server_cert_validation == 'validate'
+        if self.ca_trust_path:
+            session.verify = self.ca_trust_path
+        else:
+            session.verify = self.server_cert_validation == 'validate'
 
         # configure proxies from HTTP/HTTPS_PROXY envvars
         session.trust_env = True
