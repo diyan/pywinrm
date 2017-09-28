@@ -32,11 +32,11 @@ class Session(object):
         self.protocol = Protocol(self.url,
                                  username=username, password=password, **kwargs)
 
-    def run_cmd(self, command, args=()):
+    def run_cmd(self, command, args=(), wait=True):
         # TODO optimize perf. Do not call open/close shell every time
         shell_id = self.protocol.open_shell()
         command_id = self.protocol.run_command(shell_id, command, args)
-        rs = Response(self.protocol.get_command_output(shell_id, command_id))
+        rs = Response(self.protocol.get_command_output(shell_id, command_id, wait))
         self.protocol.cleanup_command(shell_id, command_id)
         self.protocol.close_shell(shell_id)
         return rs
