@@ -319,7 +319,7 @@ class Protocol(object):
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
-    def get_command_output(self, shell_id, command_id):
+    def get_command_output(self, shell_id, command_id, wait):
         """
         Get the Output of the given shell and command
         @param string shell_id: The shell id on the remote machine.
@@ -340,6 +340,8 @@ class Protocol(object):
                     self._raw_get_command_output(shell_id, command_id)
                 stdout_buffer.append(stdout)
                 stderr_buffer.append(stderr)
+                if not wait and not command_done:
+                    return 'Did not wait for command to finish','',0
             except WinRMOperationTimeoutError as e:
                 # this is an expected error when waiting for a long-running process, just silently retry
                 pass
