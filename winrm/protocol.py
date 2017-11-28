@@ -58,6 +58,16 @@ class Protocol(object):
         @param bool message_encryption_enabled: Will encrypt the WinRM messages if set to True and the transport auth supports message encryption (Default True).
         """
 
+        try:
+            read_timeout_sec = int(read_timeout_sec)
+        except ValueError as ve:
+            raise ValueError("failed to parse read_timeout_sec as int: %s" % str(ve))
+
+        try:
+            operation_timeout_sec = int(operation_timeout_sec)
+        except ValueError as ve:
+            raise ValueError("failed to parse operation_timeout_sec as int: %s" % str(ve))
+
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")
 
