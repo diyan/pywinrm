@@ -28,6 +28,17 @@ FEATURE_WSMV_CLIENT=True
 logging.getLogger(__name__).addHandler(NullHandler())
 
 
+class Response(object):
+    """Response from a remote command execution"""
+    def __init__(self, args):
+        self.std_out, self.std_err, self.status_code = args
+
+    def __repr__(self):
+        # TODO put tree dots at the end if out/err was truncated
+        return '<Response code {0}, out "{1}", err "{2}">'.format(
+            self.status_code, self.std_out[:20], self.std_err[:20])
+
+
 class Session(object):
 
     def __init__(self, **transport_opts):

@@ -188,17 +188,18 @@ class Reader(object):
         fq_error_id = get_value_of_attribute(error_info, 'N', 'FullyQualifiedErrorId', '#text')
         error_category_message = get_value_of_attribute(error_info, 'N', 'ErrorCategory_Message', '#text')
 
-        invocation_info = get_value_of_attribute(message_data['Obj']['MS']['Obj'], 'N', 'InvocationInfo')
-        position_message = get_value_of_attribute(invocation_info['Props']['S'], 'N', 'PositionMessage', '#text')
-        my_command = get_value_of_attribute(invocation_info['Props']['S'], 'N', 'MyCommand', '#text')
-
         error_string = "%s\n" % error_message
 
-        if position_message:
-            error_string += "%s\n" % position_message
+        invocation_info = get_value_of_attribute(message_data['Obj']['MS']['Obj'], 'N', 'InvocationInfo')
+        if invocation_info is not None:
+            position_message = get_value_of_attribute(invocation_info['Props']['S'], 'N', 'PositionMessage', '#text')
+            my_command = get_value_of_attribute(invocation_info['Props']['S'], 'N', 'MyCommand', '#text')
 
-        if my_command:
-            error_string = "%s : %s" % (my_command, error_string)
+            if position_message:
+                error_string += "%s\n" % position_message
+
+            if my_command:
+                error_string = "%s : %s" % (my_command, error_string)
 
         error_string += "   + CategoryInfo          : %s\n" \
                         "   + FullyQualifiedErrorId : %s" % (error_category_message, fq_error_id)

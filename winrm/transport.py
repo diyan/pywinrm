@@ -204,6 +204,7 @@ class Transport(object):
         try:
             response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
             response_text = response.text
+            #print(response_text)
             response.raise_for_status()
             return response_text
         except requests.HTTPError as ex:
