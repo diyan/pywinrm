@@ -149,6 +149,7 @@ class Transport(object):
 
         session.verify = self.server_cert_validation == 'validate'
 
+        # pragma: no cover
         if self.proxies and type(self.proxies) == dict:
             # Use provided proxies
             session.proxies = self.proxies
