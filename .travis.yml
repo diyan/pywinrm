@@ -34,9 +34,6 @@ matrix:
     - { os: osx, osx_image: xcode8.2, language: generic, env: OSX=10.12 PYENV=3.5.4 }
 
 install:
-  # Just for docker build
-  - apt-get update
-  - apt-get install -y build-essentials git readline6-dev zlib1g-dev libbz2-dev libssl-dev libsqlite3-dev libkrb5-dev
   # Always use latest pyenv but keep installed Python versions in cache
   - rm -rf ~/.pyenv
   - git clone https://github.com/yyuu/pyenv.git ~/.pyenv
