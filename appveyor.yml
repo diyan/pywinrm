@@ -9,8 +9,6 @@ environment:
     # NOTE Python 2.6 for Windows is no longer supported by the Python core team
     - PYTHON: Python27
     - PYTHON: Python27-x64
-    - PYTHON: Python33
-    - PYTHON: Python33-x64
     - PYTHON: Python34
     - PYTHON: Python34-x64
     - PYTHON: Python35
