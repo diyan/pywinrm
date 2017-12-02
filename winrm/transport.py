@@ -146,6 +146,8 @@ class Transport(object):
         session = requests.Session()
 
         session.verify = self.server_cert_validation == 'validate'
+        if session.verify and self.ca_trust_path:
+                session.verify = self.ca_trust_path
 
         # configure proxies from HTTP/HTTPS_PROXY envvars
         session.trust_env = True
