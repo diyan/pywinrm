@@ -231,7 +231,10 @@ class Protocol(object):
 
             fault = root.find('soapenv:Body/soapenv:Fault', xmlns)
             if fault is not None:
-                fault_data = {}
+                fault_data = dict(
+                    transport_message=ex.message,
+                    http_status_code=ex.code
+                )
                 wsmanfault_code = fault.find('soapenv:Detail/wsmanfault:WSManFault[@Code]', xmlns)
                 if wsmanfault_code is not None:
                     fault_data['wsmanfault_code'] = wsmanfault_code.get('Code')
@@ -254,7 +257,7 @@ class Protocol(object):
                 else:
                     error_message = "(no error message in fault)"
 
-                raise WinRMError('{0} (fault_data: {1})'.format(error_message, fault_data))
+                raise WinRMError('{0} (extended fault data: {1})'.format(error_message, fault_data))
 
     def close_shell(self, shell_id):
         """
