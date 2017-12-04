@@ -7,7 +7,26 @@ class WinRMError(Exception):
 
 class WinRMTransportError(Exception):
     """WinRM errors specific to transport-level problems (unexpcted HTTP error codes, etc)"""
-    code = 500
+
+    @property
+    def protocol(self):
+        return self.args[0]
+
+    @property
+    def code(self):
+        return self.args[1]
+
+    @property
+    def message(self):
+        return 'Bad HTTP response returned from server. Code {0}'.format(self.code)
+
+    @property
+    def response_text(self):
+        return self.args[2]
+
+    def __str__(self):
+        return self.message
+
 
 class WinRMOperationTimeoutError(Exception):
     """

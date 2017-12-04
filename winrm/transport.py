@@ -244,14 +244,9 @@ class Transport(object):
             else:
                 response_text = ''
 
-            # Per http://msdn.microsoft.com/en-us/library/cc251676.aspx rule 3,
-            # should handle this 500 error and retry receiving command output.
-            if b'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive' in message and b'Code="2150858793"' in response_text:
-                raise WinRMOperationTimeoutError()
 
-            error_message = 'Bad HTTP response returned from server. Code {0}'.format(ex.response.status_code)
+            raise WinRMTransportError('http', ex.response.status_code, response_text)
 
-            raise WinRMTransportError('http', error_message)
 
     def _get_message_response_text(self, response):
         if self.encryption:
