@@ -37,7 +37,8 @@ class Protocol(object):
             operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
             kerberos_hostname_override=None,
             message_encryption='auto',
-            credssp_disable_tlsv1_2=False
+            credssp_disable_tlsv1_2=False,
+            proxies=None
         ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -56,6 +57,7 @@ class Protocol(object):
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
         @param bool message_encryption_enabled: Will encrypt the WinRM messages if set to True and the transport auth supports message encryption (Default True).
+        @param dict proxies: A dictionary of proxies to pass onto Python requests (default is to use environment variables)
         """
 
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
@@ -76,7 +78,8 @@ class Protocol(object):
             kerberos_hostname_override=kerberos_hostname_override,
             auth_method=transport,
             message_encryption=message_encryption,
-            credssp_disable_tlsv1_2=credssp_disable_tlsv1_2
+            credssp_disable_tlsv1_2=credssp_disable_tlsv1_2,
+            proxies=proxies
         )
 
         self.username = username

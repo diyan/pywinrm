@@ -3,6 +3,7 @@
 ### Developing
 - Added support for message encryption over HTTP when using NTLM and CredSSP
 - Added parameter to disable TLSv1.2 when using CredSSP for Server 2008 support
+- Added proxy support (pass proxy dict straight to requests)
 
 ### Version 0.2.2
 - Added support for CredSSP authenication (via requests-credssp)
