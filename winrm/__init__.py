@@ -39,6 +39,10 @@ class Session(object):
         rs = Response(self.protocol.get_command_output(shell_id, command_id))
         self.protocol.cleanup_command(shell_id, command_id)
         self.protocol.close_shell(shell_id)
+        if not isinstance(rs.std_err, str):
+            rs.std_err = rs.std_err.decode()
+        if not isinstance(rs.std_out, str):
+            rs.std_out = rs.std_out.decode()
         return rs
 
     def run_ps(self, script):
