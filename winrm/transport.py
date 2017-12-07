@@ -174,6 +174,7 @@ class Transport(object):
             )
             kerb_args = self._get_args(man_args, opt_args, HTTPKerberosAuth.__init__)
             session.auth = HTTPKerberosAuth(**kerb_args)
+            encryption_available = hasattr(session.auth, 'winrm_encryption_available') and session.auth.winrm_encryption_available
         elif self.auth_method in ['certificate', 'ssl']:
             if self.auth_method == 'ssl' and not self.cert_pem and not self.cert_key_pem:
                 # 'ssl' was overloaded for HTTPS with optional certificate auth,
