@@ -10,7 +10,7 @@ def test_init_with_invalid_protocol():
     with pytest.raises(WinRMError) as excinfo:
         Encryption(None, 'invalid_protocol')
 
-    assert "Encryption for protocol 'invalid_protocol' not yet supported in pywinrm" in str(excinfo.value)
+    assert "Encryption for protocol 'invalid_protocol' not supported in pywinrm" in str(excinfo.value)
 
 
 def test_encrypt_message():
@@ -275,6 +275,11 @@ class SessionSecurityTest(object):
         return decoded_message
 
 
+class RequestTest(object):
+    def __init__(self):
+        self.url = 'http://testhost.com/path'
+
+
 class ResponseTest(object):
     def __init__(self, content_type, content):
         self.headers = {
@@ -282,3 +287,4 @@ class ResponseTest(object):
         }
         self.content = content
         self.text = content
+        self.request = RequestTest()

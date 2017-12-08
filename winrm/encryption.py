@@ -1,8 +1,15 @@
 import requests
 import re
 import struct
-
+import sys
 from winrm.exceptions import WinRMError
+
+is_py2 = sys.version[0] == '2'
+
+if is_py2:
+    from urlparse import urlsplit
+else:
+    from urllib.parse import urlsplit
 
 class Encryption(object):
 
@@ -41,9 +48,12 @@ class Encryption(object):
             self.protocol_string = b"application/HTTP-CredSSP-session-encrypted"
             self._build_message = self._build_credssp_message
             self._decrypt_message = self._decrypt_credssp_message
-        # TODO: Add support for Kerberos encryption
+        elif protocol == 'kerberos':
+            self.protocol_string = b"application/HTTP-SPNEGO-session-encrypted"
+            self._build_message = self._build_kerberos_message
+            self._decrypt_message = self._decrypt_kerberos_message
         else:
-            raise WinRMError("Encryption for protocol '%s' not yet supported in pywinrm" % protocol)
+            raise WinRMError("Encryption for protocol '%s' not supported in pywinrm" % protocol)
 
     def prepare_encrypted_request(self, session, endpoint, message):
         """
@@ -55,16 +65,18 @@ class Encryption(object):
         :param message: The unencrypted message to send to the server
         :return: A prepared request that has an encrypted message
         """
+        host = urlsplit(endpoint).hostname
+
         if self.protocol == 'credssp' and len(message) > self.SIXTEN_KB:
             content_type = 'multipart/x-multi-encrypted'
             encrypted_message = b''
             message_chunks = [message[i:i+self.SIXTEN_KB] for i in range(0, len(message), self.SIXTEN_KB)]
             for message_chunk in message_chunks:
-                encrypted_chunk = self._encrypt_message(message_chunk)
+                encrypted_chunk = self._encrypt_message(message_chunk, host)
                 encrypted_message += encrypted_chunk
         else:
             content_type = 'multipart/encrypted'
-            encrypted_message = self._encrypt_message(message)
+            encrypted_message = self._encrypt_message(message, host)
         encrypted_message += self.MIME_BOUNDARY + b"--\r\n"
 
         request = requests.Request('POST', endpoint, data=encrypted_message)
@@ -84,15 +96,16 @@ class Encryption(object):
         """
         content_type = response.headers['Content-Type']
         if 'protocol="{0}"'.format(self.protocol_string.decode()) in content_type:
-            msg = self._decrypt_response(response)
+            host = urlsplit(response.request.url).hostname
+            msg = self._decrypt_response(response, host)
         else:
             msg = response.text
 
         return msg
 
-    def _encrypt_message(self, message):
+    def _encrypt_message(self, message, host):
         message_length = str(len(message)).encode()
-        encrypted_stream = self._build_message(message)
+        encrypted_stream = self._build_message(message, host)
 
         message_payload = self.MIME_BOUNDARY + b"\r\n" \
                           b"\tContent-Type: " + self.protocol_string + b"\r\n" \
@@ -103,7 +116,7 @@ class Encryption(object):
 
         return message_payload
 
-    def _decrypt_response(self, response):
+    def _decrypt_response(self, response, host):
         parts = response.content.split(self.MIME_BOUNDARY + b'\r\n')
         parts = list(filter(None, parts)) # filter out empty parts of the split
         message = b''
@@ -122,7 +135,7 @@ class Encryption(object):
                 payload = payload[:len(payload) - 24]
 
             encrypted_data = payload.replace(b'\tContent-Type: application/octet-stream\r\n', b'')
-            decrypted_message = self._decrypt_message(encrypted_data)
+            decrypted_message = self._decrypt_message(encrypted_data, host)
             actual_length = len(decrypted_message)
 
             if actual_length != expected_length:
@@ -132,7 +145,7 @@ class Encryption(object):
 
         return message
 
-    def _decrypt_ntlm_message(self, encrypted_data):
+    def _decrypt_ntlm_message(self, encrypted_data, host):
         signature_length = struct.unpack("<i", encrypted_data[:4])[0]
         signature = encrypted_data[4:signature_length + 4]
         encrypted_message = encrypted_data[signature_length + 4:]
@@ -141,7 +154,7 @@ class Encryption(object):
 
         return message
 
-    def _decrypt_credssp_message(self, encrypted_data):
+    def _decrypt_credssp_message(self, encrypted_data, host):
         # trailer_length = struct.unpack("<i", encrypted_data[:4])[0]
         encrypted_message = encrypted_data[4:]
 
@@ -149,18 +162,34 @@ class Encryption(object):
 
         return message
 
-    def _build_ntlm_message(self, message):
+    def _decrypt_kerberos_message(self, encrypted_data, host):
+        signature_length = struct.unpack("<i", encrypted_data[:4])[0]
+        signature = encrypted_data[4:signature_length + 4]
+        encrypted_message = encrypted_data[signature_length + 4:]
+
+        message = self.session.auth.unwrap_winrm(host, encrypted_message, signature)
+
+        return message
+
+
+    def _build_ntlm_message(self, message, host):
         sealed_message, signature = self.session.auth.session_security.wrap(message)
         signature_length = struct.pack("<i", len(signature))
 
         return signature_length + signature + sealed_message
 
-    def _build_credssp_message(self, message):
+    def _build_credssp_message(self, message, host):
         sealed_message = self.session.auth.wrap(message)
 
         trailer_length = self._get_credssp_trailer_length(len(message), self.session.auth.cipher_negotiated)
 
         return struct.pack("<i", trailer_length) + sealed_message
+
+    def _build_kerberos_message(self, message, host):
+        sealed_message, signature = self.session.auth.wrap_winrm(host, message)
+        signature_length = struct.pack("<i", len(signature))
+
+        return signature_length + signature + sealed_message
 
     def _get_credssp_trailer_length(self, message_length, cipher_suite):
         # I really don't like the way this works but can't find a better way, MS
