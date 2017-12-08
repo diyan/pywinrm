@@ -134,21 +134,58 @@ pywinrm supports various transport methods in order to authenticate with the Win
 * `certificate`: Authentication is done through a certificate that is mapped to a local Windows account on the server.
 * `ssl`: When used in conjunction with `cert_pem` and `cert_key_pem` it will use a certificate as above. If not will revert to basic auth over HTTPS.
 * `kerberos`: Will use Kerberos authentication for domain accounts which only works when the client is in the same domain as the server and the required dependencies are installed. Currently a Kerberos ticket needs to be initiliased outside of pywinrm using the kinit command.
-* `ntlm`: Will use NTLM authentication for both domain and local accounts. Currently no support for NTLMv2 auth and other features included in that version (WIP).
+* `ntlm`: Will use NTLM authentication for both domain and local accounts.
 * `credssp`: Will use CredSSP authentication for both domain and local accounts. Allows double hop authentication. This only works over a HTTPS endpoint and not HTTP.
 
-### HTTP or HTTPS endpoint
+### Encryption
 
-While either a HTTP or HTTPS endpoint can be used as the transport method, using HTTPS is prefered as the messages are encrypted using SSL. To use HTTPS either a self signed certificate or one from a CA can be used. You can use this [guide](http://www.joseph-streeter.com/?p=1086) to set up a HTTPS endpoint with a self signed certificate.
+By default WinRM will not accept unencrypted messages from a client and Pywinrm
+currently has 2 ways to do this.
 
-If you still wish to use a HTTP endpoint and loose confidentiality in your messages you will need to enable unencrypted messages in the server by running the following command
+1. Using a HTTPS endpoint instead of HTTP (Recommended)
+2. Use NTLM or CredSSP as the transport auth and setting `message_encryption` to `auto` or `always`
+
+Using a HTTPS endpoint is recommended as it will encrypt all the data sent
+through to the server including the credentials and works with all transport
+auth types. You can use [this script](https://github.com/ansible/ansible/blob/devel/examples/scripts/ConfigureRemotingForAnsible.ps1)
+to easily set up a HTTPS endpoint on WinRM with a self signed certificate but
+in a production environment this should be hardened with your own process.
+
+The second option is to use NTLM or CredSSP and set the `message_encryption`
+arg to protocol to `auto` or `always`. This will use the authentication GSS-API
+Wrap and Unwrap methods if available to encrypt the message contents sent to
+the server. This form of encryption is independent from the transport layer
+like TLS and is currently only supported by the NTLM and CredSSP transport
+auth. Kerberos currently does not have the methods available to achieve this.
+
+To configure message encryption you can use the `message_encryption` argument
+when initialising protocol. This option has 3 values that can be set as shown
+below.
+
+* `auto`: Default, Will only use message encryption if it is available for the auth method and HTTPS isn't used.
+* `never`: Will never use message encryption even when not over HTTPS.
+* `always`: Will always use message encryption even when running over HTTPS.
+
+If you set the value to `always` and the transport opt doesn't support message
+encryption i.e. Basic auth, Pywinrm will throw an exception.
+
+If you do not use a HTTPS endpoint or message encryption then the Windows
+server will automatically reject Pywinrm. You can change the settings on the
+Windows server to allow unencrypted messages and credentials but this highly
+insecure and shouldn't be used unless necessary. To allow unencrypted message
+run the following command either from cmd or powershell
+
 ```
-# from cmd:
+# from cmd
 winrm set winrm/config/service @{AllowUnencrypted="true"}
-```
-As a repeat this should definitely not be used as your credentials and messages will allow anybody to see what is sent over the wire.
 
-There are plans in place to allow message encryption for messages sent with Kerberos or NTLM messages in the future.
+# or from powershell
+Set-Item -Path "WSMan:\localhost\Service\AllowUnencrypted" -Value $true
+```
+
+As a repeat this should definitely not be used as your credentials and messages
+will allow anybody to see what is sent over the wire.
+
 
 ### Enabling WinRM on remote host
 Enable WinRM over HTTP and HTTPS with self-signed certificate (includes firewall rules):

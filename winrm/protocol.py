@@ -9,7 +9,13 @@ import xmltodict
 from six import text_type, binary_type
 
 from winrm.transport import Transport
-from winrm.exceptions import WinRMError, WinRMOperationTimeoutError
+from winrm.exceptions import WinRMError, WinRMTransportError, WinRMOperationTimeoutError
+
+xmlns = {
+    'soapenv': 'http://www.w3.org/2003/05/soap-envelope',
+    'soapaddr': 'http://schemas.xmlsoap.org/ws/2004/08/addressing',
+    'wsmanfault': "http://schemas.microsoft.com/wbem/wsman/1/wsmanfault"
+}
 
 class Protocol(object):
     """This is the main class that does the SOAP request/response logic. There
@@ -23,13 +29,16 @@ class Protocol(object):
 
     def __init__(
             self, endpoint, transport='plaintext', username=None,
-            password=None, realm=None, service=None, keytab=None,
+            password=None, realm=None, service="HTTP", keytab=None,
             ca_trust_path=None, cert_pem=None, cert_key_pem=None,
             server_cert_validation='validate',
             kerberos_delegation=False,
             read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
             operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
             kerberos_hostname_override=None,
+            message_encryption='auto',
+            credssp_disable_tlsv1_2=False,
+            send_cbt=True,
         ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -47,7 +56,18 @@ class Protocol(object):
         @param int read_timeout_sec: maximum seconds to wait before an HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long. # NOQA
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
+        @param bool message_encryption_enabled: Will encrypt the WinRM messages if set to True and the transport auth supports message encryption (Default True).
         """
+
+        try:
+            read_timeout_sec = int(read_timeout_sec)
+        except ValueError as ve:
+            raise ValueError("failed to parse read_timeout_sec as int: %s" % str(ve))
+
+        try:
+            operation_timeout_sec = int(operation_timeout_sec)
+        except ValueError as ve:
+            raise ValueError("failed to parse operation_timeout_sec as int: %s" % str(ve))
 
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")
@@ -65,7 +85,11 @@ class Protocol(object):
             server_cert_validation=server_cert_validation,
             kerberos_delegation=kerberos_delegation,
             kerberos_hostname_override=kerberos_hostname_override,
-            auth_method=transport)
+            auth_method=transport,
+            message_encryption=message_encryption,
+            credssp_disable_tlsv1_2=credssp_disable_tlsv1_2,
+            send_cbt=send_cbt
+        )
 
         self.username = username
         self.password = password
@@ -75,6 +99,7 @@ class Protocol(object):
         self.server_cert_validation = server_cert_validation
         self.kerberos_delegation = kerberos_delegation
         self.kerberos_hostname_override = kerberos_hostname_override
+        self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,
@@ -130,6 +155,7 @@ class Protocol(object):
                 env['rsp:Variable'] = {'@Name': key, '#text': value}
 
         res = self.send_message(xmltodict.unparse(req))
+
         #res = xmltodict.parse(res)
         #return res['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
         root = ET.fromstring(res)
@@ -146,9 +172,9 @@ class Protocol(object):
         header = {
             '@xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
             '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-            '@xmlns:env': 'http://www.w3.org/2003/05/soap-envelope',
+            '@xmlns:env': xmlns['soapenv'],
 
-            '@xmlns:a': 'http://schemas.xmlsoap.org/ws/2004/08/addressing',
+            '@xmlns:a': xmlns['soapaddr'],
             '@xmlns:b': 'http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd',
             '@xmlns:n': 'http://schemas.xmlsoap.org/ws/2004/09/enumeration',
             '@xmlns:x': 'http://schemas.xmlsoap.org/ws/2004/09/transfer',
@@ -204,7 +230,46 @@ class Protocol(object):
     def send_message(self, message):
         # TODO add message_id vs relates_to checking
         # TODO port error handling code
-        return self.transport.send_message(message)
+        try:
+            resp = self.transport.send_message(message)
+            return resp
+        except WinRMTransportError as ex:
+            try:
+                # if response is XML-parseable, it's probably a SOAP fault; extract the details
+                root = ET.fromstring(ex.response_text)
+            except:
+                # assume some other transport error; raise the original exception
+                raise ex
+
+            fault = root.find('soapenv:Body/soapenv:Fault', xmlns)
+            if fault is not None:
+                fault_data = dict(
+                    transport_message=ex.message,
+                    http_status_code=ex.code
+                )
+                wsmanfault_code = fault.find('soapenv:Detail/wsmanfault:WSManFault[@Code]', xmlns)
+                if wsmanfault_code is not None:
+                    fault_data['wsmanfault_code'] = wsmanfault_code.get('Code')
+                    # convert receive timeout code to WinRMOperationTimeoutError
+                    if fault_data['wsmanfault_code'] == '2150858793':
+                        # TODO: this fault code is specific to the Receive operation; convert all op timeouts?
+                        raise WinRMOperationTimeoutError()
+
+                fault_code = fault.find('soapenv:Code/soapenv:Value', xmlns)
+                if fault_code is not None:
+                    fault_data['fault_code'] = fault_code.text
+
+                fault_subcode = fault.find('soapenv:Code/soapenv:Subcode/soapenv:Value', xmlns)
+                if fault_subcode is not None:
+                    fault_data['fault_subcode'] = fault_subcode.text
+
+                error_message = fault.find('soapenv:Reason/soapenv:Text', xmlns)
+                if error_message is not None:
+                    error_message = error_message.text
+                else:
+                    error_message = "(no error message in fault)"
+
+                raise WinRMError('{0} (extended fault data: {1})'.format(error_message, fault_data))
 
     def close_shell(self, shell_id):
         """
