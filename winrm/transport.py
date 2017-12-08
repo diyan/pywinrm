@@ -1,20 +1,14 @@
 from __future__ import unicode_literals
-from contextlib import contextmanager
-import re
 import sys
 import os
-import weakref
+import inspect
 
 is_py2 = sys.version[0] == '2'
 
 if is_py2:
-    from urlparse import urlsplit, urlunsplit
-
     # use six for this instead?
     unicode_type = type(u'')
 else:
-    from urllib.parse import urlsplit, urlunsplit
-
     # use six for this instead?
     unicode_type = type(u'')
 
@@ -22,8 +16,6 @@ import requests
 import requests.auth
 import warnings
 from distutils.util import strtobool
-from requests.hooks import default_hooks
-from requests.adapters import HTTPAdapter
 
 HAVE_KERBEROS = False
 try:
@@ -49,11 +41,15 @@ try:
 except ImportError as ie:
     pass
 
-from winrm.exceptions import BasicAuthDisabledError, InvalidCredentialsError, \
-    WinRMError, WinRMTransportError, WinRMOperationTimeoutError
+from winrm.exceptions import InvalidCredentialsError, WinRMError, \
+    WinRMTransportError
 from winrm.encryption import Encryption
 
 __all__ = ['Transport']
+
+
+class UnsupportedAuthArgument(Warning):
+    pass
 
 
 class Transport(object):
@@ -65,7 +61,8 @@ class Transport(object):
             kerberos_hostname_override=None,
             auth_method='auto',
             message_encryption='auto',
-            credssp_disable_tlsv1_2=False):
+            credssp_disable_tlsv1_2=False,
+            send_cbt=True):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -80,6 +77,7 @@ class Transport(object):
         self.kerberos_hostname_override = kerberos_hostname_override
         self.message_encryption = message_encryption
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
+        self.send_cbt = send_cbt
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -161,11 +159,21 @@ class Transport(object):
         if self.auth_method == 'kerberos':
             if not HAVE_KERBEROS:
                 raise WinRMError("requested auth method is kerberos, but requests_kerberos is not installed")
-            # TODO: do argspec sniffing on extensions to ensure we're not setting bogus kwargs on older versions
-            session.auth = HTTPKerberosAuth(mutual_authentication=REQUIRED, delegate=self.kerberos_delegation,
-                                            force_preemptive=True, principal=self.username,
-                                            hostname_override=self.kerberos_hostname_override,
-                                            sanitize_mutual_error_response=False)
+
+            man_args = dict(
+                mutual_authentication=REQUIRED,
+            )
+            opt_args = dict(
+                delegate=self.kerberos_delegation,
+                force_preemptive=True,
+                principal=self.username,
+                hostname_override=self.kerberos_hostname_override,
+                sanitize_mutual_error_response=False,
+                service=self.service,
+                send_cbt=self.send_cbt
+            )
+            kerb_args = self._get_args(man_args, opt_args, HTTPKerberosAuth.__init__)
+            session.auth = HTTPKerberosAuth(**kerb_args)
         elif self.auth_method in ['certificate', 'ssl']:
             if self.auth_method == 'ssl' and not self.cert_pem and not self.cert_key_pem:
                 # 'ssl' was overloaded for HTTPS with optional certificate auth,
@@ -178,7 +186,15 @@ class Transport(object):
         elif self.auth_method == 'ntlm':
             if not HAVE_NTLM:
                 raise WinRMError("requested auth method is ntlm, but requests_ntlm is not installed")
-            session.auth = HttpNtlmAuth(username=self.username, password=self.password)
+            man_args = dict(
+                username=self.username,
+                password=self.password
+            )
+            opt_args = dict(
+                send_cbt=self.send_cbt
+            )
+            ntlm_args = self._get_args(man_args, opt_args, HttpNtlmAuth.__init__)
+            session.auth = HttpNtlmAuth(**ntlm_args)
             # check if requests_ntlm has the session_security attribute available for encryption
             encryption_available = hasattr(session.auth, 'session_security')
         # TODO: ssl is not exactly right here- should really be client_cert
@@ -247,10 +263,30 @@ class Transport(object):
 
             raise WinRMTransportError('http', ex.response.status_code, response_text)
 
-
     def _get_message_response_text(self, response):
         if self.encryption:
             response_text = self.encryption.parse_encrypted_response(response)
         else:
             response_text = response.content
         return response_text
+
+    def _get_args(self, mandatory_args, optional_args, function):
+        argspec = set(inspect.getargspec(function).args)
+        function_args = dict()
+        for name, value in mandatory_args.items():
+            if name in argspec:
+                function_args[name] = value
+            else:
+                raise Exception("Function %s does not contain mandatory arg "
+                                "%s, check installed version with pip list"
+                                % (str(function), name))
+
+        for name, value in optional_args.items():
+            if name in argspec:
+                function_args[name] = value
+            else:
+                warnings.warn("Function %s does not contain optional arg %s, "
+                              "check installed version with pip list"
+                              % (str(function), name))
+
+        return function_args

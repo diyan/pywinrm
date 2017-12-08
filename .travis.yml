@@ -14,21 +14,17 @@ matrix:
     # Define 'sudo: false' to run on container-based workers
     - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=2.6.9 }
     - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=2.7.13 }
-    - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=3.3.6 }
     - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=3.4.5 }
     - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=3.5.2 }
     - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=3.6-dev }
     - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=pypy2-5.6.0 }
-    - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=pypy3.3-5.5-alpha }
 
     - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=2.6.9 }
     - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=2.7.13 }
-    - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=3.3.6 }
     - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=3.4.5 }
     - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=3.5.2 }
     - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=3.6-dev }
     - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=pypy2-5.6.0 }
-    - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=pypy3.3-5.5-alpha }
 
     - { os: osx, osx_image: xcode6.4, language: generic, env: OSX=10.10 PYENV=2.7.13 }
     - { os: osx, osx_image: xcode6.4, language: generic, env: OSX=10.10 PYENV=3.5.2 }
