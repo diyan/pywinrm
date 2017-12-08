@@ -29,7 +29,7 @@ class Protocol(object):
 
     def __init__(
             self, endpoint, transport='plaintext', username=None,
-            password=None, realm=None, service=None, keytab=None,
+            password=None, realm=None, service="HTTP", keytab=None,
             ca_trust_path=None, cert_pem=None, cert_key_pem=None,
             server_cert_validation='validate',
             kerberos_delegation=False,
@@ -37,7 +37,8 @@ class Protocol(object):
             operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
             kerberos_hostname_override=None,
             message_encryption='auto',
-            credssp_disable_tlsv1_2=False
+            credssp_disable_tlsv1_2=False,
+            send_cbt=True,
         ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -86,7 +87,8 @@ class Protocol(object):
             kerberos_hostname_override=kerberos_hostname_override,
             auth_method=transport,
             message_encryption=message_encryption,
-            credssp_disable_tlsv1_2=credssp_disable_tlsv1_2
+            credssp_disable_tlsv1_2=credssp_disable_tlsv1_2,
+            send_cbt=send_cbt
         )
 
         self.username = username
