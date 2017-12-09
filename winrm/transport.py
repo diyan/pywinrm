@@ -156,10 +156,14 @@ class Transport(object):
         settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
                                                       verify=None, cert=None)
 
-        # we're only applying proxies from env, other settings are ignored
+        # we're only applying proxies and/or verify from env, other settings are ignored
         session.proxies = settings['proxies']
 
+        if settings['verify'] is not None or self.ca_trust_path is not None:
+            session.verify = self.ca_trust_path or settings['verify']
+
         encryption_available = False
+
         if self.auth_method == 'kerberos':
             if not HAVE_KERBEROS:
                 raise WinRMError("requested auth method is kerberos, but requests_kerberos is not installed")
