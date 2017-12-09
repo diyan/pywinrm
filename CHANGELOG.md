@@ -1,8 +1,14 @@
 # Changelog
 
-### Developing
-- Added support for message encryption over HTTP when using NTLM and CredSSP
+### Version 0.3.0.beta1
+- Added support for message encryption over HTTP when using NTLM/Kerberos/CredSSP
 - Added parameter to disable TLSv1.2 when using CredSSP for Server 2008 support
+- Error detail from SOAP fault (if present) is now included with HTTP 500 errors
+- Fixed CA path override (incl envvar)
+- Fixed Kerberos service override
+- Try harder to suppress urllib3 InsecureRequestWarnings on various OSs
+- Fixed timeout values to parse correctly if passed as strings
+- Various updates to CI/tests
 
 ### Version 0.2.2
 - Added support for CredSSP authenication (via requests-credssp)
