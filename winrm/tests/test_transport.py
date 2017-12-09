@@ -11,11 +11,11 @@ def test_build_session():
                           auth_method='basic',
                           )
     os.environ['REQUESTS_CA_BUNDLE'] = 'path_to_REQUESTS_CA_CERT'
-    session = transport.build_session()
-    assert(session.verify == 'path_to_REQUESTS_CA_CERT')
+    transport.build_session()
+    assert(transport.session.verify == 'path_to_REQUESTS_CA_CERT')
     del os.environ['REQUESTS_CA_BUNDLE']
 
     os.environ['CURL_CA_BUNDLE'] = 'path_to_CURL_CA_CERT'
-    session = transport.build_session()
-    assert(session.verify == 'path_to_CURL_CA_CERT')
+    transport.build_session()
+    assert(transport.session.verify == 'path_to_CURL_CA_CERT')
     del os.environ['CURL_CA_BUNDLE']
