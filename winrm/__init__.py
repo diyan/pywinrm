@@ -106,11 +106,11 @@ class Session(object):
         scheme = match.group('scheme')
         if not scheme:
             # TODO do we have anything other than HTTP/HTTPS
-            scheme = 'https' if transport == 'ssl' else 'http'
+            scheme = 'https' if transport == 'ssl' or transport == 'ntlm' else 'http'
         host = match.group('host')
         port = match.group('port')
         if not port:
-            port = 5986 if transport == 'ssl' else 5985
+            port = 5986 if transport == 'ssl' or transport == 'ntlm' else 5985
         path = match.group('path')
         if not path:
             path = 'wsman'
