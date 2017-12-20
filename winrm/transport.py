@@ -62,7 +62,9 @@ class Transport(object):
             auth_method='auto',
             message_encryption='auto',
             credssp_disable_tlsv1_2=False,
-            send_cbt=True):
+            send_cbt=True,
+            proxy=None,
+            proxy_ignore_env=False):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -78,6 +80,8 @@ class Transport(object):
         self.message_encryption = message_encryption
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
         self.send_cbt = send_cbt
+        self.proxy = proxy
+        self.proxy_use_env = not proxy_ignore_env
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -113,7 +117,7 @@ class Transport(object):
                 from requests.packages.urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
             except: pass # oh well, we tried...
-            
+
             try:
                 from urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
@@ -147,13 +151,19 @@ class Transport(object):
     def build_session(self):
         session = requests.Session()
 
-        # allow some settings to be merged from env
-        session.trust_env = True
-        settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
-                                                      verify=None, cert=None)
+        proxies = dict()
+        if self.proxy is not None:      # pragma: no cover
+            # If there was a proxy specified then use it
+            proxies = {
+                'http': self.proxy,
+                'https': self.proxy
+            }
 
-        # get proxy settings from env
-        # FUTURE: allow proxy to be passed in directly to supersede this value
+        # Merge proxy environment variables
+        session.trust_env = self.proxy_use_env
+        settings = session.merge_environment_settings(url=self.endpoint,
+                      proxies=proxies, stream=None, verify=None, cert=None)
+
         session.proxies = settings['proxies']
 
         # specified validation mode takes precedence
