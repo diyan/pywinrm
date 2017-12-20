@@ -1,6 +1,6 @@
 # Changelog
 
-### Version 0.3.0.beta1
+### Version 0.3.0
 - Added support for message encryption over HTTP when using NTLM/Kerberos/CredSSP
 - Added parameter to disable TLSv1.2 when using CredSSP for Server 2008 support
 - Error detail from SOAP fault (if present) is now included with HTTP 500 errors
