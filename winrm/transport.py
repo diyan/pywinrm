@@ -193,8 +193,8 @@ class Transport(object):
                 session.cert = (self.cert_pem, self.cert_key_pem)
                 session.headers['Authorization'] = \
                     "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"
-        elif self.auth_method == 'ntlm':
-            if not HAVE_NTLM:                               # pragma: no cover
+        elif self.auth_method == 'ntlm':                    # pragma: no cover
+            if not HAVE_NTLM:
                 raise WinRMError("requested auth method is ntlm, but requests_ntlm is not installed")
             man_args = dict(
                 username=self.username,
@@ -210,8 +210,8 @@ class Transport(object):
         # TODO: ssl is not exactly right here- should really be client_cert
         elif self.auth_method in ['basic', 'plaintext']:
             session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
-        elif self.auth_method == 'credssp':
-            if not HAVE_CREDSSP:                            # pragma: no cover
+        elif self.auth_method == 'credssp':                 # pragma: no cover
+            if not HAVE_CREDSSP:
                 raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
             session.auth = HttpCredSSPAuth(username=self.username, password=self.password,
                                                disable_tlsv1_2=self.credssp_disable_tlsv1_2)
@@ -232,7 +232,7 @@ class Transport(object):
             elif self.message_encryption == 'auto' and not self.endpoint.lower().startswith('https'):
                 self.setup_encryption()
 
-    def setup_encryption(self):
+    def setup_encryption(self):                             # pragma: no cover
         # Security context doesn't exist, sending blank message to initialise context
         request = requests.Request('POST', self.endpoint, data=None)
         prepared_request = self.session.prepare_request(request)
