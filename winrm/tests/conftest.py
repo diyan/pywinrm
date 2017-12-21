@@ -153,7 +153,7 @@ run_cmd_wo_args_request = """\
   </env:Body>
 </env:Envelope>"""
 
-run_cmd_response = """\
+run_cmd_ps_response = """\
 <?xml version="1.0" ?>
 <s:Envelope xml:lang="en-US" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer">
     <s:Header>
@@ -164,10 +164,41 @@ run_cmd_response = """\
     </s:Header>
     <s:Body>
         <rsp:CommandResponse>
-            <rsp:CommandId>11111111-1111-1111-1111-111111111114</rsp:CommandId>
+            <rsp:CommandId>11111111-1111-1111-1111-1111111111%s4</rsp:CommandId>
         </rsp:CommandResponse>
     </s:Body>
 </s:Envelope>"""
+
+# PS request is Write-Error "Error"
+run_ps_request = """\
+<?xml version="1.0" encoding="utf-8"?>
+<env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
+  <env:Header>
+    <a:To>http://windows-host:5985/wsman</a:To>
+    <a:ReplyTo>
+      <a:Address mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+    </a:ReplyTo>
+    <w:MaxEnvelopeSize mustUnderstand="true">153600</w:MaxEnvelopeSize>
+    <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+    <w:Locale mustUnderstand="false" xml:lang="en-US" />
+    <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
+    <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+    <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
+    <w:SelectorSet>
+      <w:Selector Name="ShellId">11111111-1111-1111-1111-111111111113</w:Selector>
+    </w:SelectorSet>
+    <w:OptionSet>
+      <w:Option Name="WINRS_CONSOLEMODE_STDIN">TRUE</w:Option>
+      <w:Option Name="WINRS_SKIP_CMD_SHELL">FALSE</w:Option>
+    </w:OptionSet>
+  </env:Header>
+  <env:Body>
+    <rsp:CommandLine>
+      <rsp:Command>powershell -encodedcommand VwByAGkAdABlAC0ARQByAHIAbwByACAAIgBFAHIAcgBvAHIAIgA=</rsp:Command>
+    </rsp:CommandLine>
+  </env:Body>
+</env:Envelope>"""
 
 cleanup_cmd_request = """\
 <?xml version="1.0" encoding="utf-8"?>
@@ -189,7 +220,7 @@ cleanup_cmd_request = """\
     </w:SelectorSet>
   </env:Header>
   <env:Body>
-    <rsp:Signal CommandId="11111111-1111-1111-1111-111111111114">
+    <rsp:Signal CommandId="11111111-1111-1111-1111-1111111111%s4">
       <rsp:Code>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate</rsp:Code>
     </rsp:Signal>
   </env:Body>
@@ -209,7 +240,7 @@ cleanup_cmd_response = """\
     </s:Body>
 </s:Envelope>"""
 
-get_cmd_output_request = """\
+get_cmd_ps_output_request = """\
 <?xml version="1.0" encoding="utf-8"?>
 <env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
   <env:Header>
@@ -230,7 +261,7 @@ get_cmd_output_request = """\
   </env:Header>
   <env:Body>
     <rsp:Receive>
-      <rsp:DesiredStream CommandId="11111111-1111-1111-1111-111111111114">stdout stderr</rsp:DesiredStream>
+      <rsp:DesiredStream CommandId="11111111-1111-1111-1111-1111111111%s4">stdout stderr</rsp:DesiredStream>
     </rsp:Receive>
   </env:Body>
 </env:Envelope>"""
@@ -252,6 +283,28 @@ get_cmd_output_response = """\
             <rsp:Stream CommandId="11111111-1111-1111-1111-111111111114" End="true" Name="stderr"/>
             <rsp:CommandState CommandId="11111111-1111-1111-1111-111111111114" State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
                 <rsp:ExitCode>0</rsp:ExitCode>
+            </rsp:CommandState>
+        </rsp:ReceiveResponse>
+    </s:Body>
+</s:Envelope>"""
+
+get_ps_output_response = """\
+<?xml version="1.0" ?>
+<s:Envelope xml:lang="en-US" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd">
+    <s:Header>
+        <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/ReceiveResponse</a:Action>
+        <a:MessageID>uuid:11111111-1111-1111-1111-111111111112</a:MessageID>
+        <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+        <a:RelatesTo>uuid:11111111-1111-1111-1111-111111111111</a:RelatesTo>
+    </s:Header>
+    <s:Body>
+        <rsp:ReceiveResponse>
+            <rsp:Stream CommandId="11111111-1111-1111-1111-111111111124" Name="stderr">IzwgQ0xJWE1MDQo=</rsp:Stream>
+            <rsp:Stream Name="stderr" CommandId="11111111-1111-1111-1111-111111111124">PE9ianMgVmVyc2lvbj0iMS4xLjAuMSIgeG1sbnM9Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vcG93ZXJzaGVsbC8yMDA0LzA0Ij48UyBTPSJFcnJvciI+V3JpdGUtRXJyb3IgIkVycm9yIiA6IEVycm9yX3gwMDBEX194MDAwQV88L1M+PFMgUz0iRXJyb3IiPiAgICArIENhdGVnb3J5SW5mbyAgICAgICAgICA6IE5vdFNwZWNpZmllZDogKDopIFtXcml0ZS1FcnJvcl0sIFdyaXRlRXJyb3JFeGNlcCBfeDAwMERfX3gwMDBBXzwvUz48UyBTPSJFcnJvciI+ICAgdGlvbl94MDAwRF9feDAwMEFfPC9TPjxTIFM9IkVycm9yIj4gICAgKyBGdWxseVF1YWxpZmllZEVycm9ySWQgOiBNaWNyb3NvZnQuUG93ZXJTaGVsbC5Db21tYW5kcy5Xcml0ZUVycm9yRXhjZXB0aW8gX3gwMDBEX194MDAwQV88L1M+PFMgUz0iRXJyb3IiPiAgIG5feDAwMERfX3gwMDBBXzwvUz48UyBTPSJFcnJvciI+IF94MDAwRF9feDAwMEFfPC9TPjwvT2Jqcz4=</rsp:Stream>
+            <rsp:Stream CommandId="11111111-1111-1111-1111-111111111124" End="true" Name="stdout"/>
+            <rsp:Stream CommandId="11111111-1111-1111-1111-111111111124" End="true" Name="stderr"/>
+            <rsp:CommandState CommandId="11111111-1111-1111-1111-111111111124" State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
+                <rsp:ExitCode>1</rsp:ExitCode>
             </rsp:CommandState>
         </rsp:ReceiveResponse>
     </s:Body>
@@ -284,13 +337,19 @@ class TransportStub(object):
         elif xml_str_compare(
                 message, run_cmd_with_args_request) or xml_str_compare(
                 message, run_cmd_wo_args_request):
-            return run_cmd_response
-        elif xml_str_compare(message, cleanup_cmd_request):
+            return run_cmd_ps_response % '1'
+        elif xml_str_compare(message, run_ps_request):
+            return run_cmd_ps_response % '2'
+        elif xml_str_compare(
+                message, cleanup_cmd_request % '1') or xml_str_compare(
+                message, cleanup_cmd_request % '2'):
             return cleanup_cmd_response
-        elif xml_str_compare(message, get_cmd_output_request):
+        elif xml_str_compare(message, get_cmd_ps_output_request % '1'):
             return get_cmd_output_response
+        elif xml_str_compare(message, get_cmd_ps_output_request % '2'):
+            return get_ps_output_response
         else:
-            raise Exception('Message was not expected')
+            raise Exception('Message was not expected\n\n%s' % message)
 
 
 @fixture(scope='module')
