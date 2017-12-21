@@ -22,7 +22,7 @@ try:
     from requests_kerberos import HTTPKerberosAuth, REQUIRED, OPTIONAL, DISABLED
 
     HAVE_KERBEROS = True
-except ImportError:
+except ImportError:          # pragma: no cover
     pass
 
 HAVE_NTLM = False
@@ -30,7 +30,7 @@ try:
     from requests_ntlm import HttpNtlmAuth
 
     HAVE_NTLM = True
-except ImportError as ie:
+except ImportError as ie:   # pragma: no cover
     pass
 
 HAVE_CREDSSP = False
@@ -38,7 +38,7 @@ try:
     from requests_credssp import HttpCredSSPAuth
 
     HAVE_CREDSSP = True
-except ImportError as ie:
+except ImportError as ie:   # pragma: no cover
     pass
 
 from winrm.exceptions import InvalidCredentialsError, WinRMError, \
@@ -98,13 +98,13 @@ class Transport(object):
         try:
             from requests.packages.urllib3.exceptions import InsecurePlatformWarning
             warnings.simplefilter('ignore', category=InsecurePlatformWarning)
-        except:
+        except:         # pragma: no cover
             pass  # oh well, we tried...
 
         try:
             from requests.packages.urllib3.exceptions import SNIMissingWarning
             warnings.simplefilter('ignore', category=SNIMissingWarning)
-        except:
+        except:         # pragma: no cover
             pass  # oh well, we tried...
 
         # if we're explicitly ignoring validation, try to suppress InsecureRequestWarning, since the user opted-in
@@ -112,17 +112,18 @@ class Transport(object):
             try:
                 from requests.packages.urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
-            except: pass # oh well, we tried...
-            
+            except:     # pragma: no cover
+                pass # oh well, we tried...
             try:
                 from urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
-            except: pass # oh well, we tried...
+            except:     # pragma: no cover
+                pass # oh well, we tried...
 
         # validate credential requirements for various auth types
         if self.auth_method != 'kerberos':
             if self.auth_method == 'certificate' or (
-                            self.auth_method == 'ssl' and (self.cert_pem or self.cert_key_pem)):
+                            self.auth_method == 'ssl' and (self.cert_pem or self.cert_key_pem)):        # pragma: no cover
                 if not self.cert_pem or not self.cert_key_pem:
                     raise InvalidCredentialsError("both cert_pem and cert_key_pem must be specified for cert auth")
                 if not os.path.exists(self.cert_pem):
@@ -148,7 +149,7 @@ class Transport(object):
         session = requests.Session()
 
         session.verify = self.server_cert_validation == 'validate'
-        if session.verify and self.ca_trust_path:
+        if session.verify and self.ca_trust_path:           # pragma: no cover
                 session.verify = self.ca_trust_path
 
         # configure proxies from HTTP/HTTPS_PROXY envvars
@@ -164,7 +165,7 @@ class Transport(object):
 
         encryption_available = False
 
-        if self.auth_method == 'kerberos':
+        if self.auth_method == 'kerberos':                  # pragma: no cover
             if not HAVE_KERBEROS:
                 raise WinRMError("requested auth method is kerberos, but requests_kerberos is not installed")
 
@@ -183,7 +184,7 @@ class Transport(object):
             kerb_args = self._get_args(man_args, opt_args, HTTPKerberosAuth.__init__)
             session.auth = HTTPKerberosAuth(**kerb_args)
             encryption_available = hasattr(session.auth, 'winrm_encryption_available') and session.auth.winrm_encryption_available
-        elif self.auth_method in ['certificate', 'ssl']:
+        elif self.auth_method in ['certificate', 'ssl']:    # pragma: no cover
             if self.auth_method == 'ssl' and not self.cert_pem and not self.cert_key_pem:
                 # 'ssl' was overloaded for HTTPS with optional certificate auth,
                 # fall back to basic auth if no cert specified
@@ -193,7 +194,7 @@ class Transport(object):
                 session.headers['Authorization'] = \
                     "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"
         elif self.auth_method == 'ntlm':
-            if not HAVE_NTLM:
+            if not HAVE_NTLM:                               # pragma: no cover
                 raise WinRMError("requested auth method is ntlm, but requests_ntlm is not installed")
             man_args = dict(
                 username=self.username,
@@ -210,7 +211,7 @@ class Transport(object):
         elif self.auth_method in ['basic', 'plaintext']:
             session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
         elif self.auth_method == 'credssp':
-            if not HAVE_CREDSSP:
+            if not HAVE_CREDSSP:                            # pragma: no cover
                 raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
             session.auth = HttpCredSSPAuth(username=self.username, password=self.password,
                                                disable_tlsv1_2=self.credssp_disable_tlsv1_2)
@@ -222,7 +223,7 @@ class Transport(object):
         self.session = session
 
         # Will check the current config and see if we need to setup message encryption
-        if self.message_encryption == 'always' and not encryption_available:
+        if self.message_encryption == 'always' and not encryption_available:    # pragma: no cover
             raise WinRMError(
                 "message encryption is set to 'always' but the selected auth method %s does not support it" % self.auth_method)
         elif encryption_available:
@@ -238,7 +239,7 @@ class Transport(object):
         self._send_message_request(prepared_request, '')
         self.encryption = Encryption(self.session, self.auth_method)
 
-    def send_message(self, message):
+    def send_message(self, message):                        # pragma: no cover
         if not self.session:
             self.build_session()
 
@@ -256,7 +257,7 @@ class Transport(object):
         response = self._send_message_request(prepared_request, message)
         return self._get_message_response_text(response)
 
-    def _send_message_request(self, prepared_request, message):
+    def _send_message_request(self, prepared_request, message):                 # pragma: no cover
         try:
             response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
             response.raise_for_status()
@@ -285,7 +286,7 @@ class Transport(object):
         for name, value in mandatory_args.items():
             if name in argspec:
                 function_args[name] = value
-            else:
+            else:                                           # pragma: no cover
                 raise Exception("Function %s does not contain mandatory arg "
                                 "%s, check installed version with pip list"
                                 % (str(function), name))
@@ -293,7 +294,7 @@ class Transport(object):
         for name, value in optional_args.items():
             if name in argspec:
                 function_args[name] = value
-            else:
+            else:                                           # pragma: no cover
                 warnings.warn("Function %s does not contain optional arg %s, "
                               "check installed version with pip list"
                               % (str(function), name))

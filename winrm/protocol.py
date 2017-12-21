@@ -69,7 +69,7 @@ class Protocol(object):
         except ValueError as ve:
             raise ValueError("failed to parse operation_timeout_sec as int: %s" % str(ve))
 
-        if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
+        if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:      # pragma: no cover
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")
 
         self.read_timeout_sec = read_timeout_sec
@@ -147,9 +147,9 @@ class Protocol(object):
             #if lifetime:
             #    shell['rsp:Lifetime'] = iso8601_duration.sec_to_dur(lifetime)
         # TODO make it so the input is given in milliseconds and converted to xs:duration  # NOQA
-        if idle_timeout:
+        if idle_timeout:        # NOQA
             shell['rsp:IdleTimeOut'] = idle_timeout
-        if env_vars:
+        if env_vars:            # NOQA
             env = shell.setdefault('rsp:Environment', {})
             for key, value in env_vars.items():
                 env['rsp:Variable'] = {'@Name': key, '#text': value}
@@ -233,7 +233,7 @@ class Protocol(object):
         try:
             resp = self.transport.send_message(message)
             return resp
-        except WinRMTransportError as ex:
+        except WinRMTransportError as ex:                   # pragma: no cover
             try:
                 # if response is XML-parseable, it's probably a SOAP fault; extract the details
                 root = ET.fromstring(ex.response_text)
@@ -398,7 +398,7 @@ class Protocol(object):
                     self._raw_get_command_output(shell_id, command_id)
                 stdout_buffer.append(stdout)
                 stderr_buffer.append(stderr)
-            except WinRMOperationTimeoutError as e:
+            except WinRMOperationTimeoutError as e:         # pragma: no cover
                 # this is an expected error when waiting for a long-running process, just silently retry
                 pass
         return b''.join(stdout_buffer), b''.join(stderr_buffer), return_code
