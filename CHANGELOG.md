@@ -1,5 +1,8 @@
 # Changelog
 
+### Version 0.3.1
+- Ensure server_cert_validation=ignore supersedes ca_trust_path/env overrides
+
 ### Version 0.3.0
 - Added support for message encryption over HTTP when using NTLM/Kerberos/CredSSP
 - Added parameter to disable TLSv1.2 when using CredSSP for Server 2008 support
