@@ -147,19 +147,21 @@ class Transport(object):
     def build_session(self):
         session = requests.Session()
 
-        session.verify = self.server_cert_validation == 'validate'
-        if session.verify and self.ca_trust_path:
-                session.verify = self.ca_trust_path
-
-        # configure proxies from HTTP/HTTPS_PROXY envvars
+        # allow some settings to be merged from env
         session.trust_env = True
         settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
                                                       verify=None, cert=None)
 
-        # we're only applying proxies and/or verify from env, other settings are ignored
+        # get proxy settings from env
+        # FUTURE: allow proxy to be passed in directly to supersede this value
         session.proxies = settings['proxies']
 
-        if settings['verify'] is not None or self.ca_trust_path is not None:
+        # specified validation mode takes precedence
+        session.verify = self.server_cert_validation == 'validate'
+
+        # patch in CA path override if one was specified in init or env
+        if session.verify and (self.ca_trust_path is not None or settings['verify'] is not None):
+            # session.verify can be either a bool or path to a CA store; prefer passed-in value over env if both are present
             session.verify = self.ca_trust_path or settings['verify']
 
         encryption_available = False
