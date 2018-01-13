@@ -2,14 +2,20 @@
 from __future__ import unicode_literals
 import base64
 import uuid
-
-import xml.etree.ElementTree as ET
+import sys
 import xmltodict
 
-from six import text_type, binary_type
+from six import text_type
+from traceback import format_exc
 
 from winrm.transport import Transport
 from winrm.exceptions import WinRMError, WinRMTransportError, WinRMOperationTimeoutError
+
+# Python2.6 needs lxml for fault inspection with namespaces
+if sys.version_info[0] == 2 and sys.version_info[1] < 7:
+    from lxml import etree as ET
+else:
+    import xml.etree.ElementTree as ET
 
 xmlns = {
     'soapenv': 'http://www.w3.org/2003/05/soap-envelope',
@@ -241,35 +247,42 @@ class Protocol(object):
                 # assume some other transport error; raise the original exception
                 raise ex
 
-            fault = root.find('soapenv:Body/soapenv:Fault', xmlns)
-            if fault is not None:
-                fault_data = dict(
-                    transport_message=ex.message,
-                    http_status_code=ex.code
-                )
-                wsmanfault_code = fault.find('soapenv:Detail/wsmanfault:WSManFault[@Code]', xmlns)
-                if wsmanfault_code is not None:
-                    fault_data['wsmanfault_code'] = wsmanfault_code.get('Code')
-                    # convert receive timeout code to WinRMOperationTimeoutError
-                    if fault_data['wsmanfault_code'] == '2150858793':
-                        # TODO: this fault code is specific to the Receive operation; convert all op timeouts?
-                        raise WinRMOperationTimeoutError()
+            try:
+                fault = root.find('soapenv:Body/soapenv:Fault', xmlns)
+                if fault is not None:
+                    fault_data = dict(
+                        transport_message=ex.message,
+                        http_status_code=ex.code
+                    )
+                    wsmanfault_code = fault.find('soapenv:Detail/wsmanfault:WSManFault[@Code]', xmlns)
+                    if wsmanfault_code is not None:
+                        fault_data['wsmanfault_code'] = wsmanfault_code.get('Code')
+                        # convert receive timeout code to WinRMOperationTimeoutError
+                        if fault_data['wsmanfault_code'] == '2150858793':
+                            # TODO: this fault code is specific to the Receive operation; convert all op timeouts?
+                            raise WinRMOperationTimeoutError()
 
-                fault_code = fault.find('soapenv:Code/soapenv:Value', xmlns)
-                if fault_code is not None:
-                    fault_data['fault_code'] = fault_code.text
+                    fault_code = fault.find('soapenv:Code/soapenv:Value', xmlns)
+                    if fault_code is not None:
+                        fault_data['fault_code'] = fault_code.text
 
-                fault_subcode = fault.find('soapenv:Code/soapenv:Subcode/soapenv:Value', xmlns)
-                if fault_subcode is not None:
-                    fault_data['fault_subcode'] = fault_subcode.text
+                    fault_subcode = fault.find('soapenv:Code/soapenv:Subcode/soapenv:Value', xmlns)
+                    if fault_subcode is not None:
+                        fault_data['fault_subcode'] = fault_subcode.text
 
-                error_message = fault.find('soapenv:Reason/soapenv:Text', xmlns)
-                if error_message is not None:
-                    error_message = error_message.text
-                else:
-                    error_message = "(no error message in fault)"
+                    error_message = fault.find('soapenv:Reason/soapenv:Text', xmlns)
+                    if error_message is not None:
+                        error_message = error_message.text
+                    else:
+                        error_message = "(no error message in fault)"
 
-                raise WinRMError('{0} (extended fault data: {1})'.format(error_message, fault_data))
+                    raise WinRMError('{0} (extended fault data: {1})'.format(error_message, fault_data))
+            except WinRMOperationTimeoutError:
+                raise
+            except Exception:  # NOQA
+                raise WinRMError('The server returned an error with code {0}, but another error occurred getting the details: ({1}).'
+                                 .format(ex.code, format_exc()))
+
 
     def close_shell(self, shell_id):
         """

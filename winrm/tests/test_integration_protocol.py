@@ -1,6 +1,8 @@
 # coding=utf-8
-import re
 import pytest
+import re
+import sys
+from winrm.exceptions import WinRMError
 xfail = pytest.mark.xfail
 
 
@@ -77,6 +79,15 @@ def test_run_command_taking_more_than_operation_timeout_sec(protocol_real):
     protocol_real.close_shell(shell_id)
 
 
+def test_fault(protocol_real):
+    with pytest.raises(WinRMError) as e:
+        # ask for a bogus shell/command ID to trigger a fault
+        protocol_real.get_command_output(0, 0)
+
+    assert(e.value.code == 500)
+    assert('did not contain all required selectors' in str(e.value))
+
+
 @xfail()
 def test_set_timeout(protocol_real):
     raise NotImplementedError()
@@ -90,3 +101,4 @@ def test_set_max_env_size(protocol_real):
 @xfail()
 def test_set_locale(protocol_real):
     raise NotImplementedError()
+

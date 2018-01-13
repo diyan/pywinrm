@@ -1,6 +1,5 @@
 # coding=utf-8
 import os
-import tempfile
 import pytest
 from winrm.transport import Transport
 from winrm.exceptions import WinRMError, InvalidCredentialsError
@@ -63,41 +62,6 @@ def test_build_session_cert_ignore():
     finally:
         del os.environ['REQUESTS_CA_BUNDLE']
         del os.environ['CURL_CA_BUNDLE']
-
-
-def test_build_session_ca_trust_path():
-    transport = Transport(endpoint="Endpoint",
-                          server_cert_validation='validate',
-                          username='test',
-                          password='test',
-                          auth_method='basic',
-                          ca_trust_path=True
-                          )
-    transport.build_session()
-    assert(transport.ca_trust_path is True)
-    assert(transport.session.verify is True)
-
-    transport = Transport(endpoint="Endpoint",
-                          server_cert_validation='ignore',
-                          username='test',
-                          password='test',
-                          auth_method='basic',
-                          ca_trust_path=True
-                          )
-    transport.build_session()
-    assert(transport.ca_trust_path is True)
-    assert(transport.session.verify is True)
-
-
-def test_build_session_server_cert_validation_ignore():
-    transport = Transport(endpoint="Endpoint",
-                          server_cert_validation='ignore',
-                          username='test',
-                          password='test',
-                          auth_method='basic',
-                          )
-    transport.build_session()
-    assert(transport.session.verify is False)
 
 
 def test_build_session_server_cert_validation_invalid():
