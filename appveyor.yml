@@ -25,7 +25,9 @@ init:
 
 install:
   - ps: |
+      Enable-WSManCredSSP -Role Server -Force
       Set-Item WSMan:\localhost\Service\Auth\Basic $true
+      Set-Item WSMan:\localhost\Service\Auth\CredSSP $true
       Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
       Invoke-Expression $($env:WITH_COMPILER + " pip install cffi coveralls")
       pip install .
@@ -50,6 +52,10 @@ test_script:
       # Run integration tests with NTLM to check message encryption
       $env:WINRM_TRANSPORT="ntlm"
       Set-Item WSMan:\localhost\Service\AllowUnencrypted $false
+      py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
+
+      # Run integration tests with CredSSP to check message encryption
+      $env:WINRM_TRANSPORT="credssp"
       py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
 
 after_test:
