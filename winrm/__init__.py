@@ -41,13 +41,15 @@ class Session(object):
         self.protocol.close_shell(shell_id)
         return rs
 
-    def run_ps(self, script):
+    def run_ps(self, script, bypass_exec_policy=False):
         """base64 encodes a Powershell script and executes the powershell
         encoded script command
         """
         # must use utf16 little endian on windows
         encoded_ps = b64encode(script.encode('utf_16_le')).decode('ascii')
-        rs = self.run_cmd('powershell -encodedcommand {0}'.format(encoded_ps))
+        rs = self.run_cmd('powershell {0} -encodedcommand {1}'.format(
+            '-executionpolicy bypass' if bypass_exec_policy else '',
+            encoded_ps))
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
