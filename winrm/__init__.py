@@ -58,6 +58,9 @@ class Session(object):
         """converts a Powershell CLIXML message to a more human readable string
         """
         # TODO prepare unit test, beautify code
+        # If bytes, decode to ascii
+        if isinstance(msg, bytes):
+            msg = msg.decode('ascii')
         # if the msg does not start with this, return it as is
         if msg.startswith("#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
