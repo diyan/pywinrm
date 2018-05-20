@@ -32,6 +32,7 @@ install:
       Invoke-Expression $($env:WITH_COMPILER + " pip install cffi coveralls")
       pip install .
       pip install -r requirements-test.txt
+      pip install .[credssp]
 
 build: off  # Do not run MSBuild, build stuff at install step
 
