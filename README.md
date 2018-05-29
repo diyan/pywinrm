@@ -156,7 +156,7 @@ arg to protocol to `auto` (the default value) or `always`. This will use the aut
 Wrap and Unwrap methods to encrypt the message contents sent to
 the server. This form of encryption is independent from the transport layer
 like TLS and is currently only supported by the NTLM and CredSSP transport
-auth. Kerberos currently does not have the methods available to achieve this.
+auth.
 
 To configure message encryption you can use the `message_encryption` argument
 when initialising protocol. This option has 3 values that can be set as shown
