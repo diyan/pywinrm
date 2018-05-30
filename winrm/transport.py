@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
-import sys
-import os
+import errno
 import inspect
+import os
+import sys
+import time
 
 is_py2 = sys.version[0] == '2'
 
@@ -260,7 +262,17 @@ class Transport(object):
 
     def _send_message_request(self, prepared_request, message):
         try:
-            response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
+
+            # Retry connection on 'Connection refused'
+            for attempt in range(5):
+                try:
+                    response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
+                    break
+                except requests.exceptions.ConnectionError as e:
+                    if attempt == 4 or 'connection refused' not in str(e).lower():
+                        raise
+                    time.sleep(5)
+
             response.raise_for_status()
             return response
         except requests.HTTPError as ex:
