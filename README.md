@@ -146,17 +146,18 @@ to enable encrypted communication with pywinrm:
 2. Use NTLM, Kerberos, or CredSSP as the transport auth
 
 Using an HTTPS endpoint is recommended, as it will encrypt all the data sent
-to the server (including the credentials), and works with all transport
-auth types. You can use [this script](https://github.com/ansible/ansible/blob/devel/examples/scripts/ConfigureRemotingForAnsible.ps1)
+to the server (including all headers), works securely with all
+auth types, and can properly verify remote host identity (when used with certificates signed by a 
+verifiable certificate authority). You can use [this script](https://github.com/ansible/ansible/blob/devel/examples/scripts/ConfigureRemotingForAnsible.ps1)
 to easily set up a HTTPS endpoint on WinRM with a self-signed certificate, but
 the use of a verifiable certificate authority is recommended in production environments.
 
 The second option is to use NTLM, Kerberos, or CredSSP, and set the `message_encryption`
 arg to protocol to `auto` (the default value) or `always`. This will use the authentication GSS-API
 Wrap and Unwrap methods to encrypt the message contents sent to
-the server. This form of encryption is independent from the transport layer
-like TLS and is currently only supported by the NTLM and CredSSP transport
-auth.
+the server. This form of encryption is independent of the transport layer, and the strength of the encryption
+used varies with the underlying authentication type selected (NTLM generally being the weakest and CredSSP the
+strongest). 
 
 To configure message encryption you can use the `message_encryption` argument
 when initialising protocol. This option has 3 values that can be set as shown
