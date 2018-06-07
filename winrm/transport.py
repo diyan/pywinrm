@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import errno
 import inspect
 import os
 import sys
@@ -64,7 +63,10 @@ class Transport(object):
             auth_method='auto',
             message_encryption='auto',
             credssp_disable_tlsv1_2=False,
-            send_cbt=True):
+            send_cbt=True,
+            reconnection_retries=5,
+            reconnection_sleep=5,
+        ):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -80,6 +82,8 @@ class Transport(object):
         self.message_encryption = message_encryption
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
         self.send_cbt = send_cbt
+        self.reconnection_retries = reconnection_retries
+        self.reconnection_sleep = reconnection_sleep
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -115,7 +119,7 @@ class Transport(object):
                 from requests.packages.urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
             except: pass # oh well, we tried...
-            
+
             try:
                 from urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
@@ -264,14 +268,17 @@ class Transport(object):
         try:
 
             # Retry connection on 'Connection refused'
-            for attempt in range(5):
+            for attempt in range(self.reconnection_retries):
                 try:
                     response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
+                except requests.packages.urllib3.exceptions.NewConnectionError as e:
+                    time.sleep(self.reconnection_sleep)
+#                except requests.exceptions.ConnectionError as e:
+#                    if attempt == 4 or 'connection refused' not in str(e).lower():
+#                        raise
+#                    time.sleep(self.reconnection_sleep)
+                else:
                     break
-                except requests.exceptions.ConnectionError as e:
-                    if attempt == 4 or 'connection refused' not in str(e).lower():
-                        raise
-                    time.sleep(5)
 
             response.raise_for_status()
             return response
@@ -282,7 +289,6 @@ class Transport(object):
                 response_text = self._get_message_response_text(ex.response)
             else:
                 response_text = ''
-
 
             raise WinRMTransportError('http', ex.response.status_code, response_text)
 
