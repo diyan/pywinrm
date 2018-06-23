@@ -16,6 +16,7 @@ import requests
 import requests.auth
 import warnings
 from distutils.util import strtobool
+from requests_toolbelt.adapters.source import SourceAddressAdapter
 
 HAVE_KERBEROS = False
 try:
@@ -57,6 +58,7 @@ class Transport(object):
             self, endpoint, username=None, password=None, realm=None,
             service=None, keytab=None, ca_trust_path=None, cert_pem=None,
             cert_key_pem=None, read_timeout_sec=None, server_cert_validation='validate',
+            bind_to=None,
             kerberos_delegation=False,
             kerberos_hostname_override=None,
             auth_method='auto',
@@ -74,6 +76,7 @@ class Transport(object):
         self.cert_key_pem = cert_key_pem
         self.read_timeout_sec = read_timeout_sec
         self.server_cert_validation = server_cert_validation
+        self.bind_to = bind_to
         self.kerberos_hostname_override = kerberos_hostname_override
         self.message_encryption = message_encryption
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
@@ -146,6 +149,12 @@ class Transport(object):
 
     def build_session(self):
         session = requests.Session()
+
+        if self.bind_to:
+            # SourceAddressAdapter() allows to send requests from selected IP
+            # address.
+            session.mount('http://', SourceAddressAdapter(self.bind_to))
+            session.mount('https://', SourceAddressAdapter(self.bind_to))
 
         # allow some settings to be merged from env
         session.trust_env = True

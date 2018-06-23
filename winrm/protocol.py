@@ -32,6 +32,7 @@ class Protocol(object):
             password=None, realm=None, service="HTTP", keytab=None,
             ca_trust_path=None, cert_pem=None, cert_key_pem=None,
             server_cert_validation='validate',
+            bind_to=None,
             kerberos_delegation=False,
             read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
             operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
@@ -52,6 +53,7 @@ class Protocol(object):
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
         @param string server_cert_validation: whether server certificate should be validated on Python versions that suppport it; one of 'validate' (default), 'ignore' #NOQA
+        @param string bind_to: use it on the local machine as the source address of the connection. Note that IP address must be bind to network interface  # NOQA
         @param bool kerberos_delegation: if True, TGT is sent to target server to allow multiple hops  # NOQA
         @param int read_timeout_sec: maximum seconds to wait before an HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long. # NOQA
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
@@ -76,6 +78,7 @@ class Protocol(object):
         self.operation_timeout_sec = operation_timeout_sec
         self.max_env_sz = Protocol.DEFAULT_MAX_ENV_SIZE
         self.locale = Protocol.DEFAULT_LOCALE
+        self.bind_to = bind_to
 
         self.transport = Transport(
             endpoint=endpoint, username=username, password=password,
@@ -83,6 +86,7 @@ class Protocol(object):
             ca_trust_path=ca_trust_path, cert_pem=cert_pem,
             cert_key_pem=cert_key_pem, read_timeout_sec=self.read_timeout_sec,
             server_cert_validation=server_cert_validation,
+            bind_to=self.bind_to,
             kerberos_delegation=kerberos_delegation,
             kerberos_hostname_override=kerberos_hostname_override,
             auth_method=transport,
