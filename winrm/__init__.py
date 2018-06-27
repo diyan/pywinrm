@@ -59,7 +59,7 @@ class Session(object):
         """
         # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
-        if msg.startswith("#< CLIXML\r\n"):
+        if msg.startswith(b"#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
             # (the first line)
             msg_xml = msg[11:]
@@ -70,6 +70,9 @@ class Session(object):
                 # the S node is the error message, find all S nodes
                 nodes = root.findall("./S")
                 new_msg = ""
+                # warn about type incompatibility then move to except
+                assert len(nodes) != 0, \
+                    "nodes length 0 falling back to original error message"
                 for s in nodes:
                     # append error msg string to result, also
                     # the hex chars represent CRLF so we replace with newline
@@ -91,10 +94,10 @@ class Session(object):
     def _strip_namespace(self, xml):
         """strips any namespaces from an xml string"""
         try:
-            p = re.compile("xmlns=*[\"\"][^\"\"]*[\"\"]")
+            p = re.compile(b"xmlns=*[\"\"][^\"\"]*[\"\"]")
             allmatches = p.finditer(xml)
             for match in allmatches:
-                xml = xml.replace(match.group(), "")
+                xml = xml.replace(match.group(), b"")
             return xml
         except Exception as e:
             raise Exception(e)
