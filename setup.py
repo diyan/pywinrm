@@ -23,8 +23,11 @@ setup(
     license='MIT license',
     packages=('winrm', 'winrm.tests'),
     package_data={'winrm.tests': ['*.ps1']},
-    install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
-    extras_require = dict(kerberos=['requests-kerberos>=0.10.0'], credssp=['requests-credssp>=0.0.1']),
+    install_requires=[
+        'xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
+    extras_require=dict(
+        kerberos=[
+            'requests-kerberos>=0.10.0'], credssp=['requests-credssp>=0.0.1']),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',

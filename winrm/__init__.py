@@ -7,11 +7,13 @@ from winrm.protocol import Protocol
 
 # Feature support attributes for multi-version clients.
 # These values can be easily checked for with hasattr(winrm, "FEATURE_X"),
-# "'auth_type' in winrm.FEATURE_SUPPORTED_AUTHTYPES", etc for clients to sniff features
-# supported by a particular version of pywinrm
-FEATURE_SUPPORTED_AUTHTYPES=['basic', 'certificate', 'ntlm', 'kerberos', 'plaintext', 'ssl', 'credssp']
-FEATURE_READ_TIMEOUT=True
-FEATURE_OPERATION_TIMEOUT=True
+# "'auth_type' in winrm.FEATURE_SUPPORTED_AUTHTYPES", etc for clients to sniff
+# features supported by a particular version of pywinrm
+FEATURE_SUPPORTED_AUTHTYPES = [
+    'basic', 'certificate', 'ntlm', 'kerberos', 'plaintext', 'ssl', 'credssp']
+FEATURE_READ_TIMEOUT = True
+FEATURE_OPERATION_TIMEOUT = True
+
 
 class Response(object):
     """Response from a remote command execution"""
@@ -28,9 +30,10 @@ class Session(object):
     # TODO implement context manager methods
     def __init__(self, target, auth, **kwargs):
         username, password = auth
-        self.url = self._build_url(target, kwargs.get('transport', 'plaintext'))
-        self.protocol = Protocol(self.url,
-                                 username=username, password=password, **kwargs)
+        self.url = self._build_url(
+            target, kwargs.get('transport', 'plaintext'))
+        self.protocol = Protocol(
+            self.url, username=username, password=password, **kwargs)
 
     def run_cmd(self, command, args=()):
         # TODO optimize perf. Do not call open/close shell every time
