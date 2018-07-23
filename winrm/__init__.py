@@ -62,7 +62,8 @@ class Session(object):
         """
         # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
-        if msg.startswith(b"#< CLIXML\r\n"):
+        msg = msg.decode("utf-8")
+        if msg.startswith("#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
             # (the first line)
             msg_xml = msg[11:]
@@ -89,7 +90,7 @@ class Session(object):
                 if len(new_msg):
                     # remove leading and trailing whitespace while we are here
                     msg = new_msg.strip()
-        return msg
+        return bytes(msg, 'utf-8')
 
     def _strip_namespace(self, xml):
         """strips any namespaces from an xml string"""
