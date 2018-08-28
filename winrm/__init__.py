@@ -86,7 +86,9 @@ class Session(object):
                 if len(new_msg):
                     # remove leading and trailing whitespace while we are here
                     msg = new_msg.strip()
-        return msg.encode('utf-8')
+                return msg.encode('utf-8')
+        else:
+            return msg
 
     def _strip_namespace(self, xml):
         """strips any namespaces from an xml string"""

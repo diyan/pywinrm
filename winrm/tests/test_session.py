@@ -50,3 +50,11 @@ def test_decode_clixml_error():
     expected = b"fake : The term 'fake' is not recognized as the name of a cmdlet, function, script file, or operable program. Check \nthe spelling of the name, or if a path was included, verify that the path is correct and try again.\nAt line:1 char:1\n+ fake cmdlet\n+ ~~~~\n    + CategoryInfo          : ObjectNotFound: (fake:String) [], CommandNotFoundException\n    + FullyQualifiedErrorId : CommandNotFoundException"
     actual = s._clean_error_msg(msg)
     assert actual == expected
+
+
+def test_decode_clixml_no_clixml():
+    s = Session('windows-host.example.com', auth=('john.smith', 'secret'))
+    msg = b"stderr line"
+    expected = b"stderr line"
+    actual = s._clean_error_msg(msg)
+    assert actual == expected
