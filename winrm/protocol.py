@@ -392,10 +392,13 @@ class Protocol(object):
         """
         stdout_buffer, stderr_buffer = [], []
         command_done = False
+        return_code = None
         while not command_done:
             try:
-                stdout, stderr, return_code, command_done = \
+                stdout, stderr, _return_code, command_done = \
                     self._raw_get_command_output(shell_id, command_id)
+                if return_code is None and _return_code > -1:
+                    return_code = _return_code
                 stdout_buffer.append(stdout)
                 stderr_buffer.append(stderr)
             except WinRMOperationTimeoutError as e:
