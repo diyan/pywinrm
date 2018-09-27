@@ -58,3 +58,11 @@ def test_decode_clixml_no_clixml():
     expected = b"stderr line"
     actual = s._clean_error_msg(msg)
     assert actual == expected
+
+
+def test_decode_clixml_no_errors():
+    s = Session('windows-host.example.com', auth=('john.smith', 'secret'))
+    msg = b'#< CLIXML\r\n<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="1"><TNRef RefId="0" /><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>'
+    expected = msg
+    actual = s._clean_error_msg(msg)
+    assert actual == expected

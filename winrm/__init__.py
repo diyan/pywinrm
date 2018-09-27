@@ -85,10 +85,11 @@ class Session(object):
                 # otherwise the original error message will be used
                 if len(new_msg):
                     # remove leading and trailing whitespace while we are here
-                    msg = new_msg.strip()
-                return msg.encode('utf-8')
-        else:
-            return msg
+                    return new_msg.strip().encode('utf-8')
+
+        # either failed to decode CLIXML or there was nothing to decode
+        # just return the original message
+        return msg
 
     def _strip_namespace(self, xml):
         """strips any namespaces from an xml string"""
