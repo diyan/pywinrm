@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
-import inspect
-import os
 import sys
-import time
+import os
+import inspect
 
 is_py2 = sys.version[0] == '2'
 
@@ -64,8 +63,8 @@ class Transport(object):
             message_encryption='auto',
             credssp_disable_tlsv1_2=False,
             send_cbt=True,
-            reconnection_retries=5,
-            reconnection_sleep=5,
+            reconnection_retries=4,
+            reconnection_backoff=2.0,
         ):
         self.endpoint = endpoint
         self.username = username
@@ -83,7 +82,7 @@ class Transport(object):
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
         self.send_cbt = send_cbt
         self.reconnection_retries = reconnection_retries
-        self.reconnection_sleep = reconnection_sleep
+        self.reconnection_backoff = reconnection_backoff
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -157,6 +156,16 @@ class Transport(object):
         session.trust_env = True
         settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
                                                       verify=None, cert=None)
+
+        # Retry on connection errors, with a backoff factor
+        retries = requests.packages.urllib3.util.retry.Retry(total=self.reconnection_retries,
+                                                             connect=self.reconnection_retries,
+                                                             status=self.reconnection_retries,
+                                                             read=0,
+                                                             backoff_factor=self.reconnection_backoff,
+                                                             status_forcelist=(413, 425, 429, 503))
+        session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
+        session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
 
         # get proxy settings from env
         # FUTURE: allow proxy to be passed in directly to supersede this value
@@ -266,20 +275,7 @@ class Transport(object):
 
     def _send_message_request(self, prepared_request, message):
         try:
-
-            # Retry connection on 'Connection refused'
-            for attempt in range(self.reconnection_retries):
-                try:
-                    response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
-                except requests.packages.urllib3.exceptions.NewConnectionError as e:
-                    time.sleep(self.reconnection_sleep)
-#                except requests.exceptions.ConnectionError as e:
-#                    if attempt == 4 or 'connection refused' not in str(e).lower():
-#                        raise
-#                    time.sleep(self.reconnection_sleep)
-                else:
-                    break
-
+            response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
             response.raise_for_status()
             return response
         except requests.HTTPError as ex:
