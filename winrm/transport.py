@@ -63,7 +63,7 @@ class Transport(object):
             message_encryption='auto',
             credssp_disable_tlsv1_2=False,
             send_cbt=True,
-            reconnection_retries=4,
+            reconnection_retries=0,
             reconnection_backoff=2.0,
         ):
         self.endpoint = endpoint
