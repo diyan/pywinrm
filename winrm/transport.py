@@ -163,7 +163,7 @@ class Transport(object):
                                                              status=self.reconnection_retries,
                                                              read=0,
                                                              backoff_factor=self.reconnection_backoff,
-                                                             status_forcelist=(413, 425, 429, 503))
+                                                             status_forcelist=(425, 429, 503))
         session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
         session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
 
