@@ -26,6 +26,8 @@ class Protocol(object):
     DEFAULT_OPERATION_TIMEOUT_SEC = 20
     DEFAULT_MAX_ENV_SIZE = 153600
     DEFAULT_LOCALE = 'en-US'
+    DEFAULT_RECONNECTION_RETRIES = 0
+    DEFAULT_RECONNECTION_BACKOFF = 2.0
 
     def __init__(
             self, endpoint, transport='plaintext', username=None,
@@ -39,6 +41,8 @@ class Protocol(object):
             message_encryption='auto',
             credssp_disable_tlsv1_2=False,
             send_cbt=True,
+            reconnection_retries = DEFAULT_RECONNECTION_RETRIES,
+            reconnection_backoff = DEFAULT_RECONNECTION_BACKOFF,
         ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -57,6 +61,8 @@ class Protocol(object):
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
         @param bool message_encryption_enabled: Will encrypt the WinRM messages if set to True and the transport auth supports message encryption (Default True).
+        @param int reconnection_retries: Number of retries on connection problems
+        @param float reconnection_backoff: Number of seconds to backoff in between reconnection attempts (first sleeps X, then sleeps 2*X, then sleeps 4*X, ...)
         """
 
         try:
@@ -88,7 +94,9 @@ class Protocol(object):
             auth_method=transport,
             message_encryption=message_encryption,
             credssp_disable_tlsv1_2=credssp_disable_tlsv1_2,
-            send_cbt=send_cbt
+            send_cbt=send_cbt,
+            reconnection_retries=reconnection_retries,
+            reconnection_backoff=reconnection_backoff,
         )
 
         self.username = username
@@ -100,6 +108,8 @@ class Protocol(object):
         self.kerberos_delegation = kerberos_delegation
         self.kerberos_hostname_override = kerberos_hostname_override
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
+        self.reconnection_retries = reconnection_retries
+        self.reconnection_backoff = reconnection_backoff
 
     def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
                    working_directory=None, env_vars=None, noprofile=False,

@@ -62,7 +62,10 @@ class Transport(object):
             auth_method='auto',
             message_encryption='auto',
             credssp_disable_tlsv1_2=False,
-            send_cbt=True):
+            send_cbt=True,
+            reconnection_retries=0,
+            reconnection_backoff=2.0,
+        ):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -78,6 +81,8 @@ class Transport(object):
         self.message_encryption = message_encryption
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
         self.send_cbt = send_cbt
+        self.reconnection_retries = reconnection_retries
+        self.reconnection_backoff = reconnection_backoff
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -113,7 +118,7 @@ class Transport(object):
                 from requests.packages.urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
             except: pass # oh well, we tried...
-            
+
             try:
                 from urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
@@ -151,6 +156,16 @@ class Transport(object):
         session.trust_env = True
         settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
                                                       verify=None, cert=None)
+
+        # Retry on connection errors, with a backoff factor
+        retries = requests.packages.urllib3.util.retry.Retry(total=self.reconnection_retries,
+                                                             connect=self.reconnection_retries,
+                                                             status=self.reconnection_retries,
+                                                             read=0,
+                                                             backoff_factor=self.reconnection_backoff,
+                                                             status_forcelist=(425, 429, 503))
+        session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
+        session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
 
         # get proxy settings from env
         # FUTURE: allow proxy to be passed in directly to supersede this value
@@ -270,7 +285,6 @@ class Transport(object):
                 response_text = self._get_message_response_text(ex.response)
             else:
                 response_text = ''
-
 
             raise WinRMTransportError('http', ex.response.status_code, response_text)
 

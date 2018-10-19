@@ -51,10 +51,10 @@ install:
   - pip install virtualenv
   - python -m virtualenv ~/.venv
   - source ~/.venv/bin/activate
+  - pip install -r requirements-test.txt
   - pip install coveralls
   - pip install .[credssp]
   - pip install .[kerberos]
-  - pip install -r requirements-test.txt
 script:
   - py.test -v --pep8 --cov=winrm --cov-report=term-missing winrm/tests/
 
