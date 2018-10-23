@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import re
+import sys
 from base64 import b64encode
 import xml.etree.ElementTree as ET
 
@@ -58,6 +59,8 @@ class Session(object):
         """converts a Powershell CLIXML message to a more human readable string
         """
         # TODO prepare unit test, beautify code
+        if sys.version_info[:2] == (3,7):
+            msg = msg.decode('utf-8')
         # if the msg does not start with this, return it as is
         if msg.startswith("#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
