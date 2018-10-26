@@ -57,7 +57,6 @@ class Session(object):
     def _clean_error_msg(self, msg):
         """converts a Powershell CLIXML message to a more human readable string
         """
-        # FIXME: msg should be str, not bytes. how to detect encoding?
         msg = msg.decode('utf-8')
 
         # TODO prepare unit test, beautify code
