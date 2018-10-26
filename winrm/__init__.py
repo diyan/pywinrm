@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 import re
 from base64 import b64encode
 import xml.etree.ElementTree as ET
-import codecs
 
 from winrm.protocol import Protocol
 
@@ -35,7 +34,7 @@ class Session(object):
 
     def run_cmd(self, command, args=()):
         # TODO optimize perf. Do not call open/close shell every time
-        shell_id = self.protocol.open_shell(codepage=65001)
+        shell_id = self.protocol.open_shell(codepage=65001) # utf-8
         command_id = self.protocol.run_command(shell_id, command, args)
         rs = Response(self.protocol.get_command_output(shell_id, command_id))
         self.protocol.cleanup_command(shell_id, command_id)
@@ -58,13 +57,15 @@ class Session(object):
     def _clean_error_msg(self, msg):
         """converts a Powershell CLIXML message to a more human readable string
         """
+        # FIXME: msg should be str, not bytes. how to detect encoding?
+        msg = msg.decode('utf-8')
+
         # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
-        startstr = codecs.BOM_UTF8+b"#< CLIXML\r\n"
-        if msg.startswith(startstr):
+        if msg.startswith("#< CLIXML"):
             # for proper xml, we need to remove the CLIXML part
             # (the first line)
-            msg_xml = msg[len(startstr):]
+            msg_xml = msg[11:]
             try:
                 # remove the namespaces from the xml for easier processing
                 msg_xml = self._strip_namespace(msg_xml)
