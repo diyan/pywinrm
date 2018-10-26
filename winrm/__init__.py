@@ -57,9 +57,12 @@ class Session(object):
     def _clean_error_msg(self, msg):
         """converts a Powershell CLIXML message to a more human readable string
         """
+        # FIXME: msg should be str, not bytes. which encoding?
+        msg = msg.decode()
+
         # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
-        if msg.startswith("#< CLIXML\r\n".encode()):
+        if msg.startswith("#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
             # (the first line)
             msg_xml = msg[11:]
