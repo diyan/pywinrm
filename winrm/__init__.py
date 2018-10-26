@@ -58,15 +58,6 @@ class Session(object):
     def _clean_error_msg(self, msg):
         """converts a Powershell CLIXML message to a more human readable string
         """
-        print("\n".join(map(
-            lambda l:" ".join("{:02x}".format(c) for c in l)
-            + "  " 
-            + "".join([chr(c).encode('ascii',errors='replace').decode("ascii") for c in l]), 
-            [msg[i:i+16] for i in range(0, len(msg), 16)])))
-
-        with open("debug.txt", "wb") as w:
-            w.write(msg)
-
         # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
         startstr = codecs.BOM_UTF8+b"#< CLIXML\r\n"
