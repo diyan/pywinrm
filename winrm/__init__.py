@@ -51,7 +51,11 @@ class Session(object):
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
+            if type(rs.std_err) is bytes:
+                rs.std_err = rs.std_err.decode('ascii')
             rs.std_err = self._clean_error_msg(rs.std_err)
+        if len(rs.std_out) and type(rs.std_out) is bytes:
+            rs.std_out = rs.std_out.decode('ascii')
         return rs
 
     def _clean_error_msg(self, msg):
