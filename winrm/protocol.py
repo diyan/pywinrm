@@ -150,9 +150,11 @@ class Protocol(object):
         if idle_timeout:
             shell['rsp:IdleTimeOut'] = idle_timeout
         if env_vars:
-            env = shell.setdefault('rsp:Environment', {})
+            # the rsp:Variable tag needs to be list of variables so that all
+            # environment variables in the env_vars dict are set on the shell
+            env = shell.setdefault('rsp:Environment', {}).setdefault('rsp:Variable', [])
             for key, value in env_vars.items():
-                env['rsp:Variable'] = {'@Name': key, '#text': value}
+                env.append({'@Name': key, '#text': value})
 
         res = self.send_message(xmltodict.unparse(req))
 
