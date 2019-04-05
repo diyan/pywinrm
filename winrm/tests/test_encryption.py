@@ -41,7 +41,7 @@ def test_encrypt_message():
 def test_encrypt_large_credssp_message():
     test_session = SessionTest()
     test_message = b"unencrypted message " * 2048
-    test_endpoint = b"endpoint"
+    test_endpoint = "http://testhost.com"
     message_chunks = [test_message[i:i + 16384] for i in range(0, len(test_message), 16384)]
 
     encryption = Encryption(test_session, 'credssp')
@@ -245,12 +245,15 @@ class SessionTest(object):
         return request
 
 
-class AuthTest(object):
+# used as a mock CredSSP context object
+class CredSSPContext(object):
+
     def __init__(self):
-        # used with NTLM
+        class TlsContext(object):
+            def get_cipher_name(self):
+                return 'ECDH-RSA-AES256-SHA'
+        self.tls_connection = TlsContext()
         self.session_security = SessionSecurityTest()
-        # used with CredSSP
-        self.cipher_negotiated = 'ECDH-RSA-AES256-SHA'
 
     # used with CredSSP
     def wrap(self, message):
@@ -261,6 +264,17 @@ class AuthTest(object):
     def unwrap(self, message):
         decoded_mesage = self.session_security.unwrap(message, b"1234")
         return decoded_mesage
+
+
+class AuthTest(object):
+    def __init__(self):
+        # used with NTLM
+        self.session_security = SessionSecurityTest()
+
+        # used with CredSSP
+        self.contexts = {
+            'testhost.com': CredSSPContext()
+        }
 
 
 class SessionSecurityTest(object):

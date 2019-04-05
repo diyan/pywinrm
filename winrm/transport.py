@@ -62,6 +62,8 @@ class Transport(object):
             auth_method='auto',
             message_encryption='auto',
             credssp_disable_tlsv1_2=False,
+            credssp_auth_mechanism='auto',
+            credssp_minimum_version=2,
             send_cbt=True):
         self.endpoint = endpoint
         self.username = username
@@ -77,6 +79,8 @@ class Transport(object):
         self.kerberos_hostname_override = kerberos_hostname_override
         self.message_encryption = message_encryption
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
+        self.credssp_auth_mechanism = credssp_auth_mechanism
+        self.credssp_minimum_version = credssp_minimum_version
         self.send_cbt = send_cbt
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
@@ -214,9 +218,19 @@ class Transport(object):
         elif self.auth_method == 'credssp':
             if not HAVE_CREDSSP:
                 raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
-            session.auth = HttpCredSSPAuth(username=self.username, password=self.password,
-                                               disable_tlsv1_2=self.credssp_disable_tlsv1_2)
-            encryption_available = hasattr(session.auth, 'wrap') and hasattr(session.auth, 'unwrap')
+
+            man_args = dict(
+                username=self.username,
+                password=self.password
+            )
+            opt_args = dict(
+                disable_tlsv1_2=self.credssp_disable_tlsv1_2,
+                auth_mechanism=self.credssp_auth_mechanism,
+                minimum_version=self.credssp_minimum_version
+            )
+            credssp_args = self._get_args(man_args, opt_args, HttpCredSSPAuth.__init__)
+            session.auth = HttpCredSSPAuth(**credssp_args)
+            encryption_available = True
         else:
             raise WinRMError("unsupported auth method: %s" % self.auth_method)
 

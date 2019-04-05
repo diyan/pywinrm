@@ -158,7 +158,8 @@ class Encryption(object):
         # trailer_length = struct.unpack("<i", encrypted_data[:4])[0]
         encrypted_message = encrypted_data[4:]
 
-        message = self.session.auth.unwrap(encrypted_message)
+        credssp_context = self.session.auth.contexts[host]
+        message = credssp_context.unwrap(encrypted_message)
 
         return message
 
@@ -171,7 +172,6 @@ class Encryption(object):
 
         return message
 
-
     def _build_ntlm_message(self, message, host):
         sealed_message, signature = self.session.auth.session_security.wrap(message)
         signature_length = struct.pack("<i", len(signature))
@@ -179,9 +179,11 @@ class Encryption(object):
         return signature_length + signature + sealed_message
 
     def _build_credssp_message(self, message, host):
-        sealed_message = self.session.auth.wrap(message)
+        credssp_context = self.session.auth.contexts[host]
+        sealed_message = credssp_context.wrap(message)
 
-        trailer_length = self._get_credssp_trailer_length(len(message), self.session.auth.cipher_negotiated)
+        cipher_negotiated = credssp_context.tls_connection.get_cipher_name()
+        trailer_length = self._get_credssp_trailer_length(len(message), cipher_negotiated)
 
         return struct.pack("<i", trailer_length) + sealed_message
 
