@@ -59,7 +59,7 @@ class Session(object):
         """
         # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
-        if msg.startswith("#< CLIXML\r\n"):
+        if msg.startswith(b"#< CLIXML\r\n"):
             # for proper xml, we need to remove the CLIXML part
             # (the first line)
             msg_xml = msg[11:]
@@ -85,19 +85,19 @@ class Session(object):
                 # otherwise the original error message will be used
                 if len(new_msg):
                     # remove leading and trailing whitespace while we are here
-                    msg = new_msg.strip()
+                    return new_msg.strip().encode('utf-8')
+
+        # either failed to decode CLIXML or there was nothing to decode
+        # just return the original message
         return msg
 
     def _strip_namespace(self, xml):
         """strips any namespaces from an xml string"""
-        try:
-            p = re.compile("xmlns=*[\"\"][^\"\"]*[\"\"]")
-            allmatches = p.finditer(xml)
-            for match in allmatches:
-                xml = xml.replace(match.group(), "")
-            return xml
-        except Exception as e:
-            raise Exception(e)
+        p = re.compile(b"xmlns=*[\"\"][^\"\"]*[\"\"]")
+        allmatches = p.finditer(xml)
+        for match in allmatches:
+            xml = xml.replace(match.group(), b"")
+        return xml
 
     @staticmethod
     def _build_url(target, transport):
