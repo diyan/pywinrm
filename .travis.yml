@@ -10,37 +10,25 @@ cache:
     - $HOME/.cache/pyenv
 matrix:
   include:
-    # Python 3.0-3.2 does not support explicit unicode literal, see pep-0414
     # Define 'sudo: false' to run on container-based workers
-    - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=2.6.9 }
-    - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=2.7.13 }
-    - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=3.4.5 }
-    - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=3.5.2 }
-    - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=3.6-dev }
-    - { os: linux, dist: precise, sudo: false, env: UBUNTU=12.04 PYENV=pypy2-5.6.0 }
+    - { os: linux, dist: xenial, sudo: false, env: UBUNTU=16.04 PYENV=2.7.16 }
+    - { os: linux, dist: xenial, sudo: false, env: UBUNTU=16.04 PYENV=3.5.7 }
+    - { os: linux, dist: xenial, sudo: false, env: UBUNTU=16.04 PYENV=3.6.8 }
+    - { os: linux, dist: xenial, sudo: false, env: UBUNTU=16.04 PYENV=3.7.3 }
+    - { os: linux, dist: xenial, sudo: false, env: UBUNTU=16.04 PYENV=3.8-dev }
+    - { os: linux, dist: xenial, sudo: false, env: UBUNTU=16.04 PYENV=pypy2.7-7.1.1 }
 
-    - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=2.7.13 }
-    - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=3.4.5 }
-    - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=3.5.2 }
-    - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=3.6-dev }
-    - { os: linux, dist: trusty, sudo: false, env: UBUNTU=14.04 PYENV=pypy2-5.6.0 }
-
-    - { os: osx, osx_image: xcode6.4, language: generic, env: OSX=10.10 PYENV=2.7.13 }
-    - { os: osx, osx_image: xcode6.4, language: generic, env: OSX=10.10 PYENV=3.5.2 }
-
-    - { os: osx, osx_image: xcode7, language: generic, env: OSX=10.11 PYENV=2.7.13 }
-    - { os: osx, osx_image: xcode7, language: generic, env: OSX=10.11 PYENV=3.5.2 }
-
-    - { os: osx, osx_image: xcode8.2, language: generic, env: OSX=10.12 PYENV=2.7.13 }
-    - { os: osx, osx_image: xcode8.2, language: generic, env: OSX=10.12 PYENV=3.5.2 }
+    - { os: osx, osx_image: xcode10.2, language: generic, env: OSX=10.14 PYENV=2.7.16 }
+    - { os: osx, osx_image: xcode10.2, language: generic, env: OSX=10.14 PYENV=3.7.3 }
 
 install:
   # Always use latest pyenv but keep installed Python versions in cache
   - rm -rf ~/.pyenv
-  - git clone https://github.com/yyuu/pyenv.git ~/.pyenv
+  - git clone https://github.com/pyenv/pyenv.git ~/.pyenv
   - mkdir -p ~/.cache/pyenv/versions
   - ln -s ~/.cache/pyenv/versions ~/.pyenv/versions
   - export PATH="$HOME/.pyenv/shims:$HOME/.pyenv/bin:$PATH"
+  - export PYENV_ROOT="$HOME/.pyenv"
   - pyenv --version
   - pyenv install --skip-existing $PYENV
   - pyenv global $PYENV
@@ -55,7 +43,7 @@ install:
   - pip install .[kerberos]
   - pip install -r requirements-test.txt
 script:
-  - py.test -v --pep8 --cov=winrm --cov-report=term-missing winrm/tests/
+  - pytest -v --flake8 --cov=winrm --cov-report=term-missing winrm/tests/
 
 after_success:
   - coveralls
