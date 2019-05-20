@@ -2,6 +2,13 @@ from __future__ import unicode_literals
 import sys
 import os
 import inspect
+import requests
+import requests.auth
+import warnings
+
+from distutils.util import strtobool
+from winrm.exceptions import InvalidCredentialsError, WinRMError, WinRMTransportError
+from winrm.encryption import Encryption
 
 is_py2 = sys.version[0] == '2'
 
@@ -12,14 +19,9 @@ else:
     # use six for this instead?
     unicode_type = type(u'')
 
-import requests
-import requests.auth
-import warnings
-from distutils.util import strtobool
-
 HAVE_KERBEROS = False
 try:
-    from requests_kerberos import HTTPKerberosAuth, REQUIRED, OPTIONAL, DISABLED
+    from requests_kerberos import HTTPKerberosAuth, REQUIRED
 
     HAVE_KERBEROS = True
 except ImportError:
@@ -40,10 +42,6 @@ try:
     HAVE_CREDSSP = True
 except ImportError as ie:
     pass
-
-from winrm.exceptions import InvalidCredentialsError, WinRMError, \
-    WinRMTransportError
-from winrm.encryption import Encryption
 
 __all__ = ['Transport']
 
@@ -102,13 +100,13 @@ class Transport(object):
         try:
             from requests.packages.urllib3.exceptions import InsecurePlatformWarning
             warnings.simplefilter('ignore', category=InsecurePlatformWarning)
-        except:
+        except Exception:
             pass  # oh well, we tried...
 
         try:
             from requests.packages.urllib3.exceptions import SNIMissingWarning
             warnings.simplefilter('ignore', category=SNIMissingWarning)
-        except:
+        except Exception:
             pass  # oh well, we tried...
 
         # if we're explicitly ignoring validation, try to suppress InsecureRequestWarning, since the user opted-in
@@ -116,12 +114,14 @@ class Transport(object):
             try:
                 from requests.packages.urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
-            except: pass # oh well, we tried...
-            
+            except Exception:
+                pass  # oh well, we tried...
+
             try:
                 from urllib3.exceptions import InsecureRequestWarning
                 warnings.simplefilter('ignore', category=InsecureRequestWarning)
-            except: pass # oh well, we tried...
+            except Exception:
+                pass  # oh well, we tried...
 
         # validate credential requirements for various auth types
         if self.auth_method != 'kerberos':
@@ -284,7 +284,6 @@ class Transport(object):
                 response_text = self._get_message_response_text(ex.response)
             else:
                 response_text = ''
-
 
             raise WinRMTransportError('http', ex.response.status_code, response_text)
 

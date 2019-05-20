@@ -1,6 +1,5 @@
 # coding=utf-8
 import os
-import tempfile
 from winrm.transport import Transport
 
 

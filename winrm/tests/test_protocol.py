@@ -53,21 +53,21 @@ def test_set_timeout_as_sec():
 
 def test_fail_set_read_timeout_as_sec():
     with pytest.raises(ValueError) as exc:
-        protocol = Protocol('endpoint',
-                            username='username',
-                            password='password',
-                            read_timeout_sec='30a',
-                            operation_timeout_sec='29')
+        Protocol('endpoint',
+                 username='username',
+                 password='password',
+                 read_timeout_sec='30a',
+                 operation_timeout_sec='29')
     assert str(exc.value) == "failed to parse read_timeout_sec as int: " \
         "invalid literal for int() with base 10: '30a'"
 
 
 def test_fail_set_operation_timeout_as_sec():
     with pytest.raises(ValueError) as exc:
-        protocol = Protocol('endpoint',
-                            username='username',
-                            password='password',
-                            read_timeout_sec=30,
-                            operation_timeout_sec='29a')
+        Protocol('endpoint',
+                 username='username',
+                 password='password',
+                 read_timeout_sec=30,
+                 operation_timeout_sec='29a')
     assert str(exc.value) == "failed to parse operation_timeout_sec as int: " \
         "invalid literal for int() with base 10: '29a'"

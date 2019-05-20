@@ -11,6 +11,7 @@ if is_py2:
 else:
     from urllib.parse import urlsplit
 
+
 class Encryption(object):
 
     SIXTEN_KB = 16384
@@ -40,11 +41,11 @@ class Encryption(object):
         self.protocol = protocol
         self.session = session
 
-        if protocol == 'ntlm': # Details under Negotiate [2.2.9.1.1] in MS-WSMV
+        if protocol == 'ntlm':  # Details under Negotiate [2.2.9.1.1] in MS-WSMV
             self.protocol_string = b"application/HTTP-SPNEGO-session-encrypted"
             self._build_message = self._build_ntlm_message
             self._decrypt_message = self._decrypt_ntlm_message
-        elif protocol == 'credssp': # Details under CredSSP [2.2.9.1.3] in MS-WSMV
+        elif protocol == 'credssp':  # Details under CredSSP [2.2.9.1.3] in MS-WSMV
             self.protocol_string = b"application/HTTP-CredSSP-session-encrypted"
             self._build_message = self._build_credssp_message
             self._decrypt_message = self._decrypt_credssp_message
@@ -108,17 +109,17 @@ class Encryption(object):
         encrypted_stream = self._build_message(message, host)
 
         message_payload = self.MIME_BOUNDARY + b"\r\n" \
-                          b"\tContent-Type: " + self.protocol_string + b"\r\n" \
-                          b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=" + message_length + b"\r\n" + \
-                          self.MIME_BOUNDARY + b"\r\n" \
-                          b"\tContent-Type: application/octet-stream\r\n" + \
-                          encrypted_stream
+                                               b"\tContent-Type: " + self.protocol_string + b"\r\n" \
+                                               b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=" + message_length + b"\r\n" + \
+                                               self.MIME_BOUNDARY + b"\r\n" \
+                                               b"\tContent-Type: application/octet-stream\r\n" + \
+                                               encrypted_stream
 
         return message_payload
 
     def _decrypt_response(self, response, host):
         parts = response.content.split(self.MIME_BOUNDARY + b'\r\n')
-        parts = list(filter(None, parts)) # filter out empty parts of the split
+        parts = list(filter(None, parts))  # filter out empty parts of the split
         message = b''
 
         for i in range(0, len(parts)):
@@ -199,7 +200,7 @@ class Encryption(object):
         # but there is no GSSAPI/OpenSSL equivalent so we need to calculate it
         # ourselves
 
-        if re.match('^.*-GCM-[\w\d]*$', cipher_suite):
+        if re.match(r'^.*-GCM-[\w\d]*$', cipher_suite):
             # We are using GCM for the cipher suite, GCM has a fixed length of 16
             # bytes for the TLS trailer making it easy for us
             trailer_length = 16
