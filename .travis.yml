@@ -18,14 +18,17 @@ matrix:
     - { os: linux, dist: xenial, sudo: false, env: UBUNTU=16.04 PYENV=3.8-dev }
     - { os: linux, dist: xenial, sudo: false, env: UBUNTU=16.04 PYENV=pypy2.7-7.1.1 }
 
-    - { os: osx, osx_image: xcode10.2, language: generic, env: OSX=10.14 PYENV=2.7.16 }
-    - { os: osx, osx_image: xcode10.2, language: generic, env: OSX=10.14 PYENV=3.7.3 }
+# pyenv won't build on current Mac versions without some extra conditional help, try to fix this later...
+#    - { os: osx, osx_image: xcode10.2, language: generic, env: OSX=10.14 PYENV=2.7.16 }
+#    - { os: osx, osx_image: xcode10.2, language: generic, env: OSX=10.14 PYENV=3.7.3 }
 
 install:
   # Always use latest pyenv but keep installed Python versions in cache
   - rm -rf ~/.pyenv
   - git clone https://github.com/pyenv/pyenv.git ~/.pyenv
   - mkdir -p ~/.cache/pyenv/versions
+  - which pyenv
+  - printenv
   - ln -s ~/.cache/pyenv/versions ~/.pyenv/versions
   - export PATH="$HOME/.pyenv/shims:$HOME/.pyenv/bin:$PATH"
   - export PYENV_ROOT="$HOME/.pyenv"
