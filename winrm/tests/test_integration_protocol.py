@@ -25,7 +25,7 @@ def test_unicode_roundtrip(protocol_real):
 
 def test_open_shell_and_close_shell(protocol_real):
     shell_id = protocol_real.open_shell()
-    assert re.match('^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', shell_id)
+    assert re.match(r'^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', shell_id)
 
     protocol_real.close_shell(shell_id)
 
@@ -33,7 +33,7 @@ def test_open_shell_and_close_shell(protocol_real):
 def test_run_command_with_arguments_and_cleanup_command(protocol_real):
     shell_id = protocol_real.open_shell()
     command_id = protocol_real.run_command(shell_id, 'ipconfig', ['/all'])
-    assert re.match('^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', command_id)
+    assert re.match(r'^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', command_id)
 
     protocol_real.cleanup_command(shell_id, command_id)
     protocol_real.close_shell(shell_id)
@@ -42,7 +42,7 @@ def test_run_command_with_arguments_and_cleanup_command(protocol_real):
 def test_run_command_without_arguments_and_cleanup_command(protocol_real):
     shell_id = protocol_real.open_shell()
     command_id = protocol_real.run_command(shell_id, 'hostname')
-    assert re.match('^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', command_id)
+    assert re.match(r'^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', command_id)
 
     protocol_real.cleanup_command(shell_id, command_id)
     protocol_real.close_shell(shell_id)
@@ -66,7 +66,7 @@ def test_run_command_taking_more_than_operation_timeout_sec(protocol_real):
     shell_id = protocol_real.open_shell()
     command_id = protocol_real.run_command(
         shell_id, 'PowerShell -Command Start-Sleep -s {0}'.format(protocol_real.operation_timeout_sec * 2))
-    assert re.match('^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', command_id)
+    assert re.match(r'^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', command_id)
     std_out, std_err, status_code = protocol_real.get_command_output(
         shell_id, command_id)
 

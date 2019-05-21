@@ -6,7 +6,7 @@ import uuid
 import xml.etree.ElementTree as ET
 import xmltodict
 
-from six import text_type, binary_type
+from six import text_type
 
 from winrm.transport import Transport
 from winrm.exceptions import WinRMError, WinRMTransportError, WinRMOperationTimeoutError
@@ -16,6 +16,7 @@ xmlns = {
     'soapaddr': 'http://schemas.xmlsoap.org/ws/2004/08/addressing',
     'wsmanfault': "http://schemas.microsoft.com/wbem/wsman/1/wsmanfault"
 }
+
 
 class Protocol(object):
     """This is the main class that does the SOAP request/response logic. There
@@ -38,8 +39,7 @@ class Protocol(object):
             kerberos_hostname_override=None,
             message_encryption='auto',
             credssp_disable_tlsv1_2=False,
-            send_cbt=True,
-        ):
+            send_cbt=True):
         """
         @param string endpoint: the WinRM webservice endpoint
         @param string transport: transport type, one of 'plaintext' (default), 'kerberos', 'ssl', 'ntlm', 'credssp'  # NOQA
@@ -144,7 +144,7 @@ class Protocol(object):
             # TODO ensure that rsp:WorkingDirectory should be nested within rsp:Shell  # NOQA
             shell['rsp:WorkingDirectory'] = working_directory
             # TODO check Lifetime param: http://msdn.microsoft.com/en-us/library/cc251546(v=PROT.13).aspx  # NOQA
-            #if lifetime:
+            # if lifetime:
             #    shell['rsp:Lifetime'] = iso8601_duration.sec_to_dur(lifetime)
         # TODO make it so the input is given in milliseconds and converted to xs:duration  # NOQA
         if idle_timeout:
@@ -156,8 +156,8 @@ class Protocol(object):
 
         res = self.send_message(xmltodict.unparse(req))
 
-        #res = xmltodict.parse(res)
-        #return res['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
+        # res = xmltodict.parse(res)
+        # return res['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
         root = ET.fromstring(res)
         return next(
             node for node in root.findall('.//*')
@@ -237,7 +237,7 @@ class Protocol(object):
             try:
                 # if response is XML-parseable, it's probably a SOAP fault; extract the details
                 root = ET.fromstring(ex.response_text)
-            except:
+            except Exception:
                 # assume some other transport error; raise the original exception
                 raise ex
 
@@ -398,7 +398,7 @@ class Protocol(object):
                     self._raw_get_command_output(shell_id, command_id)
                 stdout_buffer.append(stdout)
                 stderr_buffer.append(stderr)
-            except WinRMOperationTimeoutError as e:
+            except WinRMOperationTimeoutError:
                 # this is an expected error when waiting for a long-running process, just silently retry
                 pass
         return b''.join(stdout_buffer), b''.join(stderr_buffer), return_code

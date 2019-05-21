@@ -9,15 +9,20 @@ environment:
     # NOTE Python 2.6 for Windows is no longer supported by the Python core team
     - PYTHON: Python27
     - PYTHON: Python27-x64
-    - PYTHON: Python34
-    - PYTHON: Python34-x64
     - PYTHON: Python35
     - PYTHON: Python35-x64
+    - PYTHON: Python36
+    - PYTHON: Python36-x64
+    - PYTHON: Python37
+    - PYTHON: Python37-x64
+
 init:
   - ps: |
       $ErrorActionPreference = "Stop"
       # Override default Python version/architecture
       $env:Path="C:\$env:PYTHON;C:\$env:PYTHON\Scripts;$env:PATH"
+      # disable "Python 2.7 is going away soon" warnings
+      $env:PYTHONWARNINGS="ignore:DEPRECATION"
       python -c "import platform; print('Python', platform.python_version(), platform.architecture()[0])"
       # always install latest pip
       $(curl -UseBasicParsing https://bootstrap.pypa.io/get-pip.py).Content | python

@@ -5,6 +5,7 @@ class WinRMError(Exception):
     """"Generic WinRM error"""
     code = 500
 
+
 class WinRMTransportError(Exception):
     """WinRM errors specific to transport-level problems (unexpcted HTTP error codes, etc)"""
 
@@ -35,6 +36,7 @@ class WinRMOperationTimeoutError(Exception):
     a long-running process.
     """
     code = 500
+
 
 class AuthenticationError(WinRMError):
     """Authorization Error"""

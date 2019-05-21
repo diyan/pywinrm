@@ -1,6 +1,6 @@
 # this assumes the base requirements have been satisfied via setup.py
-# pytest>=3.3.0 dropped support for Python 2.6 and 3.3
-pytest<=3.2.5
-pytest-cov
-pytest-pep8
-mock
+# pin specific versions to keep things more stable over time; only pin sub-packages if necessary
+pytest==4.4.2
+pytest-cov==2.7.1
+pytest-flake8==1.0.4
+mock==3.0.5
