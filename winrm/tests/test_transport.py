@@ -1,5 +1,6 @@
 # coding=utf-8
 import os
+import mock
 import unittest
 
 from winrm import transport
@@ -13,6 +14,9 @@ class TestTransport(unittest.TestCase):
     def setUp(self):
         super(TestTransport, self).setUp()
         self._old_env = {}
+        mock_session = mock.patch('requests.Session')
+        self.mock_session = mock_session.start()
+        self.addCleanup(mock_session.stop)
         os.environ.pop('REQUESTS_CA_BUNDLE', None)
         os.environ.pop('TRAVIS_APT_PROXY', None)
         os.environ.pop('CURL_CA_BUNDLE', None)
@@ -248,3 +252,15 @@ class TestTransport(unittest.TestCase):
                                 message_encryption='invalid_value'
                                 )
         self.assertEqual("invalid message_encryption arg: invalid_value. Should be 'auto', 'always', or 'never'", str(exc.exception))
+
+    def test_close_session(self):
+        t_default = transport.Transport(endpoint="Endpoint",
+                                        server_cert_validation='ignore',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        )
+        t_default.build_session()
+        t_default.close_session()
+        self.mock_session.return_value.close.assert_called_once_with()
+        self.assertIsNone(t_default.session)
