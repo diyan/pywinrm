@@ -351,6 +351,9 @@ class TransportStub(object):
         else:
             raise Exception('Message was not expected\n\n%s' % message)
 
+    def close_session(self):
+        pass
+
 
 @fixture(scope='module')
 def protocol_fake(request):
