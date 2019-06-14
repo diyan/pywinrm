@@ -12,6 +12,7 @@ from winrm.protocol import Protocol
 FEATURE_SUPPORTED_AUTHTYPES = ['basic', 'certificate', 'ntlm', 'kerberos', 'plaintext', 'ssl', 'credssp']
 FEATURE_READ_TIMEOUT = True
 FEATURE_OPERATION_TIMEOUT = True
+FEATURE_PROXY_SUPPORT = True
 
 
 class Response(object):
