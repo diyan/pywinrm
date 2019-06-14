@@ -41,7 +41,6 @@ class Protocol(object):
             credssp_disable_tlsv1_2=False,
             send_cbt=True,
             proxy=None,
-            proxy_ignore_env=False,
         ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -60,8 +59,7 @@ class Protocol(object):
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
         @param bool message_encryption_enabled: Will encrypt the WinRM messages if set to True and the transport auth supports message encryption (Default True).
-        @param string proxy: Specify a proxy for the WinRM connection to use. The proxy specified here takes precedence over environment varaiables.
-        @param bool proxy_ignore_env: Ignore environment variables when determining if the WinRM connection should use a proxy (default False)
+        @param string proxy: Specify a proxy for the WinRM connection to use. Provide the proxy itself, None(default) to use environment defined proxies, or False to completely disable proxies.
         """
 
         try:
@@ -95,7 +93,6 @@ class Protocol(object):
             credssp_disable_tlsv1_2=credssp_disable_tlsv1_2,
             send_cbt=send_cbt,
             proxy=proxy,
-            proxy_ignore_env=proxy_ignore_env
         )
 
         self.username = username

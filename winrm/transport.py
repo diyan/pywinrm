@@ -63,8 +63,7 @@ class Transport(object):
             credssp_auth_mechanism='auto',
             credssp_minimum_version=2,
             send_cbt=True,
-            proxy=None,
-            proxy_ignore_env=False):
+            proxy=None):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -83,7 +82,6 @@ class Transport(object):
         self.credssp_minimum_version = credssp_minimum_version
         self.send_cbt = send_cbt
         self.proxy = proxy
-        self.proxy_use_env = not proxy_ignore_env
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -130,7 +128,7 @@ class Transport(object):
         # validate credential requirements for various auth types
         if self.auth_method != 'kerberos':
             if self.auth_method == 'certificate' or (
-                            self.auth_method == 'ssl' and (self.cert_pem or self.cert_key_pem)):
+                    self.auth_method == 'ssl' and (self.cert_pem or self.cert_key_pem)):
                 if not self.cert_pem or not self.cert_key_pem:
                     raise InvalidCredentialsError("both cert_pem and cert_key_pem must be specified for cert auth")
                 if not os.path.exists(self.cert_pem):
@@ -155,16 +153,18 @@ class Transport(object):
     def build_session(self):
         session = requests.Session()
 
-        proxies = dict()
-        if self.proxy is not None:      # pragma: no cover
+        if self.proxy is None:
+            proxies = dict()
+        elif self.proxy:
             # If there was a proxy specified then use it
             proxies = {
                 'http': self.proxy,
                 'https': self.proxy
             }
+        else:
+            proxies = {'no_proxy': '*'}
 
         # Merge proxy environment variables
-        session.trust_env = self.proxy_use_env
         settings = session.merge_environment_settings(url=self.endpoint,
                       proxies=proxies, stream=None, verify=None, cert=None)
 
@@ -198,7 +198,8 @@ class Transport(object):
             )
             kerb_args = self._get_args(man_args, opt_args, HTTPKerberosAuth.__init__)
             session.auth = HTTPKerberosAuth(**kerb_args)
-            encryption_available = hasattr(session.auth, 'winrm_encryption_available') and session.auth.winrm_encryption_available
+            encryption_available = hasattr(session.auth,
+                                           'winrm_encryption_available') and session.auth.winrm_encryption_available
         elif self.auth_method in ['certificate', 'ssl']:
             if self.auth_method == 'ssl' and not self.cert_pem and not self.cert_key_pem:
                 # 'ssl' was overloaded for HTTPS with optional certificate auth,
