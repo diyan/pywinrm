@@ -104,4 +104,55 @@ class TestTransport(unittest.TestCase):
         t_default.build_session()
         self.assertIs(False, t_default.session.verify)
 
+    def test_build_session_proxy_defined(self):
+        t_default = Transport(endpoint="Endpoint",
+                              server_cert_validation='validate',
+                              username='test',
+                              password='test',
+                              auth_method='basic',
+                              proxy='test_proxy'
+                              )
 
+        t_default.build_session()
+        self.assertEqual({'http': 'test_proxy', 'https': 'test_proxy'}, t_default.session.proxies)
+
+    def test_build_session_proxy_defined_and_env(self):
+        os.environ['HTTPS_PROXY'] = 'random_proxy'
+
+        t_default = Transport(endpoint="Endpoint",
+                              server_cert_validation='validate',
+                              username='test',
+                              password='test',
+                              auth_method='basic',
+                              proxy='test_proxy'
+                              )
+
+        t_default.build_session()
+        self.assertEqual({'http': 'test_proxy', 'https': 'test_proxy'}, t_default.session.proxies)
+
+    def test_build_session_proxy_env(self):
+        os.environ['HTTPS_PROXY'] = 'random_proxy'
+
+        t_default = Transport(endpoint="Endpoint",
+                              server_cert_validation='validate',
+                              username='test',
+                              password='test',
+                              auth_method='basic',
+                              )
+
+        t_default.build_session()
+        self.assertEqual({'https': 'random_proxy'}, t_default.session.proxies)
+
+    def test_build_session_proxy_disabled(self):
+        os.environ['HTTPS_PROXY'] = 'random-proxy'
+
+        t_default = Transport(endpoint="https://example.com",
+                              server_cert_validation='validate',
+                              username='test',
+                              password='test',
+                              auth_method='basic',
+                              proxy=False
+                              )
+
+        t_default.build_session()
+        self.assertEqual({'no_proxy': '*'}, t_default.session.proxies)
