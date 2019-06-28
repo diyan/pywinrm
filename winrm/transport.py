@@ -12,6 +12,7 @@ from winrm.encryption import Encryption
 
 is_py2 = sys.version[0] == '2'
 DISPLAYED_PROXY_WARNING = False
+DISPLAYED_CA_TRUST_WARNING = False
 
 if is_py2:
     # use six for this instead?
@@ -54,7 +55,7 @@ class UnsupportedAuthArgument(Warning):
 class Transport(object):
     def __init__(
             self, endpoint, username=None, password=None, realm=None,
-            service=None, keytab=None, ca_trust_path=None, cert_pem=None,
+            service=None, keytab=None, ca_trust_path='legacy_requests', cert_pem=None,
             cert_key_pem=None, read_timeout_sec=None, server_cert_validation='validate',
             kerberos_delegation=False,
             kerberos_hostname_override=None,
@@ -173,11 +174,11 @@ class Transport(object):
         if not DISPLAYED_PROXY_WARNING and self.proxy == 'legacy_requests' and (
                 'http' in settings['proxies'] or 'https' in settings['proxies']):
             message = "'pywinrm' will use an environment defined proxy. This feature will be disabled in " \
-                      "the future, please provide it explicitly."
+                      "the future, please specify it explicitly."
             if 'http' in settings['proxies']:
-                message += " HTTP proxy {proxy} discover.".format(proxy=settings['proxies']['http'])
+                message += " HTTP proxy {proxy} discovered.".format(proxy=settings['proxies']['http'])
             if 'https' in settings['proxies']:
-                message += " HTTPS proxy {proxy} discover.".format(proxy=settings['proxies']['https'])
+                message += " HTTPS proxy {proxy} discovered.".format(proxy=settings['proxies']['https'])
 
             DISPLAYED_PROXY_WARNING = True
             warnings.warn(message, DeprecationWarning)
@@ -188,9 +189,29 @@ class Transport(object):
         session.verify = self.server_cert_validation == 'validate'
 
         # patch in CA path override if one was specified in init or env
-        if session.verify and (self.ca_trust_path is not None or settings['verify'] is not None):
-            # session.verify can be either a bool or path to a CA store; prefer passed-in value over env if both are present
-            session.verify = self.ca_trust_path or settings['verify']
+        if session.verify:
+            if self.ca_trust_path == 'legacy_requests' and settings['verify'] is not None:
+                # We will
+                session.verify = settings['verify']
+
+                global DISPLAYED_CA_TRUST_WARNING
+
+                # We want to eventually stop reading proxy information from the environment.
+                # Also only display the warning once. This method can be called many times during an application's runtime.
+                if not DISPLAYED_CA_TRUST_WARNING and session.verify is not True:
+                    message = "'pywinrm' will use an environment variable defined CA Trust. This feature will be disabled in " \
+                              "the future, please specify it explicitly."
+                    if os.environ.get('REQUESTS_CA_BUNDLE') is not None:
+                        message += " REQUESTS_CA_BUNDLE contains {ca_path}".format(ca_path=os.environ.get('REQUESTS_CA_BUNDLE'))
+                    elif os.environ.get('CURL_CA_BUNDLE') is not None:
+                        message += " CURL_CA_BUNDLE contains {ca_path}".format(ca_path=os.environ.get('CURL_CA_BUNDLE'))
+
+                    DISPLAYED_CA_TRUST_WARNING = True
+                    warnings.warn(message, DeprecationWarning)
+
+            elif session.verify and self.ca_trust_path is not None:
+                # session.verify can be either a bool or path to a CA store; prefer passed-in value over env if both are present
+                session.verify = self.ca_trust_path
 
         encryption_available = False
 

@@ -31,7 +31,7 @@ class Protocol(object):
     def __init__(
             self, endpoint, transport='plaintext', username=None,
             password=None, realm=None, service="HTTP", keytab=None,
-            ca_trust_path=None, cert_pem=None, cert_key_pem=None,
+            ca_trust_path='legacy_requests', cert_pem=None, cert_key_pem=None,
             server_cert_validation='validate',
             kerberos_delegation=False,
             read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
@@ -50,7 +50,7 @@ class Protocol(object):
         @param string realm: unused
         @param string service: the service name, default is HTTP
         @param string keytab: the path to a keytab file if you are using one
-        @param string ca_trust_path: Certification Authority trust path
+        @param string ca_trust_path: Certification Authority trust path. 'legacy_requests'(default) to use environment variables, None
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
         @param string server_cert_validation: whether server certificate should be validated on Python versions that suppport it; one of 'validate' (default), 'ignore' #NOQA
