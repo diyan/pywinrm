@@ -51,7 +51,7 @@ class Protocol(object):
         @param string service: the service name, default is HTTP
         @param string keytab: the path to a keytab file if you are using one
         @param string ca_trust_path: Certification Authority trust path. If server_cert_validation is set to 'validate':
-                                        'legacy_requests'(default) to use environment variables that the requests library allows
+                                        'legacy_requests'(default) to use environment variables that the requests library allows, if any.
                                         None to explicitly disallow any additional CA trust path
                                         Any other value will be considered the CA trust path to use.
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
