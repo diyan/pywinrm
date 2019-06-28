@@ -11,6 +11,7 @@ from winrm.exceptions import InvalidCredentialsError, WinRMError, WinRMTransport
 from winrm.encryption import Encryption
 
 is_py2 = sys.version[0] == '2'
+DISPLAYED_PROXY_WARNING = False
 
 if is_py2:
     # use six for this instead?
@@ -62,7 +63,8 @@ class Transport(object):
             credssp_disable_tlsv1_2=False,
             credssp_auth_mechanism='auto',
             credssp_minimum_version=2,
-            send_cbt=True):
+            send_cbt=True,
+            proxy='legacy_requests'):
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -80,6 +82,7 @@ class Transport(object):
         self.credssp_auth_mechanism = credssp_auth_mechanism
         self.credssp_minimum_version = credssp_minimum_version
         self.send_cbt = send_cbt
+        self.proxy = proxy
 
         if self.server_cert_validation not in [None, 'validate', 'ignore']:
             raise WinRMError('invalid server_cert_validation mode: %s' % self.server_cert_validation)
@@ -150,14 +153,35 @@ class Transport(object):
 
     def build_session(self):
         session = requests.Session()
+        proxies = dict()
 
-        # allow some settings to be merged from env
-        session.trust_env = True
-        settings = session.merge_environment_settings(url=self.endpoint, proxies={}, stream=None,
-                                                      verify=None, cert=None)
+        if self.proxy is None:
+            proxies['no_proxy'] = '*'
+        elif self.proxy != 'legacy_requests':
+            # If there was a proxy specified then use it
+            proxies['http'] = self.proxy
+            proxies['https'] = self.proxy
 
-        # get proxy settings from env
-        # FUTURE: allow proxy to be passed in directly to supersede this value
+        # Merge proxy environment variables
+        settings = session.merge_environment_settings(url=self.endpoint,
+                      proxies=proxies, stream=None, verify=None, cert=None)
+
+        global DISPLAYED_PROXY_WARNING
+
+        # We want to eventually stop reading proxy information from the environment.
+        # Also only display the warning once. This method can be called many times during an application's runtime.
+        if not DISPLAYED_PROXY_WARNING and self.proxy == 'legacy_requests' and (
+                'http' in settings['proxies'] or 'https' in settings['proxies']):
+            message = "'pywinrm' will use an environment defined proxy. This feature will be disabled in " \
+                      "the future, please provide it explicitly."
+            if 'http' in settings['proxies']:
+                message += " HTTP proxy {proxy} discover.".format(proxy=settings['proxies']['http'])
+            if 'https' in settings['proxies']:
+                message += " HTTPS proxy {proxy} discover.".format(proxy=settings['proxies']['https'])
+
+            DISPLAYED_PROXY_WARNING = True
+            warnings.warn(message, DeprecationWarning)
+
         session.proxies = settings['proxies']
 
         # specified validation mode takes precedence
