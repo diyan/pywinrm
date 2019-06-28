@@ -50,7 +50,10 @@ class Protocol(object):
         @param string realm: unused
         @param string service: the service name, default is HTTP
         @param string keytab: the path to a keytab file if you are using one
-        @param string ca_trust_path: Certification Authority trust path. 'legacy_requests'(default) to use environment variables, None
+        @param string ca_trust_path: Certification Authority trust path. If server_cert_validation is set to 'validate':
+                                        'legacy_requests'(default) to use environment variables that the requests library allows
+                                        None to explicitly disallow any additional CA trust path
+                                        Any other value will be considered the CA trust path to use.
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
         @param string server_cert_validation: whether server certificate should be validated on Python versions that suppport it; one of 'validate' (default), 'ignore' #NOQA
