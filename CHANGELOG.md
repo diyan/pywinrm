@@ -1,8 +1,9 @@
 # Changelog
 
 ### Version 0.3.1
-- Ensure server_cert_validation=ignore supersedes ca_trust_path/env overrides
+- Ensure `server_cert_validation=ignore` supersedes ca_trust_path/env overrides
 - Set minimum version of requests-credssp to support Kerberos auth over CredSSP and other changes
+- Added `proxy` support where it can be defined within the application, with the ability to specify the proxy within the application
 
 ### Version 0.3.0
 - Added support for message encryption over HTTP when using NTLM/Kerberos/CredSSP

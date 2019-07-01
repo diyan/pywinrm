@@ -1,149 +1,255 @@
 # coding=utf-8
 import os
-import pytest
-from winrm.transport import Transport
+import unittest
+
+from winrm import transport
 from winrm.exceptions import WinRMError, InvalidCredentialsError
 
 
-def test_build_session_cert_validate():
-    t_default = Transport(endpoint="Endpoint",
-                          server_cert_validation='validate',
-                          username='test',
-                          password='test',
-                          auth_method='basic',
-                          )
-    t_ca_override = Transport(endpoint="Endpoint",
-                              server_cert_validation='validate',
-                              username='test',
-                              password='test',
-                              auth_method='basic',
-                              ca_trust_path='overridepath',
-                              )
-    try:
+class TestTransport(unittest.TestCase):
+    maxDiff = 2048
+    _old_env = None
+
+    def setUp(self):
+        super(TestTransport, self).setUp()
+        self._old_env = {}
+        os.environ.pop('REQUESTS_CA_BUNDLE', None)
+        os.environ.pop('TRAVIS_APT_PROXY', None)
+        os.environ.pop('CURL_CA_BUNDLE', None)
+        os.environ.pop('HTTPS_PROXY', None)
+        os.environ.pop('HTTP_PROXY', None)
+        os.environ.pop('NO_PROXY', None)
+        transport.DISPLAYED_PROXY_WARNING = False
+
+    def tearDown(self):
+        super(TestTransport, self).tearDown()
+        os.environ.pop('REQUESTS_CA_BUNDLE', None)
+        os.environ.pop('TRAVIS_APT_PROXY', None)
+        os.environ.pop('CURL_CA_BUNDLE', None)
+        os.environ.pop('HTTPS_PROXY', None)
+        os.environ.pop('HTTP_PROXY', None)
+        os.environ.pop('NO_PROXY', None)
+
+    def test_build_session_cert_validate_1(self):
         os.environ['REQUESTS_CA_BUNDLE'] = 'path_to_REQUESTS_CA_CERT'
-        t_default.build_session()
-        t_ca_override.build_session()
-        assert(t_default.session.verify == 'path_to_REQUESTS_CA_CERT')
-        assert(t_ca_override.session.verify == 'overridepath')
-    finally:
-        del os.environ['REQUESTS_CA_BUNDLE']
 
-    try:
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        )
+        t_default.build_session()
+        self.assertEqual('path_to_REQUESTS_CA_CERT', t_default.session.verify)
+
+    def test_build_session_cert_validate_2(self):
         os.environ['CURL_CA_BUNDLE'] = 'path_to_CURL_CA_CERT'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        )
         t_default.build_session()
-        t_ca_override.build_session()
-        assert(t_default.session.verify == 'path_to_CURL_CA_CERT')
-        assert (t_ca_override.session.verify == 'overridepath')
-    finally:
-        del os.environ['CURL_CA_BUNDLE']
+        self.assertEqual('path_to_CURL_CA_CERT', t_default.session.verify)
 
+    def test_build_session_cert_override_1(self):
+        os.environ['REQUESTS_CA_BUNDLE'] = 'path_to_REQUESTS_CA_CERT'
 
-def test_build_session_cert_ignore():
-    t_default = Transport(endpoint="Endpoint",
-                          server_cert_validation='ignore',
-                          username='test',
-                          password='test',
-                          auth_method='basic',
-                          )
-    t_ca_override = Transport(endpoint="Endpoint",
-                              server_cert_validation='ignore',
-                              username='test',
-                              password='test',
-                              auth_method='basic',
-                              ca_trust_path='boguspath'
-                              )
-    try:
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        ca_trust_path='overridepath',
+                                        )
+        t_default.build_session()
+        self.assertEqual('overridepath', t_default.session.verify)
+
+    def test_build_session_cert_override_2(self):
+        os.environ['CURL_CA_BUNDLE'] = 'path_to_CURL_CA_CERT'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        ca_trust_path='overridepath',
+                                        )
+        t_default.build_session()
+        self.assertEqual('overridepath', t_default.session.verify)
+
+    def test_build_session_cert_ignore_1(self):
         os.environ['REQUESTS_CA_BUNDLE'] = 'path_to_REQUESTS_CA_CERT'
         os.environ['CURL_CA_BUNDLE'] = 'path_to_CURL_CA_CERT'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='ignore',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        )
+
         t_default.build_session()
-        t_ca_override.build_session()
-        assert(isinstance(t_default.session.verify, bool) and not t_default.session.verify)
-        assert (isinstance(t_ca_override.session.verify, bool) and not t_ca_override.session.verify)
-    finally:
-        del os.environ['REQUESTS_CA_BUNDLE']
-        del os.environ['CURL_CA_BUNDLE']
+        self.assertIs(False, t_default.session.verify)
+
+    def test_build_session_cert_ignore_2(self):
+        os.environ['REQUESTS_CA_BUNDLE'] = 'path_to_REQUESTS_CA_CERT'
+        os.environ['CURL_CA_BUNDLE'] = 'path_to_CURL_CA_CERT'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='ignore',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        ca_trust_path='boguspath'
+                                        )
+
+        t_default.build_session()
+        self.assertIs(False, t_default.session.verify)
+
+    def test_build_session_proxy_none(self):
+        os.environ['HTTP_PROXY'] = 'random_proxy'
+        os.environ['HTTPS_PROXY'] = 'random_proxy_2'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        proxy=None
+                                        )
+
+        t_default.build_session()
+        self.assertEqual({'no_proxy': '*'}, t_default.session.proxies)
+
+    def test_build_session_proxy_defined(self):
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        proxy='test_proxy'
+                                        )
+
+        t_default.build_session()
+        self.assertEqual({'http': 'test_proxy', 'https': 'test_proxy'}, t_default.session.proxies)
+
+    def test_build_session_proxy_defined_and_env(self):
+        os.environ['HTTPS_PROXY'] = 'random_proxy'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        proxy='test_proxy'
+                                        )
+
+        t_default.build_session()
+        self.assertEqual({'http': 'test_proxy', 'https': 'test_proxy'}, t_default.session.proxies)
+
+    def test_build_session_proxy_with_env_https(self):
+        os.environ['HTTPS_PROXY'] = 'random_proxy'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        )
+
+        t_default.build_session()
+        self.assertEqual({'https': 'random_proxy'}, t_default.session.proxies)
+
+    def test_build_session_proxy_with_env_http(self):
+        os.environ['HTTP_PROXY'] = 'random_proxy'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        )
+
+        t_default.build_session()
+        self.assertEqual({'http': 'random_proxy'}, t_default.session.proxies)
 
 
-def test_build_session_server_cert_validation_invalid():
-    with pytest.raises(WinRMError) as exc:
-        transport = Transport(endpoint="Endpoint",
-                              server_cert_validation='invalid_value',
-                              username='test',
-                              password='test',
-                              auth_method='basic',
-                              )
-    assert str(exc.value) == 'invalid server_cert_validation mode: invalid_value'
+    def test_build_session_server_cert_validation_invalid(self):
+        with self.assertRaises(WinRMError) as exc:
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='invalid_value',
+                                username='test',
+                                password='test',
+                                auth_method='basic',
+                                )
+        self.assertEqual('invalid server_cert_validation mode: invalid_value', str(exc.exception))
 
+    def test_build_session_krb_delegation_as_str(self):
+        winrm_transport = transport.Transport(endpoint="Endpoint",
+                                              server_cert_validation='validate',
+                                              username='test',
+                                              password='test',
+                                              auth_method='kerberos',
+                                              kerberos_delegation='True'
+                                              )
+        self.assertTrue(winrm_transport.kerberos_delegation)
 
-def test_build_session_krb_delegation_as_str():
-    transport = Transport(endpoint="Endpoint",
-                          server_cert_validation='validate',
-                          username='test',
-                          password='test',
-                          auth_method='kerberos',
-                          kerberos_delegation='True'
-                          )
-    assert(transport.kerberos_delegation is True)
+    def test_build_session_krb_delegation_as_invalid_str(self):
+        with self.assertRaises(ValueError) as exc:
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='validate',
+                                username='test',
+                                password='test',
+                                auth_method='kerberos',
+                                kerberos_delegation='invalid_value'
+                                )
+        self.assertEqual("invalid truth value 'invalid_value'", str(exc.exception))
 
+    def test_build_session_no_username(self):
+        winrm_transport = transport.Transport(endpoint="Endpoint",
+                                              server_cert_validation='validate',
+                                              password='test',
+                                              auth_method='basic',
+                                              )
+        with self.assertRaises(InvalidCredentialsError) as exc:
+            winrm_transport.build_session()
+        self.assertEqual("auth method basic requires a username", str(exc.exception))
 
-def test_build_session_krb_delegation_as_invalid_str():
-    with pytest.raises(ValueError) as exc:
-        transport = Transport(endpoint="Endpoint",
-                              server_cert_validation='validate',
-                              username='test',
-                              password='test',
-                              auth_method='kerberos',
-                              kerberos_delegation='invalid_value'
-                              )
-    assert str(exc.value) == "invalid truth value 'invalid_value'"
+    def test_build_session_no_password(self):
+        winrm_transport = transport.Transport(endpoint="Endpoint",
+                                              server_cert_validation='validate',
+                                              username='test',
+                                              auth_method='basic',
+                                              )
 
+        with self.assertRaises(InvalidCredentialsError) as exc:
+            winrm_transport.build_session()
+        self.assertEqual("auth method basic requires a password", str(exc.exception))
 
-def test_build_session_no_username():
-    with pytest.raises(InvalidCredentialsError) as exc:
-        transport = Transport(endpoint="Endpoint",
-                              server_cert_validation='validate',
-                              password='test',
-                              auth_method='basic',
-                              )
-        transport.build_session()
+    def test_build_session_invalid_auth(self):
+        winrm_transport = transport.Transport(endpoint="Endpoint",
+                                              server_cert_validation='validate',
+                                              username='test',
+                                              password='test',
+                                              auth_method='invalid_value',
+                                              )
 
-    assert str(exc.value) == "auth method basic requires a username"
+        with self.assertRaises(WinRMError) as exc:
+            winrm_transport.build_session()
+        self.assertEqual("unsupported auth method: invalid_value", str(exc.exception))
 
+    def test_build_session_invalid_encryption(self):
+        winrm_transport = transport.Transport(endpoint="Endpoint",
+                                              server_cert_validation='validate',
+                                              username='test',
+                                              password='test',
+                                              auth_method='basic',
+                                              message_encryption='invalid_value'
+                                              )
 
-def test_build_session_no_password():
-    with pytest.raises(InvalidCredentialsError) as exc:
-        transport = Transport(endpoint="Endpoint",
-                              server_cert_validation='validate',
-                              username='test',
-                              auth_method='basic',
-                              )
-        transport.build_session()
-
-    assert str(exc.value) == "auth method basic requires a password"
-
-
-def test_build_session_invalid_auth():
-    with pytest.raises(WinRMError) as exc:
-        transport = Transport(endpoint="Endpoint",
-                              server_cert_validation='validate',
-                              username='test',
-                              password='test',
-                              auth_method='invalid_value',
-                              )
-        transport.build_session()
-
-    assert str(exc.value) == "unsupported auth method: invalid_value"
-
-
-def test_build_session_invalid_encryption():
-    with pytest.raises(WinRMError) as exc:
-        transport = Transport(endpoint="Endpoint",
-                              server_cert_validation='validate',
-                              username='test',
-                              password='test',
-                              auth_method='basic',
-                              message_encryption='invalid_value'
-                              )
-        transport.build_session()
-
-    assert str(exc.value) == "invalid message_encryption arg: invalid_value. Should be 'auto', 'always', or 'never'"
+        with self.assertRaises(WinRMError) as exc:
+            winrm_transport.build_session()
+        self.assertEqual("invalid message_encryption arg: invalid_value. Should be 'auto', 'always', or 'never'", str(exc.exception))
