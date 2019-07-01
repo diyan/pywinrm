@@ -209,24 +209,21 @@ class TestTransport(unittest.TestCase):
         self.assertEqual("invalid truth value 'invalid_value'", str(exc.exception))
 
     def test_build_session_no_username(self):
-        winrm_transport = transport.Transport(endpoint="Endpoint",
-                                              server_cert_validation='validate',
-                                              password='test',
-                                              auth_method='basic',
-                                              )
         with self.assertRaises(InvalidCredentialsError) as exc:
-            winrm_transport.build_session()
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='validate',
+                                password='test',
+                                auth_method='basic',
+                                )
         self.assertEqual("auth method basic requires a username", str(exc.exception))
 
     def test_build_session_no_password(self):
-        winrm_transport = transport.Transport(endpoint="Endpoint",
-                                              server_cert_validation='validate',
-                                              username='test',
-                                              auth_method='basic',
-                                              )
-
         with self.assertRaises(InvalidCredentialsError) as exc:
-            winrm_transport.build_session()
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='validate',
+                                username='test',
+                                auth_method='basic',
+                                )
         self.assertEqual("auth method basic requires a password", str(exc.exception))
 
     def test_build_session_invalid_auth(self):
@@ -242,14 +239,13 @@ class TestTransport(unittest.TestCase):
         self.assertEqual("unsupported auth method: invalid_value", str(exc.exception))
 
     def test_build_session_invalid_encryption(self):
-        winrm_transport = transport.Transport(endpoint="Endpoint",
-                                              server_cert_validation='validate',
-                                              username='test',
-                                              password='test',
-                                              auth_method='basic',
-                                              message_encryption='invalid_value'
-                                              )
 
         with self.assertRaises(WinRMError) as exc:
-            winrm_transport.build_session()
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='validate',
+                                username='test',
+                                password='test',
+                                auth_method='basic',
+                                message_encryption='invalid_value'
+                                )
         self.assertEqual("invalid message_encryption arg: invalid_value. Should be 'auto', 'always', or 'never'", str(exc.exception))
