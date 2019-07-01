@@ -6,6 +6,7 @@
 - Added `proxy` support where it can be defined within the application, with the ability to specify the proxy within the application
 - Fix for shell not setting all environment variables.
 - Fix session clixml encoding on Python 3
+- `Protocol.close_shell(shell_id)` will now close the session(and TCP connections) to the Windows machine. `close_session` option has been added in case of leaving the session alone.
 
 ### Version 0.3.0
 - Added support for message encryption over HTTP when using NTLM/Kerberos/CredSSP

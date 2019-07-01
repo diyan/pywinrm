@@ -277,7 +277,7 @@ class Protocol(object):
 
                 raise WinRMError('{0} (extended fault data: {1})'.format(error_message, fault_data))
 
-    def close_shell(self, shell_id, close_session=False):
+    def close_shell(self, shell_id, close_session=True):
         """
         Close the shell
         @param string shell_id: The shell id on the remote machine.
