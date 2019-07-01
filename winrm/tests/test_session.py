@@ -13,6 +13,18 @@ def test_run_cmd(protocol_fake):
     assert len(r.std_err) == 0
 
 
+def test_run_ps_with_error(protocol_fake):
+    # TODO this test should cover __init__ method
+    s = Session('windows-host', auth=('john.smith', 'secret'))
+    s.protocol = protocol_fake
+
+    r = s.run_ps('Write-Error "Error"')
+
+    assert r.status_code == 1
+    assert b'Write-Error "Error"' in r.std_err
+    assert len(r.std_out) == 0
+
+
 def test_target_as_hostname():
     s = Session('windows-host', auth=('john.smith', 'secret'))
     assert s.url == 'http://windows-host:5985/wsman'

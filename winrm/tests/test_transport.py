@@ -3,6 +3,7 @@ import os
 import unittest
 
 from winrm import transport
+from winrm.exceptions import WinRMError, InvalidCredentialsError
 
 
 class TestTransport(unittest.TestCase):
@@ -174,3 +175,76 @@ class TestTransport(unittest.TestCase):
 
         t_default.build_session()
         self.assertEqual({'http': 'random_proxy'}, t_default.session.proxies)
+
+    def test_build_session_server_cert_validation_invalid(self):
+        with self.assertRaises(WinRMError) as exc:
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='invalid_value',
+                                username='test',
+                                password='test',
+                                auth_method='basic',
+                                )
+        self.assertEqual('invalid server_cert_validation mode: invalid_value', str(exc.exception))
+
+    def test_build_session_krb_delegation_as_str(self):
+        winrm_transport = transport.Transport(endpoint="Endpoint",
+                                              server_cert_validation='validate',
+                                              username='test',
+                                              password='test',
+                                              auth_method='kerberos',
+                                              kerberos_delegation='True'
+                                              )
+        self.assertTrue(winrm_transport.kerberos_delegation)
+
+    def test_build_session_krb_delegation_as_invalid_str(self):
+        with self.assertRaises(ValueError) as exc:
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='validate',
+                                username='test',
+                                password='test',
+                                auth_method='kerberos',
+                                kerberos_delegation='invalid_value'
+                                )
+        self.assertEqual("invalid truth value 'invalid_value'", str(exc.exception))
+
+    def test_build_session_no_username(self):
+        with self.assertRaises(InvalidCredentialsError) as exc:
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='validate',
+                                password='test',
+                                auth_method='basic',
+                                )
+        self.assertEqual("auth method basic requires a username", str(exc.exception))
+
+    def test_build_session_no_password(self):
+        with self.assertRaises(InvalidCredentialsError) as exc:
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='validate',
+                                username='test',
+                                auth_method='basic',
+                                )
+        self.assertEqual("auth method basic requires a password", str(exc.exception))
+
+    def test_build_session_invalid_auth(self):
+        winrm_transport = transport.Transport(endpoint="Endpoint",
+                                              server_cert_validation='validate',
+                                              username='test',
+                                              password='test',
+                                              auth_method='invalid_value',
+                                              )
+
+        with self.assertRaises(WinRMError) as exc:
+            winrm_transport.build_session()
+        self.assertEqual("unsupported auth method: invalid_value", str(exc.exception))
+
+    def test_build_session_invalid_encryption(self):
+
+        with self.assertRaises(WinRMError) as exc:
+            transport.Transport(endpoint="Endpoint",
+                                server_cert_validation='validate',
+                                username='test',
+                                password='test',
+                                auth_method='basic',
+                                message_encryption='invalid_value'
+                                )
+        self.assertEqual("invalid message_encryption arg: invalid_value. Should be 'auto', 'always', or 'never'", str(exc.exception))
