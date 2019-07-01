@@ -176,7 +176,6 @@ class TestTransport(unittest.TestCase):
         t_default.build_session()
         self.assertEqual({'http': 'random_proxy'}, t_default.session.proxies)
 
-
     def test_build_session_server_cert_validation_invalid(self):
         with self.assertRaises(WinRMError) as exc:
             transport.Transport(endpoint="Endpoint",
