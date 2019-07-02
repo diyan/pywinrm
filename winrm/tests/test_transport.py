@@ -261,7 +261,7 @@ class TestTransport(unittest.TestCase):
         t_default.build_session()
         t_default.close_session()
         mock_session.return_value.close.assert_called_once_with()
-        self.assertIsNotNone(t_default.session)
+        self.assertIsNone(t_default.session)
 
     @mock.patch('requests.Session')
     def test_close_session_not_built(self, mock_session):
