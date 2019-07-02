@@ -280,30 +280,39 @@ class Protocol(object):
 
                 raise WinRMError('{0} (extended fault data: {1})'.format(error_message, fault_data))
 
-    def close_shell(self, shell_id):
+    def close_shell(self, shell_id, close_session=True):
         """
         Close the shell
         @param string shell_id: The shell id on the remote machine.
          See #open_shell
+        @param bool close_session: If we want to close the requests's session.
+         Allows to completely close all TCP connections to the server.
         @returns This should have more error checking but it just returns true
          for now.
         @rtype bool
         """
-        message_id = uuid.uuid4()
-        req = {'env:Envelope': self._get_soap_header(
-            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
-            action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete',
-            shell_id=shell_id,
-            message_id=message_id)}
+        try:
+            message_id = uuid.uuid4()
+            req = {'env:Envelope': self._get_soap_header(
+                resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
+                action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete',
+                shell_id=shell_id,
+                message_id=message_id)}
 
-        # SOAP message requires empty env:Body
-        req['env:Envelope'].setdefault('env:Body', {})
+            # SOAP message requires empty env:Body
+            req['env:Envelope'].setdefault('env:Body', {})
 
-        res = self.send_message(xmltodict.unparse(req))
-        root = ET.fromstring(res)
-        relates_to = next(
-            node for node in root.findall('.//*')
-            if node.tag.endswith('RelatesTo')).text
+            res = self.send_message(xmltodict.unparse(req))
+            root = ET.fromstring(res)
+            relates_to = next(
+                node for node in root.findall('.//*')
+                if node.tag.endswith('RelatesTo')).text
+        finally:
+            # Close the transport if we are done with the shell.
+            # This will ensure no lingering TCP connections are thrown back into a requests' connection pool.
+            if close_session:
+                self.transport.close_session()
+
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 

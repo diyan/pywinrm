@@ -299,6 +299,12 @@ class Transport(object):
         self._send_message_request(prepared_request, '')
         self.encryption = Encryption(self.session, self.auth_method)
 
+    def close_session(self):
+        if not self.session:
+            return
+        self.session.close()
+        self.session = None
+
     def send_message(self, message):
         if not self.session:
             self.build_session()
