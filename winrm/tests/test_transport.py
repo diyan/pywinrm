@@ -20,6 +20,7 @@ class TestTransport(unittest.TestCase):
         os.environ.pop('HTTP_PROXY', None)
         os.environ.pop('NO_PROXY', None)
         transport.DISPLAYED_PROXY_WARNING = False
+        transport.DISPLAYED_CA_TRUST_WARNING = False
 
     def tearDown(self):
         super(TestTransport, self).tearDown()
@@ -29,6 +30,26 @@ class TestTransport(unittest.TestCase):
         os.environ.pop('HTTPS_PROXY', None)
         os.environ.pop('HTTP_PROXY', None)
         os.environ.pop('NO_PROXY', None)
+
+    def test_build_session_cert_validate_default(self):
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        )
+        t_default.build_session()
+        self.assertEqual(True, t_default.session.verify)
+
+    def test_build_session_cert_validate_default_env(self):
+        os.environ['REQUESTS_CA_BUNDLE'] = 'path_to_REQUESTS_CA_CERT'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        )
+        t_default.build_session()
+        self.assertEqual('path_to_REQUESTS_CA_CERT', t_default.session.verify)
 
     def test_build_session_cert_validate_1(self):
         os.environ['REQUESTS_CA_BUNDLE'] = 'path_to_REQUESTS_CA_CERT'
@@ -79,6 +100,19 @@ class TestTransport(unittest.TestCase):
                                         )
         t_default.build_session()
         self.assertEqual('overridepath', t_default.session.verify)
+
+    def test_build_session_cert_override_3(self):
+        os.environ['CURL_CA_BUNDLE'] = 'path_to_CURL_CA_CERT'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        ca_trust_path=None,
+                                        )
+        t_default.build_session()
+        self.assertEqual(True, t_default.session.verify)
 
     def test_build_session_cert_ignore_1(self):
         os.environ['REQUESTS_CA_BUNDLE'] = 'path_to_REQUESTS_CA_CERT'
