@@ -282,6 +282,7 @@ class Transport(object):
         if not self.session:
             return
         self.session.close()
+        self.session = None
 
     def send_message(self, message):
         if not self.session:
