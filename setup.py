@@ -21,10 +21,14 @@ setup(
     author_email='alexey.diyan@gmail.com',
     url='http://github.com/diyan/pywinrm/',
     license='MIT license',
-    packages=('winrm', 'winrm.tests'),
+    packages=('winrm', 'winrm.tests', 'winrm.vendor.requests_kerberos'),
     package_data={'winrm.tests': ['*.ps1']},
     install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
-    extras_require = dict(kerberos=['requests-kerberos>=0.10.0'], credssp=['requests-credssp>=1.0.0']),
+    extras_require={
+        'credssp': ['requests-credssp>=1.0.0'],
+        'kerberos:sys_platform=="win32"': ['winkerberos>=0.5.0'],
+        'kerberos:sys_platform!="win32"': ['pykerberos>=1.2.1,<2.0.0']
+    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
