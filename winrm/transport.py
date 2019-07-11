@@ -23,7 +23,7 @@ else:
 
 HAVE_KERBEROS = False
 try:
-    from requests_kerberos import HTTPKerberosAuth, REQUIRED
+    from .vendor.requests_kerberos import HTTPKerberosAuth, REQUIRED
 
     HAVE_KERBEROS = True
 except ImportError:
