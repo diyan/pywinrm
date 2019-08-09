@@ -25,7 +25,7 @@ def install_deps():
 def install_extras():
     extras = dict()
     for filename in os.listdir('requirements/extras'):
-        extra_key = filename.replace('requirements-', '').replace('.txt', '')
+        extra_key = filename.replace('requirements/extras/requirements-', '').replace('.txt', '')
         extras[extra_key] = list()
         with open(filename, 'r') as req_file:
             for pkg_name in req_file.readlines():
