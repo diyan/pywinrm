@@ -2,30 +2,21 @@ import os
 import mock
 import unittest
 import requests_mock
+from winrm import transport
 
 if os.environ.get('PYWINRM_TEST_CREDSSP') == '1':
     EXPECT_CREDSSP = True
 elif os.environ.get('PYWINRM_TEST_CREDSSP') == '0':
     EXPECT_CREDSSP = False
 else:
-    try:
-        from requests_credssp import HttpCredSSPAuth  # NOQA
-
-        EXPECT_CREDSSP = True
-    except ImportError as ie:
-        EXPECT_CREDSSP = False
+    EXPECT_CREDSSP = transport.HAVE_CREDSSP
 
 if os.environ.get('PYWINRM_TEST_KERBEROS') == '1':
     EXPECT_KERBEROS = True
 elif os.environ.get('PYWINRM_TEST_KERBEROS') == '0':
     EXPECT_KERBEROS = False
 else:
-    try:
-        from .vendor.requests_kerberos import HTTPKerberosAuth, REQUIRED  # NOQA
-
-        EXPECT_KERBEROS = True
-    except ImportError as ie:
-        EXPECT_KERBEROS = False
+    EXPECT_KERBEROS = transport.HAVE_KERBEROS
 
 
 class BaseTest(unittest.TestCase):
