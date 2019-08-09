@@ -1,5 +1,4 @@
 import os
-import mock
 import unittest
 import requests_mock
 from winrm import transport
@@ -44,16 +43,3 @@ class BaseTest(unittest.TestCase):
         os.environ.pop('HTTP_PROXY', None)
         os.environ.pop('NO_PROXY', None)
         self.mocked_request.stop()
-
-    def auto_patch(self, to_patch, spec=True):
-        """
-        Allow for mocking setup within setUp and tearDown in a single method.
-
-        :param to_patch: Name of object to patch
-        :param spec: Whether mock should adhere to the spec
-        :return: The mock.Mock object.
-        """
-        patcher = mock.patch(to_patch, spec=spec)
-        patched = patcher.start()
-        self.addCleanup(patcher.stop)
-        return patched
