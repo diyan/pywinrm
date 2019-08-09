@@ -2,9 +2,13 @@
 import os
 import mock
 import unittest
+import requests
+from distutils.version import StrictVersion
 
 from winrm import transport
 from winrm.exceptions import WinRMError, InvalidCredentialsError
+
+REQUEST_VERSION = requests.__version__.split('.')
 
 
 class TestTransport(unittest.TestCase):
@@ -144,6 +148,24 @@ class TestTransport(unittest.TestCase):
         t_default.build_session()
         self.assertIs(False, t_default.session.verify)
 
+    # TODO: I am not sure in which version changed specifically, but this can be updated if we need to find out.
+    @unittest.skipIf(StrictVersion(requests.__version__) > StrictVersion('2.9.1'), reason="Skipping older version of requests.")
+    def test_build_session_proxy_none_old_request(self):
+        os.environ['HTTP_PROXY'] = 'random_proxy'
+        os.environ['HTTPS_PROXY'] = 'random_proxy_2'
+
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        server_cert_validation='validate',
+                                        username='test',
+                                        password='test',
+                                        auth_method='basic',
+                                        proxy=None
+                                        )
+
+        t_default.build_session()
+        self.assertEqual({'no_proxy': '*', 'http': 'random_proxy', 'https': 'random_proxy_2'}, t_default.session.proxies)
+
+    @unittest.skipIf(StrictVersion(requests.__version__) <= StrictVersion('2.9.1'), reason="This test is for the latest requests.")
     def test_build_session_proxy_none(self):
         os.environ['HTTP_PROXY'] = 'random_proxy'
         os.environ['HTTPS_PROXY'] = 'random_proxy_2'

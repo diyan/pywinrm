@@ -1,0 +1,4 @@
+xmltodict
+requests>=2.9.1
+requests_ntlm>=0.3.0
+six>=1.7.0

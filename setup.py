@@ -1,3 +1,5 @@
+import os
+
 from setuptools import setup
 
 __version__ = '0.3.1.dev0'
@@ -11,6 +13,29 @@ try:
 except ImportError:
     long_description = ''
 
+
+def install_deps():
+    default = open('requirements/requirements.txt', 'r').readlines()
+    pkg_list = []
+    for resource in default:
+        pkg_list.append(resource.strip())
+    return pkg_list
+
+
+def install_extras():
+    extras = dict()
+    for filename in os.listdir('requirements/extras'):
+        extra_key = filename.replace('requirements-', '').replace('.txt', '')
+        extras[extra_key] = list()
+        with open(filename, 'r') as req_file:
+            for pkg_name in req_file.readlines():
+                extras[extra_key].append(pkg_name)
+    return extras
+
+
+req_deps_list = install_deps()
+extras_deps = install_extras()
+
 setup(
     name=project_name,
     version=__version__,
@@ -23,12 +48,8 @@ setup(
     license='MIT license',
     packages=('winrm', 'winrm.tests', 'winrm.vendor.requests_kerberos'),
     package_data={'winrm.tests': ['*.ps1']},
-    install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
-    extras_require={
-        'credssp': ['requests-credssp>=1.0.0'],
-        'kerberos:sys_platform=="win32"': ['winkerberos>=0.5.0'],
-        'kerberos:sys_platform!="win32"': ['pykerberos>=1.2.1,<2.0.0']
-    },
+    install_requires=req_deps_list,
+    extras_require=extras_deps,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
