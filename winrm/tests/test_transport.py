@@ -3,6 +3,7 @@ import os
 import mock
 import unittest
 import requests
+from . import base as base_test
 from distutils.version import StrictVersion
 
 from winrm import transport
@@ -11,30 +12,12 @@ from winrm.exceptions import WinRMError, InvalidCredentialsError
 REQUEST_VERSION = requests.__version__.split('.')
 
 
-class TestTransport(unittest.TestCase):
-    maxDiff = 2048
-    _old_env = None
+class TestTransport(base_test.BaseTest):
 
     def setUp(self):
         super(TestTransport, self).setUp()
-        self._old_env = {}
-        os.environ.pop('REQUESTS_CA_BUNDLE', None)
-        os.environ.pop('TRAVIS_APT_PROXY', None)
-        os.environ.pop('CURL_CA_BUNDLE', None)
-        os.environ.pop('HTTPS_PROXY', None)
-        os.environ.pop('HTTP_PROXY', None)
-        os.environ.pop('NO_PROXY', None)
         transport.DISPLAYED_PROXY_WARNING = False
         transport.DISPLAYED_CA_TRUST_WARNING = False
-
-    def tearDown(self):
-        super(TestTransport, self).tearDown()
-        os.environ.pop('REQUESTS_CA_BUNDLE', None)
-        os.environ.pop('TRAVIS_APT_PROXY', None)
-        os.environ.pop('CURL_CA_BUNDLE', None)
-        os.environ.pop('HTTPS_PROXY', None)
-        os.environ.pop('HTTP_PROXY', None)
-        os.environ.pop('NO_PROXY', None)
 
     def test_build_session_cert_validate_default(self):
         t_default = transport.Transport(endpoint="https://example.com",
@@ -149,7 +132,7 @@ class TestTransport(unittest.TestCase):
         self.assertIs(False, t_default.session.verify)
 
     # TODO: I am not sure in which version changed specifically, but this can be updated if we need to find out.
-    @unittest.skipIf(StrictVersion(requests.__version__) > StrictVersion('2.9.1'), reason="Skipping older version of requests.")
+    @unittest.skipIf(StrictVersion(requests.__version__) > StrictVersion('2.9.1'), reason="Skipping for versions 2.9.1 or older")
     def test_build_session_proxy_none_old_request(self):
         os.environ['HTTP_PROXY'] = 'random_proxy'
         os.environ['HTTPS_PROXY'] = 'random_proxy_2'
@@ -165,7 +148,7 @@ class TestTransport(unittest.TestCase):
         t_default.build_session()
         self.assertEqual({'no_proxy': '*', 'http': 'random_proxy', 'https': 'random_proxy_2'}, t_default.session.proxies)
 
-    @unittest.skipIf(StrictVersion(requests.__version__) <= StrictVersion('2.9.1'), reason="This test is for the latest requests.")
+    @unittest.skipIf(StrictVersion(requests.__version__) <= StrictVersion('2.9.1'), reason="Skipping for versions newer than 2.9.1")
     def test_build_session_proxy_none(self):
         os.environ['HTTP_PROXY'] = 'random_proxy'
         os.environ['HTTPS_PROXY'] = 'random_proxy_2'
@@ -330,3 +313,49 @@ class TestTransport(unittest.TestCase):
         t_default.close_session()
         self.assertFalse(mock_session.return_value.close.called)
         self.assertIsNone(t_default.session)
+
+
+class TestTransportCredSSP(base_test.BaseTest):
+
+    @unittest.skipIf(base_test.EXPECT_CREDSSP is False, reason="Only testing when CredSSP is available")
+    def test_with_credssp(self):
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        username='test',
+                                        password='test',
+                                        auth_method='credssp',
+                                        )
+        t_default.build_session()
+
+    @unittest.skipIf(base_test.EXPECT_CREDSSP is True, reason="Only testing when CredSSP is unavailable")
+    def test_without_credssp(self):
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        username='test',
+                                        password='test',
+                                        auth_method='credssp',
+                                        )
+        with self.assertRaises(WinRMError) as exc:
+            t_default.build_session()
+        self.assertEqual(str(exc.exception), 'requests auth method is credssp, but requests-credssp is not installed')
+
+
+class TestTransportKerberos(base_test.BaseTest):
+
+    @unittest.skipIf(base_test.EXPECT_KERBEROS is False, reason="Only testing when kerberos is available")
+    def test_with_kerberos(self):
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        username='test',
+                                        password='test',
+                                        auth_method='kerberos',
+                                        )
+        t_default.build_session()
+
+    @unittest.skipIf(base_test.EXPECT_KERBEROS is True, reason="Only testing when kerberos is unavailable")
+    def test_without_kerberos(self):
+        t_default = transport.Transport(endpoint="https://example.com",
+                                        username='test',
+                                        password='test',
+                                        auth_method='kerberos',
+                                        )
+        with self.assertRaises(WinRMError) as exc:
+            t_default.build_session()
+        self.assertEqual(str(exc.exception), 'requested auth method is kerberos, but requests_kerberos is not installed')

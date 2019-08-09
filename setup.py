@@ -15,7 +15,7 @@ except ImportError:
 
 
 def install_deps():
-    default = open('requirements/requirements.txt', 'r').readlines()
+    default = open('requirements.txt', 'r').readlines()
     pkg_list = []
     for resource in default:
         pkg_list.append(resource.strip())
