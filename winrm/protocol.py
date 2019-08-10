@@ -395,6 +395,34 @@ class Protocol(object):
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
 
+    def send_command_input(self, shell_id, command_id, input):
+        """
+        Send input to the given shell and command.
+        @param string shell_id: The shell id on the remote machine.
+         See #open_shell
+        @param string command_id: The command id on the remote machine.
+         See #run_command
+        @param string input: The input unicode string to be sent.
+        @return: None
+        """
+        req = {'env:Envelope': self._get_soap_header(
+            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
+            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send',  # NOQA
+            shell_id=shell_id)}
+        stdin = req['env:Envelope'].setdefault('env:Body', {}).setdefault(
+            'rsp:Send', {}).setdefault('rsp:Stream', {})
+        stdin['@CommandId'] = command_id
+        stdin['@Name'] = 'stdin'
+        stdin['@xmlns:rsp'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell'
+        # Always sending "\\r\\n" when sending input is not always what a user wants..
+        # if a want a new line.. Add it yourself.  Not every one wants or needs the new line.
+        # input = (input + '\r\n').encode('ascii')
+        stdin['#text'] = base64.b64encode(input)
+        #print(xmltodict.unparse(req))
+        res = self.send_message(xmltodict.unparse(req))
+        #print(res)
+        return res
+
     def get_command_output(self, shell_id, command_id):
         """
         Get the Output of the given shell and command
