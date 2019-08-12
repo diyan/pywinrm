@@ -311,6 +311,188 @@ get_ps_output_response = """\
 </s:Envelope>"""
 
 
+run_cmd_req_input = """\
+<?xml version="1.0" encoding="utf-8"?>
+<env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
+  <env:Header>
+    <a:To>http://windows-host:5985/wsman</a:To>
+    <a:ReplyTo>
+      <a:Address mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+    </a:ReplyTo>
+    <w:MaxEnvelopeSize mustUnderstand="true">153600</w:MaxEnvelopeSize>
+    <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+    <w:Locale mustUnderstand="false" xml:lang="en-US" />
+    <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
+    <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+    <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
+    <w:SelectorSet>
+      <w:Selector Name="ShellId">11111111-1111-1111-1111-111111111113</w:Selector>
+    </w:SelectorSet>
+    <w:OptionSet>
+      <w:Option Name="WINRS_CONSOLEMODE_STDIN">TRUE</w:Option>
+      <w:Option Name="WINRS_SKIP_CMD_SHELL">FALSE</w:Option>
+    </w:OptionSet>
+  </env:Header>
+  <env:Body>
+    <rsp:CommandLine>
+      <rsp:Command>cmd</rsp:Command>
+    </rsp:CommandLine>
+  </env:Body>
+</env:Envelope>"""
+
+
+run_cmd_req_input_response = """\
+<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+<s:Header>
+<a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandResponse</a:Action>
+<a:MessageID>uuid:11111111-1111-1111-1111-111111111114</a:MessageID>
+<a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+<a:RelatesTo>uuid:11111111-1111-1111-1111-111111111112</a:RelatesTo>
+</s:Header>
+<s:Body>
+<rsp:CommandResponse>
+<rsp:CommandId>11111111-1111-1111-1111-111111111111</rsp:CommandId>
+</rsp:CommandResponse>
+</s:Body>
+</s:Envelope>
+"""
+
+run_cmd_send_input = """\
+<?xml version="1.0" encoding="utf-8"?>
+<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config">
+<env:Header>
+    <a:To>http://windows-host:5985/wsman</a:To>
+    <a:ReplyTo>
+        <a:Address mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+    </a:ReplyTo>
+    <w:MaxEnvelopeSize mustUnderstand="true">153600</w:MaxEnvelopeSize>
+    <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+    <w:Locale mustUnderstand="false" xml:lang="en-US"/>
+    <p:DataLocale mustUnderstand="false" xml:lang="en-US"/>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
+    <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+    <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send</a:Action>
+    <w:SelectorSet>
+        <w:Selector Name="ShellId">11111111-1111-1111-1111-111111111113</w:Selector>
+    </w:SelectorSet>
+</env:Header>
+<env:Body>
+    <rsp:Send>
+        <rsp:Stream xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" CommandId="11111111-1111-1111-1111-111111111111" Name="stdin">ZWNobyAiaGVsbG8gd29ybGQiICYmIGV4aXQNCg==</rsp:Stream>
+    </rsp:Send>
+</env:Body>
+</env:Envelope>
+"""
+
+run_cmd_send_input_response = """\
+<?xml version="1.0" ?>
+<s:Envelope xml:lang="en-US" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer">
+<s:Header>
+<a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/SendResponse</a:Action>
+<a:MessageID>uuid:72371E37-E073-474B-B4BA-6559D8D94632</a:MessageID>
+<a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+<a:RelatesTo>uuid:9c3de121-c3a4-452b-8f82-36b84e25b7fe</a:RelatesTo>
+</s:Header>
+<s:Body>
+<rsp:SendResponse/>
+</s:Body>
+</s:Envelope>
+"""
+
+run_cmd_send_input_get_output = """\
+<?xml version="1.0" encoding="utf-8"?>
+<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config">
+<env:Header>
+<a:To>http://windows-host:5985/wsman</a:To>
+<a:ReplyTo>
+<a:Address mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+</a:ReplyTo>
+<w:MaxEnvelopeSize mustUnderstand="true">153600</w:MaxEnvelopeSize>
+<a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+<w:Locale mustUnderstand="false" xml:lang="en-US"/>
+<p:DataLocale mustUnderstand="false" xml:lang="en-US"/>
+<w:OperationTimeout>PT20S</w:OperationTimeout>
+<w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+<a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive</a:Action>
+<w:SelectorSet>
+<w:Selector Name="ShellId">11111111-1111-1111-1111-111111111113</w:Selector>
+</w:SelectorSet>
+</env:Header>
+<env:Body>
+<rsp:Receive>
+<rsp:DesiredStream CommandId="11111111-1111-1111-1111-111111111111">stdout stderr</rsp:DesiredStream>
+</rsp:Receive>
+</env:Body>
+</env:Envelope>
+"""
+
+run_cmd_send_input_get_output_response = """\
+<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+<s:Header>
+    <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/ReceiveResponse</a:Action>
+    <a:MessageID>uuid:6468086A-377E-4BE3-AC71-1155F0F1D4E1</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:02f258b6-186f-4ac0-adc3-51550a131e64</a:RelatesTo>
+</s:Header>
+<s:Body>
+    <rsp:ReceiveResponse>
+        <rsp:Stream Name="stdout" CommandId="11111111-1111-1111-1111-111111111111">TWljcm9zb2Z0IFdpbmRvd3MgW1ZlcnNpb24gMTAuMC4xNzc2My4xMDdd</rsp:Stream>
+        <rsp:Stream Name="stdout" CommandId="11111111-1111-1111-1111-111111111111">DQooYykgMjAxOCBNaWNyb3NvZnQgQ29ycG9yYXRpb24uIEFsbCByaWdodHMgcmVzZXJ2ZWQuDQoNCkM6XFVzZXJzXHJ3ZWJlcj5lY2hvIGhlbGxvIHdvcmxkICYmIGV4aXQNCmhlbGxvIHdvcmxkIA0K</rsp:Stream>
+        <rsp:Stream Name="stdout" CommandId="11111111-1111-1111-1111-111111111111" End="true"/>
+        <rsp:Stream Name="stderr" CommandId="11111111-1111-1111-1111-111111111111" End="true"/>
+        <rsp:CommandState CommandId="11111111-1111-1111-1111-111111111111" State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
+        <rsp:ExitCode>0</rsp:ExitCode>
+    </rsp:CommandState>
+</rsp:ReceiveResponse>
+</s:Body>
+</s:Envelope>
+"""
+
+stdin_cmd_cleanup = """\
+<?xml version="1.0" encoding="utf-8"?>
+<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config">
+<env:Header>
+    <a:To>http://windows-host:5985/wsman</a:To>
+    <a:ReplyTo>
+        <a:Address mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+    </a:ReplyTo>
+    <w:MaxEnvelopeSize mustUnderstand="true">153600</w:MaxEnvelopeSize>
+    <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+    <w:Locale mustUnderstand="false" xml:lang="en-US"/>
+    <p:DataLocale mustUnderstand="false" xml:lang="en-US"/>
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
+    <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+    <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal</a:Action>
+    <w:SelectorSet>
+        <w:Selector Name="ShellId">11111111-1111-1111-1111-111111111113</w:Selector>
+    </w:SelectorSet>
+</env:Header>
+<env:Body>
+    <rsp:Signal CommandId="11111111-1111-1111-1111-111111111111">
+        <rsp:Code>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate</rsp:Code>
+    </rsp:Signal>
+</env:Body>
+</env:Envelope>
+"""
+
+stdin_cmd_cleanup_response = """\
+<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+<s:Header>
+    <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/SignalResponse</a:Action>
+    <a:MessageID>uuid:8A875405-3494-4400-A988-B47A563922E7</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:11111111-1111-1111-1111-111111111111</a:RelatesTo>
+</s:Header>
+<s:Body>
+    <rsp:SignalResponse/>
+</s:Body>
+</s:Envelope>
+"""
+
 def sort_dict(ordered_dict):
     items = sorted(ordered_dict.items(), key=lambda x: x[0])
     ordered_dict.clear()
@@ -348,6 +530,14 @@ class TransportStub(object):
             return get_cmd_output_response
         elif xml_str_compare(message, get_cmd_ps_output_request % '2'):
             return get_ps_output_response
+        elif xml_str_compare(message, run_cmd_req_input):
+            return run_cmd_req_input_response
+        elif xml_str_compare(message, run_cmd_send_input):
+            return run_cmd_send_input_response
+        elif xml_str_compare(message, run_cmd_send_input_get_output):
+            return run_cmd_send_input_get_output_response
+        elif xml_str_compare(message, stdin_cmd_cleanup):
+            return stdin_cmd_cleanup_response
         else:
             raise Exception('Message was not expected\n\n%s' % message)
 
