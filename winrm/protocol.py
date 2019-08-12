@@ -416,9 +416,6 @@ class Protocol(object):
         stdin_envelope['@CommandId'] = command_id
         stdin_envelope['@Name'] = 'stdin'
         stdin_envelope['@xmlns:rsp'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell'
-        # Always sending "\\r\\n" when sending input is not always what a user wants..
-        # if a want a new line.. Add it yourself.  Not every one wants or needs the new line.
-        # input = (input + '\r\n').encode('ascii')
         stdin_envelope['#text'] = base64.b64encode(stdin_input)
         res = self.send_message(xmltodict.unparse(req))
         return res
