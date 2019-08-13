@@ -405,8 +405,7 @@ class Protocol(object):
         @param string stdin_input: The input unicode string to be sent.
         @return: None
         """
-        if isinstance(stdin_input, str):
-            stdin_input = stdin_input.encode("UTF-8")
+        stdin_input = text_type(stdin_input).encode("UTF-8")
         req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send',  # NOQA
@@ -417,8 +416,8 @@ class Protocol(object):
         stdin_envelope['@Name'] = 'stdin'
         stdin_envelope['@xmlns:rsp'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell'
         stdin_envelope['#text'] = base64.b64encode(stdin_input)
-        res = self.send_message(xmltodict.unparse(req))
-        return res
+        self.send_message(xmltodict.unparse(req))
+        #  @todo: result from send_message may need to be checked for errors, though I don't know what they would be.
 
     def get_command_output(self, shell_id, command_id):
         """
