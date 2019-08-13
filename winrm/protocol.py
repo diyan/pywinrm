@@ -402,7 +402,7 @@ class Protocol(object):
          See #open_shell
         @param string command_id: The command id on the remote machine.
          See #run_command
-        @param string stdin_input: The input unicode string or byte array to be sent.
+        @param string stdin_input: The input unicode string or byte string to be sent.
         @return: None
         """
         if isinstance(stdin_input, text_type):
