@@ -417,7 +417,6 @@ class Protocol(object):
         stdin_envelope['@xmlns:rsp'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell'
         stdin_envelope['#text'] = base64.b64encode(stdin_input)
         self.send_message(xmltodict.unparse(req))
-        #  @todo: result from send_message may need to be checked for errors, though I don't know what they would be.
 
     def get_command_output(self, shell_id, command_id):
         """
