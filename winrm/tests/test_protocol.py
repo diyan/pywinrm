@@ -43,8 +43,8 @@ def test_get_command_output(protocol_fake):
 
 def test_send_command_input(protocol_fake):
     shell_id = protocol_fake.open_shell()
-    command_id = protocol_fake.run_command(shell_id, 'cmd')
-    protocol_fake.send_command_input(shell_id, command_id, 'echo "hello world" && exit\r\n')
+    command_id = protocol_fake.run_command(shell_id, u'cmd')
+    protocol_fake.send_command_input(shell_id, command_id, u'echo "hello world" && exit\r\n')
     std_out, std_err, status_code = protocol_fake.get_command_output(
         shell_id, command_id)
     assert status_code == 0
