@@ -402,10 +402,11 @@ class Protocol(object):
          See #open_shell
         @param string command_id: The command id on the remote machine.
          See #run_command
-        @param string stdin_input: The input unicode string to be sent.
+        @param string stdin_input: The input unicode string or byte array to be sent.
         @return: None
         """
-        stdin_input = text_type(stdin_input).encode("UTF-8")
+        if isinstance(stdin_input, text_type):
+            stdin_input = stdin_input.encode("UTF-8")
         req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send',  # NOQA
