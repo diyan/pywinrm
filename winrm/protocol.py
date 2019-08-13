@@ -406,7 +406,7 @@ class Protocol(object):
         @return: None
         """
         if isinstance(stdin_input, text_type):
-            stdin_input = stdin_input.encode("UTF-8")
+            stdin_input = stdin_input.encode("437")
         req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
             action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send',  # NOQA
