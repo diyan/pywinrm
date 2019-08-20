@@ -380,7 +380,7 @@ run_cmd_send_input = """\
 </env:Header>
 <env:Body>
     <rsp:Send>
-        <rsp:Stream xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" CommandId="11111111-1111-1111-1111-111111111111" Name="stdin">ZWNobyAiaGVsbG8gd29ybGQiICYmIGV4aXQNCg==</rsp:Stream>
+        <rsp:Stream xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" CommandId="11111111-1111-1111-1111-111111111111" Name="stdin" End="false" >ZWNobyAiaGVsbG8gd29ybGQiICYmIGV4aXQNCg==</rsp:Stream>
     </rsp:Send>
 </env:Body>
 </env:Envelope>
