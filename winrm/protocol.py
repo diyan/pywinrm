@@ -422,6 +422,8 @@ class Protocol(object):
         stdin_envelope['@Name'] = 'stdin'
         if end:
             stdin_envelope['@End'] = "true"
+        else:
+            stdin_envelope['@End'] = "false"
         stdin_envelope['@xmlns:rsp'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell'
         stdin_envelope['#text'] = base64.b64encode(stdin_input)
         self.send_message(xmltodict.unparse(req))
