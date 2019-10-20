@@ -1,6 +1,6 @@
 from setuptools import setup
 
-__version__ = '0.3.1.dev0'
+__version__ = '0.4.0beta1'
 project_name = 'pywinrm'
 
 # PyPi supports only reStructuredText, so pandoc should be installed
@@ -38,10 +38,8 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
