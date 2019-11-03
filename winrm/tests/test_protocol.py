@@ -1,6 +1,20 @@
 import pytest
+import copy
+import xmltodict
 
+from winrm.tests import base as base_test
+from winrm.tests.winrm_responses import shells as shell_responses
 from winrm.protocol import Protocol
+
+
+def convert_to_dict(ordered_dict):
+    new_dict = dict()
+    for name, value in ordered_dict.items():
+        if isinstance(value, dict):
+            new_dict[name] = convert_to_dict(value)
+        else:
+            new_dict[name] = value
+    return new_dict
 
 
 def test_open_shell_and_close_shell(protocol_fake):
@@ -85,3 +99,23 @@ def test_fail_set_operation_timeout_as_sec():
                  operation_timeout_sec='29a')
     assert str(exc.value) == "failed to parse operation_timeout_sec as int: " \
         "invalid literal for int() with base 10: '29a'"
+
+
+class TestTransportShells(base_test.BaseTest):
+
+    def test_open_shell(self):
+        self.mocked_request.post('https://example.com', text=shell_responses.OPEN_SHELL_RESPONSE)
+        server_conn = Protocol(endpoint="https://example.com",
+                               username='test',
+                               password='test',
+                               )
+        response = server_conn.open_shell()
+        self.assertEqual('5207F2DF-E6CA-4D10-8C7F-5380F01D6FDE', response)
+
+        # MessageID will be dynamic, no need to compare
+        expected_shell_request = xmltodict.parse(copy.deepcopy(shell_responses.OPEN_SHELL_REQUEST))
+        actual_shell_request = xmltodict.parse(copy.deepcopy(self.mocked_request.request_history[0].body))
+        del expected_shell_request['env:Envelope']['env:Header']['a:MessageID']
+        del actual_shell_request['env:Envelope']['env:Header']['a:MessageID']
+
+        self.assertEqual(convert_to_dict(expected_shell_request), convert_to_dict(actual_shell_request))
