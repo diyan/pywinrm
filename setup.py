@@ -1,6 +1,6 @@
 from setuptools import setup
 
-__version__ = '0.4.1beta1'
+__version__ = '0.4.1'
 project_name = 'pywinrm'
 
 # PyPi supports only reStructuredText, so pandoc should be installed
@@ -21,7 +21,7 @@ setup(
     author_email='alexey.diyan@gmail.com',
     url='http://github.com/diyan/pywinrm/',
     license='MIT license',
-    packages=('winrm',),
+    packages=('winrm', 'winrm.tests', 'winrm.vendor.requests_kerberos'),
     package_data={'winrm.tests': ['*.ps1']},
     install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
     extras_require={

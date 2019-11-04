@@ -23,7 +23,7 @@ else:
 
 HAVE_KERBEROS = False
 try:
-    from .vendor.requests_kerberos import HTTPKerberosAuth, REQUIRED
+    from winrm.vendor.requests_kerberos import HTTPKerberosAuth, REQUIRED
 
     HAVE_KERBEROS = True
 except ImportError:
