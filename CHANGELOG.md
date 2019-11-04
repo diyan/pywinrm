@@ -1,5 +1,8 @@
 # Changelog
 
+### Version 0.4.1
+- HOT FIX: Fixing an issue with `requests_kerbose` not imported correctly from the changes in `0.4.0`.
+
 ### Version 0.4.0
 - Ensure `server_cert_validation=ignore` supersedes ca_trust_path/env overrides
 - Added deprecated warnings if CA trusts defined by environment variables are used.
@@ -8,6 +11,7 @@
 - Fix for shell not setting all environment variables.
 - Fix session clixml encoding on Python 3
 - `Protocol.close_shell(shell_id)` will now close the session(and TCP connections) to the Windows machine. `close_session` option has been added in case of leaving the session alone.
+- Add a function to send input to a running process.
 
 ### Version 0.3.0
 - Added support for message encryption over HTTP when using NTLM/Kerberos/CredSSP
