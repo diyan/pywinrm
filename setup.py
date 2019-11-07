@@ -20,7 +20,6 @@ setup(
     author='Alexey Diyan',
     author_email='alexey.diyan@gmail.com',
     url='http://github.com/diyan/pywinrm/',
-    license='MIT license',
     packages=find_packages(),
     package_data={'winrm.tests': ['*.ps1']},
     install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
