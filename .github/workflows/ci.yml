@@ -45,6 +45,10 @@ jobs:
           python-version: pypy-3.7
         - os: ubuntu-latest
           arch: x86
+        - os: windows-latest
+          python-version: pypy-2.7
+        - os: windows-latest
+          python-version: pypy-3.7
 
     steps:
     - uses: actions/checkout@v2
