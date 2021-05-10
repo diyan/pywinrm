@@ -99,6 +99,11 @@ jobs:
         WINRM_TRANSPORT: basic
         WINRM_ENDPOINT: http://localhost:5985/wsman
 
+    - name: upload coverage data
+      run: coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: run integration with NTLM
       if: startsWith(matrix.os, 'windows')
       run: |
@@ -116,8 +121,3 @@ jobs:
       env:
         WINRM_TRANSPORT: credssp
         WINRM_ENDPOINT: http://localhost:5985/wsman
-
-    - name: upload coverage
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
