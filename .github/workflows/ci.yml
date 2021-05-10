@@ -1,0 +1,111 @@
+name: Test pywinrm
+on:
+  push:
+    branches:
+    - master
+
+  pull_request:
+    branches:
+    - master
+
+env:
+  WINRM_USERNAME: pywinrm-test
+  WINRM_PASSWORD: Password123!
+
+jobs:
+  test:
+    runs-on: ${{ matrix.info.os }}
+    strategy:
+      matrix:
+        os:
+        - macos-latest
+        - ubuntu-latest
+        - windows-latest
+        python-version:
+        - 2.7
+        - 3.6
+        - 3.7
+        - 3.8
+        - 3.9
+        - pypy-2.7
+        - pypy-3.7
+        arch:
+        - x86
+        - x64
+
+        exclude:
+        - os: macos-latest
+          arch: x86
+        - os: ubuntu-latest
+          arch: x86
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: set up python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+        architecture: ${{ matrix.arch }}
+
+    - name: set up Windows integration tests
+      if: startsWith(matrix.os, 'windows')
+      shell: pwsh
+      run: |
+        Write-Host 'Create local admin user'
+        $userParams = @{
+            Name = $env:WINRM_USERNAME
+            Password = (ConvertTo-SecureString -AsPlainText -Force -String $env:WINRM_PASSWORD)
+            AccountNeverExpires = $true
+            PasswordNeverExpires = $true
+        }
+        $null = New-LocalUser @userParams
+        Add-LocalGroupMember -Group Administrators -Member $userParams.Name
+
+        Write-Host 'Setting up WinRM settings'
+        Enable-WSManCredSSP -Role Server -Force
+        Set-Item WSMan:\localhost\Service\Auth\Basic $true
+        Set-Item WSMan:\localhost\Service\Auth\CredSSP $true
+        Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
+
+    - name: install dependencies
+      run: |
+        pip install coveralls
+        pip install .[credssp,kerberos]
+        pip install -r requirements-test.txt
+
+    - name: run test - non Windows
+      if: "!startsWith(matrix.os, 'windows')"
+      run: |
+        pytest -v --flake8 --cov=winrm --cov-report=term-missing winrm/tests/
+
+    - name: run test - Windows
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        pytest -v --flake8 --cov=winrm --cov-report=term-missing winrm/tests/
+      env:
+        WINRM_TRANSPORT: basic
+        WINRM_ENDPOINT: http://localhost:5985/wsman
+
+    - name: run integration with NTLM
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        Set-Item WSMan:\localhost\Service\AllowUnencrypted $false
+        py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
+      env:
+        WINRM_TRANSPORT: ntlm
+        WINRM_ENDPOINT: http://localhost:5985/wsman
+
+    - name: run integration with CredSSP
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        Set-Item WSMan:\localhost\Service\AllowUnencrypted $false
+        py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
+      env:
+        WINRM_TRANSPORT: credssp
+        WINRM_ENDPOINT: http://localhost:5985/wsman
+
+    - name: upload coverage
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}

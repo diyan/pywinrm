@@ -1,5 +1,8 @@
 # Changelog
 
+### Version 0.4.2
+- Dropped Python 3.5 from support matrix as it is EOL.
+
 ### Version 0.4.1
 - HOT FIX: Fixing an issue with `requests_kerbose` not imported correctly from the changes in `0.4.0`.
 
