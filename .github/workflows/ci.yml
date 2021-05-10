@@ -3,10 +3,12 @@ on:
   push:
     branches:
     - master
+    - ci
 
   pull_request:
     branches:
     - master
+    - ci
 
 env:
   WINRM_USERNAME: pywinrm-test
