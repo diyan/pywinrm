@@ -70,6 +70,16 @@ jobs:
         Set-Item WSMan:\localhost\Service\Auth\CredSSP $true
         Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
 
+    - name: set up Linux dependencies
+      if: startsWith(matrix.os, 'ubuntu')
+      run: >-
+        apt-get install -y
+        gcc
+        python-dev
+        libkrb5-dev
+      env:
+        DEBIAN_FRONTEND: noninteractive
+
     - name: install dependencies
       run: |
         pip install coveralls
