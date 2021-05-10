@@ -56,7 +56,7 @@ def strtobool(value):
         return False
 
     else:
-        raise ValueError("Value '%s' is not a valid bool" % value)
+        raise ValueError("invalid truth value '%s'" % value)
 
 
 class UnsupportedAuthArgument(Warning):
