@@ -100,7 +100,7 @@ jobs:
         WINRM_ENDPOINT: http://localhost:5985/wsman
 
     - name: upload coverage data
-      run: coveralls
+      run: coveralls --service=github
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
