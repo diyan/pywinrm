@@ -65,6 +65,7 @@ jobs:
         Add-LocalGroupMember -Group Administrators -Member $userParams.Name
 
         Write-Host 'Setting up WinRM settings'
+        Enable-PSRemoting -Force -SkipNetworkProfileCheck
         Enable-WSManCredSSP -Role Server -Force
         Set-Item WSMan:\localhost\Service\Auth\Basic $true
         Set-Item WSMan:\localhost\Service\Auth\CredSSP $true
