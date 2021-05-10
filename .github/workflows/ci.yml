@@ -100,6 +100,7 @@ jobs:
         WINRM_ENDPOINT: http://localhost:5985/wsman
 
     - name: upload coverage data
+      if: "!endsWith(matrix.python-version, '2.7')"  # Uses an older coverals version that doesn't support GHA
       run: coveralls --service=github
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
