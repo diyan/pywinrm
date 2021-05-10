@@ -2,9 +2,10 @@
 
 ### Version 0.4.2
 - Dropped Python 3.5 from support matrix as it is EOL.
+- Remove dependency on `distutils` that is deprecated in Python 3.10.
 
 ### Version 0.4.1
-- HOT FIX: Fixing an issue with `requests_kerbose` not imported correctly from the changes in `0.4.0`.
+- HOT FIX: Fixing an issue with `requests_kerberos` not imported correctly from the changes in `0.4.0`.
 
 ### Version 0.4.0
 - Ensure `server_cert_validation=ignore` supersedes ca_trust_path/env overrides
