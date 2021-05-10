@@ -6,7 +6,6 @@ import requests
 import requests.auth
 import warnings
 
-from distutils.util import strtobool
 from winrm.exceptions import InvalidCredentialsError, WinRMError, WinRMTransportError
 from winrm.encryption import Encryption
 
@@ -46,6 +45,18 @@ except ImportError as ie:
     pass
 
 __all__ = ['Transport']
+
+
+def strtobool(value):
+    value = value.lower()
+    if value in ('true', 't', 'yes', 'y', 'on', '1'):
+        return True
+
+    elif value in ('false', 'f', 'no', 'n', 'off', '0'):
+        return False
+
+    else:
+        raise ValueError("invalid truth value '%s'" % value)
 
 
 class UnsupportedAuthArgument(Warning):
