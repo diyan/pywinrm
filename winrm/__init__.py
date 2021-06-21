@@ -78,7 +78,7 @@ class Session(object):
                     new_msg += s.text.replace("_x000D__x000A_", "\n")
             except Exception as e:
                 # if any of the above fails, the msg was not true xml
-                # print a warning and return the orignal string
+                # print a warning and return the original string
                 # TODO do not print, raise user defined error instead
                 print("Warning: there was a problem converting the Powershell"
                       " error message: %s" % (e))
