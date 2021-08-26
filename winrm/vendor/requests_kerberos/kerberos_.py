@@ -98,7 +98,7 @@ def _negotiate_value(response):
     else:
         # There's no need to re-compile this EVERY time it is called. Compile
         # it once and you won't have the performance hit of the compilation.
-        regex = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
+        regex = re.compile(r'(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
         _negotiate_value.regex = regex
 
     authreq = response.headers.get('www-authenticate', None)

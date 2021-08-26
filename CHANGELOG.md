@@ -1,5 +1,8 @@
 # Changelog
 
+### Version 0.4.3
+- Fix invalid regex escape sequences.
+
 ### Version 0.4.2
 - Dropped Python 3.5 from support matrix as it is EOL.
 - Remove dependency on `distutils` that is deprecated in Python 3.10.
