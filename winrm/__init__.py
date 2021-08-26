@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import re
 from base64 import b64encode
 import xml.etree.ElementTree as ET
+import uuid
 
 from winrm.protocol import Protocol
 
@@ -49,7 +50,18 @@ class Session(object):
         """
         # must use utf16 little endian on windows
         encoded_ps = b64encode(script.encode('utf_16_le')).decode('ascii')
-        rs = self.run_cmd('powershell -encodedcommand {0}'.format(encoded_ps))
+
+        maxSize = 8000
+        chunks = [encoded_ps[i:i+maxSize] for i in range(0, len(encoded_ps), maxSize)]
+        commandUniqueFileName = uuid.uuid4().hex
+        commandFile = 'C:\\temp\\{0}.bat'.format(commandUniqueFileName)
+        self.run_cmd('if not exist "C:\\temp\\" mkdir C:\\temp')
+        self.run_cmd('echo|set /P="powershell -encodedcommand ">> {0}'.format(commandFile))
+        for i in range(0, len(chunks)):
+            self.run_cmd('echo|set /P="{0}">> {1}'.format(chunks[i], commandFile))
+
+        rs = self.run_cmd('{0}'.format(commandFile))
+        self.run_cmd('del /f {0}'.format(commandFile))
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
