@@ -56,7 +56,7 @@ class Protocol(object):
                                         Any other value will be considered the CA trust path to use.
         @param string cert_pem: client authentication certificate file path in PEM format  # NOQA
         @param string cert_key_pem: client authentication certificate key file path in PEM format  # NOQA
-        @param string server_cert_validation: whether server certificate should be validated on Python versions that suppport it; one of 'validate' (default), 'ignore' #NOQA
+        @param string server_cert_validation: whether server certificate should be validated on Python versions that support it; one of 'validate' (default), 'ignore' #NOQA
         @param bool kerberos_delegation: if True, TGT is sent to target server to allow multiple hops  # NOQA
         @param int read_timeout_sec: maximum seconds to wait before an HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long. # NOQA
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
@@ -436,9 +436,9 @@ class Protocol(object):
         @param string command_id: The command id on the remote machine.
          See #run_command
         #@return [Hash] Returns a Hash with a key :exitcode and :data.
-         Data is an Array of Hashes where the cooresponding key
+         Data is an Array of Hashes where the corresponding key
         #   is either :stdout or :stderr.  The reason it is in an Array so so
-         we can get the output in the order it ocurrs on
+         we can get the output in the order it occurs on
         #   the console.
         """
         stdout_buffer, stderr_buffer = [], []

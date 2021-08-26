@@ -7,7 +7,7 @@ class WinRMError(Exception):
 
 
 class WinRMTransportError(Exception):
-    """WinRM errors specific to transport-level problems (unexpcted HTTP error codes, etc)"""
+    """WinRM errors specific to transport-level problems (unexpected HTTP error codes, etc)"""
 
     @property
     def protocol(self):

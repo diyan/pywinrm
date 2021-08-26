@@ -92,7 +92,7 @@ class Encryption(object):
         """
         Takes in the encrypted response from the server and decrypts it
 
-        :param response: The response that needs to be decrytped
+        :param response: The response that needs to be decrypted
         :return: The unencrypted message from the server
         """
         content_type = response.headers['Content-Type']
