@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import re
 from base64 import b64encode
 import xml.etree.ElementTree as ET
+import warnings
 
 from winrm.protocol import Protocol
 
@@ -79,9 +80,9 @@ class Session(object):
             except Exception as e:
                 # if any of the above fails, the msg was not true xml
                 # print a warning and return the original string
-                # TODO do not print, raise user defined error instead
-                print("Warning: there was a problem converting the Powershell"
-                      " error message: %s" % (e))
+                warnings.warn(
+                    "There was a problem converting the Powershell error "
+                    "message: %s" % (e))
             else:
                 # if new_msg was populated, that's our error message
                 # otherwise the original error message will be used
