@@ -69,7 +69,8 @@ class Session(object):
             try:
                 # remove the namespaces from the xml for easier processing
                 msg_xml = self._strip_namespace(msg_xml)
-                root = ET.fromstring(msg_xml)
+                string_xml = msg_xml.decode('437')
+                root = ET.fromstring(string_xml)
                 # the S node is the error message, find all S nodes
                 nodes = root.findall("./S")
                 new_msg = ""
@@ -78,7 +79,8 @@ class Session(object):
                     # the hex chars represent CRLF so we replace with newline
                     new_msg += s.text.replace("_x000D__x000A_", "\n")
             except Exception as e:
-                # if any of the above fails, the msg was not true xml
+                # if any of the above fails, the msg was either not a true xml
+                # or the decoding failed.
                 # print a warning and return the original string
                 warnings.warn(
                     "There was a problem converting the Powershell error "
