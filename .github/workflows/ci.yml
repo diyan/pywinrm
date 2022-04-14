@@ -58,6 +58,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
         architecture: ${{ matrix.arch }}
 
+    - name: Remove extra modules to speed up PowerShell startup module due to slow WinRM issue
+      if: startsWith(matrix.os, 'windows')
+      shell: bash
+      run: |
+        rm -rf "/c/Program Files/WindowsPowerShell/Modules/AWSPowerShell"
+        rm -rf "/c/Program Files/WindowsPowerShell/Modules/Microsoft.Graph*"
+
     - name: set up Windows integration tests
       if: startsWith(matrix.os, 'windows')
       shell: pwsh
