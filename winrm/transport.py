@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import sys
 import os
-import inspect
 import requests
 import requests.auth
 import warnings
@@ -228,12 +227,10 @@ class Transport(object):
 
         if self.auth_method == 'kerberos':
             if not HAVE_KERBEROS:
-                raise WinRMError("requested auth method is kerberos, but requests_kerberos is not installed")
+                raise WinRMError("requested auth method is kerberos, but pykerberos is not installed")
 
-            man_args = dict(
+            session.auth = HTTPKerberosAuth(
                 mutual_authentication=REQUIRED,
-            )
-            opt_args = dict(
                 delegate=self.kerberos_delegation,
                 force_preemptive=True,
                 principal=self.username,
@@ -242,8 +239,6 @@ class Transport(object):
                 service=self.service,
                 send_cbt=self.send_cbt
             )
-            kerb_args = self._get_args(man_args, opt_args, HTTPKerberosAuth.__init__)
-            session.auth = HTTPKerberosAuth(**kerb_args)
             encryption_available = hasattr(session.auth, 'winrm_encryption_available') and session.auth.winrm_encryption_available
         elif self.auth_method in ['certificate', 'ssl']:
             if self.auth_method == 'ssl' and not self.cert_pem and not self.cert_key_pem:
@@ -257,15 +252,12 @@ class Transport(object):
         elif self.auth_method == 'ntlm':
             if not HAVE_NTLM:
                 raise WinRMError("requested auth method is ntlm, but requests_ntlm is not installed")
-            man_args = dict(
+
+            session.auth = HttpNtlmAuth(
                 username=self.username,
-                password=self.password
+                password=self.password,
+                send_cbt=self.send_cbt,
             )
-            opt_args = dict(
-                send_cbt=self.send_cbt
-            )
-            ntlm_args = self._get_args(man_args, opt_args, HttpNtlmAuth.__init__)
-            session.auth = HttpNtlmAuth(**ntlm_args)
             # check if requests_ntlm has the session_security attribute available for encryption
             encryption_available = hasattr(session.auth, 'session_security')
         # TODO: ssl is not exactly right here- should really be client_cert
@@ -275,17 +267,13 @@ class Transport(object):
             if not HAVE_CREDSSP:
                 raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
 
-            man_args = dict(
+            session.auth = HttpCredSSPAuth(
                 username=self.username,
-                password=self.password
-            )
-            opt_args = dict(
+                password=self.password,
                 disable_tlsv1_2=self.credssp_disable_tlsv1_2,
                 auth_mechanism=self.credssp_auth_mechanism,
                 minimum_version=self.credssp_minimum_version
             )
-            credssp_args = self._get_args(man_args, opt_args, HttpCredSSPAuth.__init__)
-            session.auth = HttpCredSSPAuth(**credssp_args)
             encryption_available = True
         else:
             raise WinRMError("unsupported auth method: %s" % self.auth_method)
@@ -355,24 +343,3 @@ class Transport(object):
         else:
             response_text = response.content
         return response_text
-
-    def _get_args(self, mandatory_args, optional_args, function):
-        argspec = set(inspect.getargspec(function).args)
-        function_args = dict()
-        for name, value in mandatory_args.items():
-            if name in argspec:
-                function_args[name] = value
-            else:
-                raise Exception("Function %s does not contain mandatory arg "
-                                "%s, check installed version with pip list"
-                                % (str(function), name))
-
-        for name, value in optional_args.items():
-            if name in argspec:
-                function_args[name] = value
-            else:
-                warnings.warn("Function %s does not contain optional arg %s, "
-                              "check installed version with pip list"
-                              % (str(function), name))
-
-        return function_args

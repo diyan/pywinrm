@@ -3,6 +3,7 @@
 ### Version 0.4.3
 - Fix invalid regex escape sequences.
 - Decoding CLIXML failures for `run_ps` will create a `UserWarning` rather than printing the warning.
+- Remove usage of deprecated Python API to support Python 3.11
 
 ### Version 0.4.2
 - Dropped Python 3.5 from support matrix as it is EOL.
