@@ -85,6 +85,7 @@ jobs:
         Set-Item WSMan:\localhost\Service\Auth\Basic $true
         Set-Item WSMan:\localhost\Service\Auth\CredSSP $true
         Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
+        Restart-Service -Name WinRM
 
     - name: set up Linux dependencies
       if: startsWith(matrix.os, 'ubuntu')
