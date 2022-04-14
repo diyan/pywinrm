@@ -23,7 +23,7 @@ setup(
     license='MIT license',
     packages=find_packages(),
     package_data={'winrm.tests': ['*.ps1']},
-    install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=0.3.0', 'six'],
+    install_requires=['xmltodict', 'requests>=2.9.1', 'requests_ntlm>=1.1.0', 'six'],
     extras_require={
         'credssp': ['requests-credssp>=1.0.0'],
         'kerberos:sys_platform=="win32"': ['winkerberos>=0.5.0'],
@@ -44,6 +44,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: System :: Clustering',

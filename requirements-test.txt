@@ -1,6 +1,5 @@
 # this assumes the base requirements have been satisfied via setup.py
-# pin specific versions to keep things more stable over time; only pin sub-packages if necessary
-pytest==4.4.2
-pytest-cov==2.7.1
+pytest
+pytest-cov
 pytest-flake8==1.0.7
-mock==3.0.5
+mock
