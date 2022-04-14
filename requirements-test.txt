@@ -1,5 +1,5 @@
 # this assumes the base requirements have been satisfied via setup.py
 pytest
 pytest-cov
-pytest-flake8
+pytest-flake8==1.0.7
 mock
