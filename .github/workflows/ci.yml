@@ -8,9 +8,9 @@ on:
     branches:
     - master
 
-env:
-  WINRM_USERNAME: pywinrm-test
-  WINRM_PASSWORD: Password123!
+# env:
+#   WINRM_USERNAME: pywinrm-test
+#   WINRM_PASSWORD: Password123!
 
 jobs:
   test:
@@ -58,34 +58,33 @@ jobs:
         python-version: ${{ matrix.python-version }}
         architecture: ${{ matrix.arch }}
 
-    - name: Remove extra modules to speed up PowerShell startup module due to slow WinRM issue
-      if: startsWith(matrix.os, 'windows')
-      shell: bash
-      run: |
-        rm -rf "/c/Program Files/WindowsPowerShell/Modules/AWSPowerShell"
-        rm -rf "/c/Program Files/WindowsPowerShell/Modules/Microsoft.Graph*"
+    # - name: Remove extra modules to speed up PowerShell startup module due to slow WinRM issue
+    #   if: startsWith(matrix.os, 'windows')
+    #   shell: bash
+    #   run: |
+    #     rm -rf "/c/Program Files/WindowsPowerShell/Modules/AWSPowerShell"
+    #     rm -rf "/c/Program Files/WindowsPowerShell/Modules/Microsoft.Graph*"
 
-    - name: set up Windows integration tests
-      if: startsWith(matrix.os, 'windows')
-      shell: pwsh
-      run: |
-        Write-Host 'Create local admin user'
-        $userParams = @{
-            Name = $env:WINRM_USERNAME
-            Password = (ConvertTo-SecureString -AsPlainText -Force -String $env:WINRM_PASSWORD)
-            AccountNeverExpires = $true
-            PasswordNeverExpires = $true
-        }
-        $null = New-LocalUser @userParams
-        Add-LocalGroupMember -Group Administrators -Member $userParams.Name
+    # - name: set up Windows integration tests
+    #   if: startsWith(matrix.os, 'windows')
+    #   shell: pwsh
+    #   run: |
+    #     Write-Host 'Create local admin user'
+    #     $userParams = @{
+    #         Name = $env:WINRM_USERNAME
+    #         Password = (ConvertTo-SecureString -AsPlainText -Force -String $env:WINRM_PASSWORD)
+    #         AccountNeverExpires = $true
+    #         PasswordNeverExpires = $true
+    #     }
+    #     $null = New-LocalUser @userParams
+    #     Add-LocalGroupMember -Group Administrators -Member $userParams.Name
 
-        Write-Host 'Setting up WinRM settings'
-        Enable-PSRemoting -Force -SkipNetworkProfileCheck
-        Enable-WSManCredSSP -Role Server -Force
-        Set-Item WSMan:\localhost\Service\Auth\Basic $true
-        Set-Item WSMan:\localhost\Service\Auth\CredSSP $true
-        Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
-        Restart-Service -Name WinRM
+    #     Write-Host 'Setting up WinRM settings'
+    #     Enable-PSRemoting -Force -SkipNetworkProfileCheck
+    #     Enable-WSManCredSSP -Role Server -Force
+    #     Set-Item WSMan:\localhost\Service\Auth\Basic $true
+    #     Set-Item WSMan:\localhost\Service\Auth\CredSSP $true
+    #     Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
 
     - name: set up Linux dependencies
       if: startsWith(matrix.os, 'ubuntu')
@@ -112,9 +111,9 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       run: |
         pytest -v --flake8 --cov=winrm --cov-report=term-missing winrm/tests/
-      env:
-        WINRM_TRANSPORT: basic
-        WINRM_ENDPOINT: http://localhost:5985/wsman
+      # env:
+      #   WINRM_TRANSPORT: basic
+      #   WINRM_ENDPOINT: http://localhost:5985/wsman
 
     - name: upload coverage data
       if: "!endsWith(matrix.python-version, '2.7')"  # Uses an older coverals version that doesn't support GHA
@@ -122,20 +121,20 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: run integration with NTLM
-      if: startsWith(matrix.os, 'windows')
-      run: |
-        Set-Item WSMan:\localhost\Service\AllowUnencrypted $false
-        py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
-      env:
-        WINRM_TRANSPORT: ntlm
-        WINRM_ENDPOINT: http://localhost:5985/wsman
+    # - name: run integration with NTLM
+    #   if: startsWith(matrix.os, 'windows')
+    #   run: |
+    #     Set-Item WSMan:\localhost\Service\AllowUnencrypted $false
+    #     py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
+    #   env:
+    #     WINRM_TRANSPORT: ntlm
+    #     WINRM_ENDPOINT: http://localhost:5985/wsman
 
-    - name: run integration with CredSSP
-      if: startsWith(matrix.os, 'windows')
-      run: |
-        Set-Item WSMan:\localhost\Service\AllowUnencrypted $false
-        py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
-      env:
-        WINRM_TRANSPORT: credssp
-        WINRM_ENDPOINT: http://localhost:5985/wsman
+    # - name: run integration with CredSSP
+    #   if: startsWith(matrix.os, 'windows')
+    #   run: |
+    #     Set-Item WSMan:\localhost\Service\AllowUnencrypted $false
+    #     py.test -v winrm/tests/test_integration_protocol.py winrm/tests/test_integration_session.py
+    #   env:
+    #     WINRM_TRANSPORT: credssp
+    #     WINRM_ENDPOINT: http://localhost:5985/wsman
