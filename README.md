@@ -214,6 +214,24 @@ Enable-WSManCredSSP -Role Server -Force
 Set-Item -Path "WSMan:\localhost\Service\Auth\CredSSP" -Value $true
 ```
 
+## Known issues
+
+### Using `ntlm` transport on Ubuntu systems can lead to an `unsupported hash type md4` error
+
+When using the `ntlm` tansport method on an Ubuntu system can lead to an `unsupported hash type md4` error. This error happens because the MD4 hashing algorithm among with some others were disabled as obsolete. This issue can be fixed by reenabling the MD4 algorithm by adding the following to your `openssl` config, as mentioned in [this](https://github.com/ecederstrand/exchangelib/issues/608) threat.
+
+```
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+```
+
 ### Contributors (alphabetically)
 
 - Alessandro Pilotti
