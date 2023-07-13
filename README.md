@@ -148,7 +148,7 @@ to enable encrypted communication with pywinrm:
 Using an HTTPS endpoint is recommended, as it will encrypt all the data sent
 to the server (including all headers), works securely with all
 auth types, and can properly verify remote host identity (when used with certificates signed by a 
-verifiable certificate authority). You can use [this script](https://github.com/ansible/ansible/blob/devel/examples/scripts/ConfigureRemotingForAnsible.ps1)
+verifiable certificate authority). You can use [this script](https://github.com/ansible/ansible-documentation/blob/devel/examples/scripts/ConfigureRemotingForAnsible.ps1)
 to easily set up a HTTPS endpoint on WinRM with a self-signed certificate, but
 the use of a verifiable certificate authority is recommended in production environments.
 
@@ -194,7 +194,7 @@ Enable WinRM over HTTP and HTTPS with self-signed certificate (includes firewall
 
 ```
 # from powershell:
-Invoke-Expression ((New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1'))
+Invoke-Expression ((New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/ansible/ansible-documentation/devel/examples/scripts/ConfigureRemotingForAnsible.ps1'))
 ```
 
 Enable WinRM over HTTP for test usage (includes firewall rules):
