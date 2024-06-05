@@ -2,7 +2,8 @@ from __future__ import annotations
 
 
 class WinRMError(Exception):
-    """"Generic WinRM error"""
+    """ "Generic WinRM error"""
+
     code = 500
 
 
@@ -19,7 +20,7 @@ class WinRMTransportError(Exception):
 
     @property
     def message(self):
-        return 'Bad HTTP response returned from server. Code {0}'.format(self.code)
+        return "Bad HTTP response returned from server. Code {0}".format(self.code)
 
     @property
     def response_text(self):
@@ -35,16 +36,18 @@ class WinRMOperationTimeoutError(Exception):
     considered a normal error that should be retried transparently by the client when waiting for output from
     a long-running process.
     """
+
     code = 500
 
 
 class AuthenticationError(WinRMError):
     """Authorization Error"""
+
     code = 401
 
 
 class BasicAuthDisabledError(AuthenticationError):
-    message = 'WinRM/HTTP Basic authentication is not enabled on remote host'
+    message = "WinRM/HTTP Basic authentication is not enabled on remote host"
 
 
 class InvalidCredentialsError(AuthenticationError):

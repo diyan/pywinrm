@@ -1,4 +1,5 @@
 """Contains client side logic of WinRM SOAP protocol implementation"""
+
 from __future__ import annotations
 
 import base64
@@ -11,9 +12,9 @@ from winrm.exceptions import WinRMError, WinRMOperationTimeoutError, WinRMTransp
 from winrm.transport import Transport
 
 xmlns = {
-    'soapenv': 'http://www.w3.org/2003/05/soap-envelope',
-    'soapaddr': 'http://schemas.xmlsoap.org/ws/2004/08/addressing',
-    'wsmanfault': "http://schemas.microsoft.com/wbem/wsman/1/wsmanfault"
+    "soapenv": "http://www.w3.org/2003/05/soap-envelope",
+    "soapaddr": "http://schemas.xmlsoap.org/ws/2004/08/addressing",
+    "wsmanfault": "http://schemas.microsoft.com/wbem/wsman/1/wsmanfault",
 }
 
 
@@ -22,25 +23,34 @@ class Protocol(object):
     are a few helper classes, but pretty much everything comes through here
     first.
     """
+
     DEFAULT_READ_TIMEOUT_SEC = 30
     DEFAULT_OPERATION_TIMEOUT_SEC = 20
     DEFAULT_MAX_ENV_SIZE = 153600
-    DEFAULT_LOCALE = 'en-US'
+    DEFAULT_LOCALE = "en-US"
 
     def __init__(
-            self, endpoint, transport='plaintext', username=None,
-            password=None, realm=None, service="HTTP", keytab=None,
-            ca_trust_path='legacy_requests', cert_pem=None, cert_key_pem=None,
-            server_cert_validation='validate',
-            kerberos_delegation=False,
-            read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
-            operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
-            kerberos_hostname_override=None,
-            message_encryption='auto',
-            credssp_disable_tlsv1_2=False,
-            send_cbt=True,
-            proxy='legacy_requests',
-        ):
+        self,
+        endpoint,
+        transport="plaintext",
+        username=None,
+        password=None,
+        realm=None,
+        service="HTTP",
+        keytab=None,
+        ca_trust_path="legacy_requests",
+        cert_pem=None,
+        cert_key_pem=None,
+        server_cert_validation="validate",
+        kerberos_delegation=False,
+        read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
+        operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
+        kerberos_hostname_override=None,
+        message_encryption="auto",
+        credssp_disable_tlsv1_2=False,
+        send_cbt=True,
+        proxy="legacy_requests",
+    ):
         """
         @param string endpoint: the WinRM webservice endpoint
         @param string transport: transport type, one of 'plaintext' (default), 'kerberos', 'ssl', 'ntlm', 'credssp'  # NOQA
@@ -83,10 +93,16 @@ class Protocol(object):
         self.locale = Protocol.DEFAULT_LOCALE
 
         self.transport = Transport(
-            endpoint=endpoint, username=username, password=password,
-            realm=realm, service=service, keytab=keytab,
-            ca_trust_path=ca_trust_path, cert_pem=cert_pem,
-            cert_key_pem=cert_key_pem, read_timeout_sec=self.read_timeout_sec,
+            endpoint=endpoint,
+            username=username,
+            password=password,
+            realm=realm,
+            service=service,
+            keytab=keytab,
+            ca_trust_path=ca_trust_path,
+            cert_pem=cert_pem,
+            cert_key_pem=cert_key_pem,
+            read_timeout_sec=self.read_timeout_sec,
             server_cert_validation=server_cert_validation,
             kerberos_delegation=kerberos_delegation,
             kerberos_hostname_override=kerberos_hostname_override,
@@ -107,9 +123,17 @@ class Protocol(object):
         self.kerberos_hostname_override = kerberos_hostname_override
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
 
-    def open_shell(self, i_stream='stdin', o_stream='stdout stderr',
-                   working_directory=None, env_vars=None, noprofile=False,
-                   codepage=437, lifetime=None, idle_timeout=None):
+    def open_shell(
+        self,
+        i_stream="stdin",
+        o_stream="stdout stderr",
+        working_directory=None,
+        env_vars=None,
+        noprofile=False,
+        codepage=437,
+        lifetime=None,
+        idle_timeout=None,
+    ):
         """
         Create a Shell on the destination host
         @param string i_stream: Which input stream to open. Leave this alone
@@ -124,115 +148,80 @@ class Protocol(object):
          instance on the remote machine.
         @rtype string
         """
-        req = {'env:Envelope': self._get_soap_header(
-            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
-            action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Create')}
-        header = req['env:Envelope']['env:Header']
-        header['w:OptionSet'] = {
-            'w:Option': [
-                {
-                    '@Name': 'WINRS_NOPROFILE',
-                    '#text': str(noprofile).upper()  # TODO remove str call
-                },
-                {
-                    '@Name': 'WINRS_CODEPAGE',
-                    '#text': str(codepage)  # TODO remove str call
-                }
+        req = {
+            "env:Envelope": self._get_soap_header(
+                resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
+                action="http://schemas.xmlsoap.org/ws/2004/09/transfer/Create",
+            )
+        }
+        header = req["env:Envelope"]["env:Header"]
+        header["w:OptionSet"] = {
+            "w:Option": [
+                {"@Name": "WINRS_NOPROFILE", "#text": str(noprofile).upper()},  # TODO remove str call
+                {"@Name": "WINRS_CODEPAGE", "#text": str(codepage)},  # TODO remove str call
             ]
         }
 
-        shell = req['env:Envelope'].setdefault(
-            'env:Body', {}).setdefault('rsp:Shell', {})
-        shell['rsp:InputStreams'] = i_stream
-        shell['rsp:OutputStreams'] = o_stream
+        shell = req["env:Envelope"].setdefault("env:Body", {}).setdefault("rsp:Shell", {})
+        shell["rsp:InputStreams"] = i_stream
+        shell["rsp:OutputStreams"] = o_stream
 
         if working_directory:
             # TODO ensure that rsp:WorkingDirectory should be nested within rsp:Shell  # NOQA
-            shell['rsp:WorkingDirectory'] = working_directory
+            shell["rsp:WorkingDirectory"] = working_directory
             # TODO check Lifetime param: http://msdn.microsoft.com/en-us/library/cc251546(v=PROT.13).aspx  # NOQA
             # if lifetime:
             #    shell['rsp:Lifetime'] = iso8601_duration.sec_to_dur(lifetime)
         # TODO make it so the input is given in milliseconds and converted to xs:duration  # NOQA
         if idle_timeout:
-            shell['rsp:IdleTimeOut'] = idle_timeout
+            shell["rsp:IdleTimeOut"] = idle_timeout
         if env_vars:
             # the rsp:Variable tag needs to be list of variables so that all
             # environment variables in the env_vars dict are set on the shell
-            env = shell.setdefault('rsp:Environment', {}).setdefault('rsp:Variable', [])
+            env = shell.setdefault("rsp:Environment", {}).setdefault("rsp:Variable", [])
             for key, value in env_vars.items():
-                env.append({'@Name': key, '#text': value})
+                env.append({"@Name": key, "#text": value})
 
         res = self.send_message(xmltodict.unparse(req))
 
         # res = xmltodict.parse(res)
         # return res['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
         root = ET.fromstring(res)
-        return next(
-            node for node in root.findall('.//*')
-            if node.get('Name') == 'ShellId').text
+        return next(node for node in root.findall(".//*") if node.get("Name") == "ShellId").text
 
     # Helper method for building SOAP Header
-    def _get_soap_header(
-            self, action=None, resource_uri=None, shell_id=None,
-            message_id=None):
+    def _get_soap_header(self, action=None, resource_uri=None, shell_id=None, message_id=None):
         if not message_id:
             message_id = uuid.uuid4()
         header = {
-            '@xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
-            '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-            '@xmlns:env': xmlns['soapenv'],
-
-            '@xmlns:a': xmlns['soapaddr'],
-            '@xmlns:b': 'http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd',
-            '@xmlns:n': 'http://schemas.xmlsoap.org/ws/2004/09/enumeration',
-            '@xmlns:x': 'http://schemas.xmlsoap.org/ws/2004/09/transfer',
-            '@xmlns:w': 'http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd',
-            '@xmlns:p': 'http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd',
-            '@xmlns:rsp': 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell',  # NOQA
-            '@xmlns:cfg': 'http://schemas.microsoft.com/wbem/wsman/1/config',
-
-            'env:Header': {
-                'a:To': 'http://windows-host:5985/wsman',
-                'a:ReplyTo': {
-                    'a:Address': {
-                        '@mustUnderstand': 'true',
-                        '#text': 'http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous'  # NOQA
-                    }
-                },
-                'w:MaxEnvelopeSize': {
-                    '@mustUnderstand': 'true',
-                    '#text': '153600'
-                },
-                'a:MessageID': 'uuid:{0}'.format(message_id),
-                'w:Locale': {
-                    '@mustUnderstand': 'false',
-                    '@xml:lang': 'en-US'
-                },
-                'p:DataLocale': {
-                    '@mustUnderstand': 'false',
-                    '@xml:lang': 'en-US'
-                },
+            "@xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
+            "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+            "@xmlns:env": xmlns["soapenv"],
+            "@xmlns:a": xmlns["soapaddr"],
+            "@xmlns:b": "http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd",
+            "@xmlns:n": "http://schemas.xmlsoap.org/ws/2004/09/enumeration",
+            "@xmlns:x": "http://schemas.xmlsoap.org/ws/2004/09/transfer",
+            "@xmlns:w": "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd",
+            "@xmlns:p": "http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd",
+            "@xmlns:rsp": "http://schemas.microsoft.com/wbem/wsman/1/windows/shell",  # NOQA
+            "@xmlns:cfg": "http://schemas.microsoft.com/wbem/wsman/1/config",
+            "env:Header": {
+                "a:To": "http://windows-host:5985/wsman",
+                "a:ReplyTo": {"a:Address": {"@mustUnderstand": "true", "#text": "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous"}},  # NOQA
+                "w:MaxEnvelopeSize": {"@mustUnderstand": "true", "#text": "153600"},
+                "a:MessageID": "uuid:{0}".format(message_id),
+                "w:Locale": {"@mustUnderstand": "false", "@xml:lang": "en-US"},
+                "p:DataLocale": {"@mustUnderstand": "false", "@xml:lang": "en-US"},
                 # TODO: research this a bit http://msdn.microsoft.com/en-us/library/cc251561(v=PROT.13).aspx  # NOQA
                 # 'cfg:MaxTimeoutms': 600
                 # Operation timeout in ISO8601 format, see http://msdn.microsoft.com/en-us/library/ee916629(v=PROT.13).aspx  # NOQA
-                'w:OperationTimeout': 'PT{0}S'.format(int(self.operation_timeout_sec)),
-                'w:ResourceURI': {
-                    '@mustUnderstand': 'true',
-                    '#text': resource_uri
-                },
-                'a:Action': {
-                    '@mustUnderstand': 'true',
-                    '#text': action
-                }
-            }
+                "w:OperationTimeout": "PT{0}S".format(int(self.operation_timeout_sec)),
+                "w:ResourceURI": {"@mustUnderstand": "true", "#text": resource_uri},
+                "a:Action": {"@mustUnderstand": "true", "#text": action},
+            },
         }
         if shell_id:
-            header['env:Header']['w:SelectorSet'] = {
-                'w:Selector': {
-                    '@Name': 'ShellId',
-                    '#text': shell_id
-                }
-            }
+            header["env:Header"]["w:SelectorSet"] = {"w:Selector": {"@Name": "ShellId", "#text": shell_id}}
         return header
 
     def send_message(self, message):
@@ -249,35 +238,32 @@ class Protocol(object):
                 # assume some other transport error; raise the original exception
                 raise ex
 
-            fault = root.find('soapenv:Body/soapenv:Fault', xmlns)
+            fault = root.find("soapenv:Body/soapenv:Fault", xmlns)
             if fault is not None:
-                fault_data = dict(
-                    transport_message=ex.message,
-                    http_status_code=ex.code
-                )
-                wsmanfault_code = fault.find('soapenv:Detail/wsmanfault:WSManFault[@Code]', xmlns)
+                fault_data = dict(transport_message=ex.message, http_status_code=ex.code)
+                wsmanfault_code = fault.find("soapenv:Detail/wsmanfault:WSManFault[@Code]", xmlns)
                 if wsmanfault_code is not None:
-                    fault_data['wsmanfault_code'] = wsmanfault_code.get('Code')
+                    fault_data["wsmanfault_code"] = wsmanfault_code.get("Code")
                     # convert receive timeout code to WinRMOperationTimeoutError
-                    if fault_data['wsmanfault_code'] == '2150858793':
+                    if fault_data["wsmanfault_code"] == "2150858793":
                         # TODO: this fault code is specific to the Receive operation; convert all op timeouts?
                         raise WinRMOperationTimeoutError()
 
-                fault_code = fault.find('soapenv:Code/soapenv:Value', xmlns)
+                fault_code = fault.find("soapenv:Code/soapenv:Value", xmlns)
                 if fault_code is not None:
-                    fault_data['fault_code'] = fault_code.text
+                    fault_data["fault_code"] = fault_code.text
 
-                fault_subcode = fault.find('soapenv:Code/soapenv:Subcode/soapenv:Value', xmlns)
+                fault_subcode = fault.find("soapenv:Code/soapenv:Subcode/soapenv:Value", xmlns)
                 if fault_subcode is not None:
-                    fault_data['fault_subcode'] = fault_subcode.text
+                    fault_data["fault_subcode"] = fault_subcode.text
 
-                error_message = fault.find('soapenv:Reason/soapenv:Text', xmlns)
+                error_message = fault.find("soapenv:Reason/soapenv:Text", xmlns)
                 if error_message is not None:
                     error_message = error_message.text
                 else:
                     error_message = "(no error message in fault)"
 
-                raise WinRMError('{0} (extended fault data: {1})'.format(error_message, fault_data))
+                raise WinRMError("{0} (extended fault data: {1})".format(error_message, fault_data))
 
     def close_shell(self, shell_id, close_session=True):
         """
@@ -292,20 +278,21 @@ class Protocol(object):
         """
         try:
             message_id = uuid.uuid4()
-            req = {'env:Envelope': self._get_soap_header(
-                resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
-                action='http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete',
-                shell_id=shell_id,
-                message_id=message_id)}
+            req = {
+                "env:Envelope": self._get_soap_header(
+                    resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
+                    action="http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete",
+                    shell_id=shell_id,
+                    message_id=message_id,
+                )
+            }
 
             # SOAP message requires empty env:Body
-            req['env:Envelope'].setdefault('env:Body', {})
+            req["env:Envelope"].setdefault("env:Body", {})
 
             res = self.send_message(xmltodict.unparse(req))
             root = ET.fromstring(res)
-            relates_to = next(
-                node for node in root.findall('.//*')
-                if node.tag.endswith('RelatesTo')).text
+            relates_to = next(node for node in root.findall(".//*") if node.tag.endswith("RelatesTo")).text
         finally:
             # Close the transport if we are done with the shell.
             # This will ensure no lingering TCP connections are thrown back into a requests' connection pool.
@@ -313,11 +300,9 @@ class Protocol(object):
                 self.transport.close_session()
 
         # TODO change assert into user-friendly exception
-        assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
+        assert uuid.UUID(relates_to.replace("uuid:", "")) == message_id
 
-    def run_command(
-            self, shell_id, command, arguments=(), console_mode_stdin=True,
-            skip_cmd_shell=False):
+    def run_command(self, shell_id, command, arguments=(), console_mode_stdin=True, skip_cmd_shell=False):
         """
         Run a command on a machine with an open shell
         @param string shell_id: The shell id on the remote machine.
@@ -331,35 +316,29 @@ class Protocol(object):
          This is the ID we need to query in order to get output.
         @rtype string
         """
-        req = {'env:Envelope': self._get_soap_header(
-            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
-            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command',  # NOQA
-            shell_id=shell_id)}
-        header = req['env:Envelope']['env:Header']
-        header['w:OptionSet'] = {
-            'w:Option': [
-                {
-                    '@Name': 'WINRS_CONSOLEMODE_STDIN',
-                    '#text': str(console_mode_stdin).upper()
-                },
-                {
-                    '@Name': 'WINRS_SKIP_CMD_SHELL',
-                    '#text': str(skip_cmd_shell).upper()
-                }
+        req = {
+            "env:Envelope": self._get_soap_header(
+                resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
+                action="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command",  # NOQA
+                shell_id=shell_id,
+            )
+        }
+        header = req["env:Envelope"]["env:Header"]
+        header["w:OptionSet"] = {
+            "w:Option": [
+                {"@Name": "WINRS_CONSOLEMODE_STDIN", "#text": str(console_mode_stdin).upper()},
+                {"@Name": "WINRS_SKIP_CMD_SHELL", "#text": str(skip_cmd_shell).upper()},
             ]
         }
-        cmd_line = req['env:Envelope'].setdefault(
-            'env:Body', {}).setdefault('rsp:CommandLine', {})
-        cmd_line['rsp:Command'] = {'#text': command}
+        cmd_line = req["env:Envelope"].setdefault("env:Body", {}).setdefault("rsp:CommandLine", {})
+        cmd_line["rsp:Command"] = {"#text": command}
         if arguments:
-            unicode_args = [a if isinstance(a, str) else a.decode('utf-8') for a in arguments]
-            cmd_line['rsp:Arguments'] = u' '.join(unicode_args)
+            unicode_args = [a if isinstance(a, str) else a.decode("utf-8") for a in arguments]
+            cmd_line["rsp:Arguments"] = " ".join(unicode_args)
 
         res = self.send_message(xmltodict.unparse(req))
         root = ET.fromstring(res)
-        command_id = next(
-            node for node in root.findall('.//*')
-            if node.tag.endswith('CommandId')).text
+        command_id = next(node for node in root.findall(".//*") if node.tag.endswith("CommandId")).text
         return command_id
 
     def cleanup_command(self, shell_id, command_id):
@@ -374,25 +353,25 @@ class Protocol(object):
         @rtype bool
         """
         message_id = uuid.uuid4()
-        req = {'env:Envelope': self._get_soap_header(
-            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
-            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal',  # NOQA
-            shell_id=shell_id,
-            message_id=message_id)}
+        req = {
+            "env:Envelope": self._get_soap_header(
+                resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
+                action="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal",  # NOQA
+                shell_id=shell_id,
+                message_id=message_id,
+            )
+        }
 
         # Signal the Command references to terminate (close stdout/stderr)
-        signal = req['env:Envelope'].setdefault(
-            'env:Body', {}).setdefault('rsp:Signal', {})
-        signal['@CommandId'] = command_id
-        signal['rsp:Code'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate'  # NOQA
+        signal = req["env:Envelope"].setdefault("env:Body", {}).setdefault("rsp:Signal", {})
+        signal["@CommandId"] = command_id
+        signal["rsp:Code"] = "http://schemas.microsoft.com/wbem/wsman/1/windows/shell/signal/terminate"  # NOQA
 
         res = self.send_message(xmltodict.unparse(req))
         root = ET.fromstring(res)
-        relates_to = next(
-            node for node in root.findall('.//*')
-            if node.tag.endswith('RelatesTo')).text
+        relates_to = next(node for node in root.findall(".//*") if node.tag.endswith("RelatesTo")).text
         # TODO change assert into user-friendly exception
-        assert uuid.UUID(relates_to.replace('uuid:', '')) == message_id
+        assert uuid.UUID(relates_to.replace("uuid:", "")) == message_id
 
     def send_command_input(self, shell_id, command_id, stdin_input, end=False):
         """
@@ -411,20 +390,22 @@ class Protocol(object):
         """
         if isinstance(stdin_input, str):
             stdin_input = stdin_input.encode("437")
-        req = {'env:Envelope': self._get_soap_header(
-            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
-            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send',  # NOQA
-            shell_id=shell_id)}
-        stdin_envelope = req['env:Envelope'].setdefault('env:Body', {}).setdefault(
-            'rsp:Send', {}).setdefault('rsp:Stream', {})
-        stdin_envelope['@CommandId'] = command_id
-        stdin_envelope['@Name'] = 'stdin'
+        req = {
+            "env:Envelope": self._get_soap_header(
+                resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
+                action="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send",  # NOQA
+                shell_id=shell_id,
+            )
+        }
+        stdin_envelope = req["env:Envelope"].setdefault("env:Body", {}).setdefault("rsp:Send", {}).setdefault("rsp:Stream", {})
+        stdin_envelope["@CommandId"] = command_id
+        stdin_envelope["@Name"] = "stdin"
         if end:
-            stdin_envelope['@End'] = "true"
+            stdin_envelope["@End"] = "true"
         else:
-            stdin_envelope['@End'] = "false"
-        stdin_envelope['@xmlns:rsp'] = 'http://schemas.microsoft.com/wbem/wsman/1/windows/shell'
-        stdin_envelope['#text'] = base64.b64encode(stdin_input)
+            stdin_envelope["@End"] = "false"
+        stdin_envelope["@xmlns:rsp"] = "http://schemas.microsoft.com/wbem/wsman/1/windows/shell"
+        stdin_envelope["#text"] = base64.b64encode(stdin_input)
         self.send_message(xmltodict.unparse(req))
 
     def get_command_output(self, shell_id, command_id):
@@ -444,40 +425,39 @@ class Protocol(object):
         command_done = False
         while not command_done:
             try:
-                stdout, stderr, return_code, command_done = \
-                    self._raw_get_command_output(shell_id, command_id)
+                stdout, stderr, return_code, command_done = self._raw_get_command_output(shell_id, command_id)
                 stdout_buffer.append(stdout)
                 stderr_buffer.append(stderr)
             except WinRMOperationTimeoutError:
                 # this is an expected error when waiting for a long-running process, just silently retry
                 pass
-        return b''.join(stdout_buffer), b''.join(stderr_buffer), return_code
+        return b"".join(stdout_buffer), b"".join(stderr_buffer), return_code
 
     def _raw_get_command_output(self, shell_id, command_id):
-        req = {'env:Envelope': self._get_soap_header(
-            resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA
-            action='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive',  # NOQA
-            shell_id=shell_id)}
+        req = {
+            "env:Envelope": self._get_soap_header(
+                resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
+                action="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive",  # NOQA
+                shell_id=shell_id,
+            )
+        }
 
-        stream = req['env:Envelope'].setdefault('env:Body', {}).setdefault(
-            'rsp:Receive', {}).setdefault('rsp:DesiredStream', {})
-        stream['@CommandId'] = command_id
-        stream['#text'] = 'stdout stderr'
+        stream = req["env:Envelope"].setdefault("env:Body", {}).setdefault("rsp:Receive", {}).setdefault("rsp:DesiredStream", {})
+        stream["@CommandId"] = command_id
+        stream["#text"] = "stdout stderr"
 
         res = self.send_message(xmltodict.unparse(req))
         root = ET.fromstring(res)
-        stream_nodes = [
-            node for node in root.findall('.//*')
-            if node.tag.endswith('Stream')]
-        stdout = stderr = b''
+        stream_nodes = [node for node in root.findall(".//*") if node.tag.endswith("Stream")]
+        stdout = stderr = b""
         return_code = -1
         for stream_node in stream_nodes:
             if not stream_node.text:
                 continue
-            if stream_node.attrib['Name'] == 'stdout':
-                stdout += base64.b64decode(stream_node.text.encode('ascii'))
-            elif stream_node.attrib['Name'] == 'stderr':
-                stderr += base64.b64decode(stream_node.text.encode('ascii'))
+            if stream_node.attrib["Name"] == "stdout":
+                stdout += base64.b64decode(stream_node.text.encode("ascii"))
+            elif stream_node.attrib["Name"] == "stderr":
+                stderr += base64.b64decode(stream_node.text.encode("ascii"))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
@@ -488,12 +468,8 @@ class Protocol(object):
         #   <rsp:CommandState CommandId="..." State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
         #     <rsp:ExitCode>0</rsp:ExitCode>
         #   </rsp:CommandState>
-        command_done = len([
-            node for node in root.findall('.//*')
-            if node.get('State', '').endswith('CommandState/Done')]) == 1
+        command_done = len([node for node in root.findall(".//*") if node.get("State", "").endswith("CommandState/Done")]) == 1
         if command_done:
-            return_code = int(
-                next(node for node in root.findall('.//*')
-                     if node.tag.endswith('ExitCode')).text)
+            return_code = int(next(node for node in root.findall(".//*") if node.tag.endswith("ExitCode")).text)
 
         return stdout, stderr, return_code, command_done
