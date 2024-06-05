@@ -10,7 +10,7 @@ from winrm.exceptions import WinRMError
 class Encryption(object):
 
     SIXTEN_KB = 16384
-    MIME_BOUNDARY = b'--Encrypted Boundary'
+    MIME_BOUNDARY = b"--Encrypted Boundary"
 
     def __init__(self, session, protocol):
         """
@@ -36,15 +36,15 @@ class Encryption(object):
         self.protocol = protocol
         self.session = session
 
-        if protocol == 'ntlm':  # Details under Negotiate [2.2.9.1.1] in MS-WSMV
+        if protocol == "ntlm":  # Details under Negotiate [2.2.9.1.1] in MS-WSMV
             self.protocol_string = b"application/HTTP-SPNEGO-session-encrypted"
             self._build_message = self._build_ntlm_message
             self._decrypt_message = self._decrypt_ntlm_message
-        elif protocol == 'credssp':  # Details under CredSSP [2.2.9.1.3] in MS-WSMV
+        elif protocol == "credssp":  # Details under CredSSP [2.2.9.1.3] in MS-WSMV
             self.protocol_string = b"application/HTTP-CredSSP-session-encrypted"
             self._build_message = self._build_credssp_message
             self._decrypt_message = self._decrypt_credssp_message
-        elif protocol == 'kerberos':
+        elif protocol == "kerberos":
             self.protocol_string = b"application/HTTP-SPNEGO-session-encrypted"
             self._build_message = self._build_kerberos_message
             self._decrypt_message = self._decrypt_kerberos_message
@@ -63,23 +63,22 @@ class Encryption(object):
         """
         host = urlsplit(endpoint).hostname
 
-        if self.protocol == 'credssp' and len(message) > self.SIXTEN_KB:
-            content_type = 'multipart/x-multi-encrypted'
-            encrypted_message = b''
-            message_chunks = [message[i:i+self.SIXTEN_KB] for i in range(0, len(message), self.SIXTEN_KB)]
+        if self.protocol == "credssp" and len(message) > self.SIXTEN_KB:
+            content_type = "multipart/x-multi-encrypted"
+            encrypted_message = b""
+            message_chunks = [message[i : i + self.SIXTEN_KB] for i in range(0, len(message), self.SIXTEN_KB)]
             for message_chunk in message_chunks:
                 encrypted_chunk = self._encrypt_message(message_chunk, host)
                 encrypted_message += encrypted_chunk
         else:
-            content_type = 'multipart/encrypted'
+            content_type = "multipart/encrypted"
             encrypted_message = self._encrypt_message(message, host)
         encrypted_message += self.MIME_BOUNDARY + b"--\r\n"
 
-        request = requests.Request('POST', endpoint, data=encrypted_message)
+        request = requests.Request("POST", endpoint, data=encrypted_message)
         prepared_request = session.prepare_request(request)
-        prepared_request.headers['Content-Length'] = str(len(prepared_request.body))
-        prepared_request.headers['Content-Type'] = '{0};protocol="{1}";boundary="Encrypted Boundary"'\
-            .format(content_type, self.protocol_string.decode())
+        prepared_request.headers["Content-Length"] = str(len(prepared_request.body))
+        prepared_request.headers["Content-Type"] = '{0};protocol="{1}";boundary="Encrypted Boundary"'.format(content_type, self.protocol_string.decode())
 
         return prepared_request
 
@@ -90,7 +89,7 @@ class Encryption(object):
         :param response: The response that needs to be decrypted
         :return: The unencrypted message from the server
         """
-        content_type = response.headers['Content-Type']
+        content_type = response.headers["Content-Type"]
         if 'protocol="{0}"'.format(self.protocol_string.decode()) in content_type:
             host = urlsplit(response.request.url).hostname
             msg = self._decrypt_response(response, host)
@@ -103,19 +102,19 @@ class Encryption(object):
         message_length = str(len(message)).encode()
         encrypted_stream = self._build_message(message, host)
 
-        message_payload = self.MIME_BOUNDARY + b"\r\n" \
-                                               b"\tContent-Type: " + self.protocol_string + b"\r\n" \
-                                               b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=" + message_length + b"\r\n" + \
-                                               self.MIME_BOUNDARY + b"\r\n" \
-                                               b"\tContent-Type: application/octet-stream\r\n" + \
-                                               encrypted_stream
+        message_payload = (
+            self.MIME_BOUNDARY + b"\r\n"
+            b"\tContent-Type: " + self.protocol_string + b"\r\n"
+            b"\tOriginalContent: type=application/soap+xml;charset=UTF-8;Length=" + message_length + b"\r\n" + self.MIME_BOUNDARY + b"\r\n"
+            b"\tContent-Type: application/octet-stream\r\n" + encrypted_stream
+        )
 
         return message_payload
 
     def _decrypt_response(self, response, host):
-        parts = response.content.split(self.MIME_BOUNDARY + b'\r\n')
+        parts = response.content.split(self.MIME_BOUNDARY + b"\r\n")
         parts = list(filter(None, parts))  # filter out empty parts of the split
-        message = b''
+        message = b""
 
         for i in range(0, len(parts)):
             if i % 2 == 1:
@@ -124,27 +123,26 @@ class Encryption(object):
             header = parts[i].strip()
             payload = parts[i + 1]
 
-            expected_length = int(header.split(b'Length=')[1])
+            expected_length = int(header.split(b"Length=")[1])
 
             # remove the end MIME block if it exists
-            if payload.endswith(self.MIME_BOUNDARY + b'--\r\n'):
-                payload = payload[:len(payload) - 24]
+            if payload.endswith(self.MIME_BOUNDARY + b"--\r\n"):
+                payload = payload[: len(payload) - 24]
 
-            encrypted_data = payload.replace(b'\tContent-Type: application/octet-stream\r\n', b'')
+            encrypted_data = payload.replace(b"\tContent-Type: application/octet-stream\r\n", b"")
             decrypted_message = self._decrypt_message(encrypted_data, host)
             actual_length = len(decrypted_message)
 
             if actual_length != expected_length:
-                raise WinRMError('Encrypted length from server does not match the '
-                                 'expected size, message has been tampered with')
+                raise WinRMError("Encrypted length from server does not match the " "expected size, message has been tampered with")
             message += decrypted_message
 
         return message
 
     def _decrypt_ntlm_message(self, encrypted_data, host):
         signature_length = struct.unpack("<i", encrypted_data[:4])[0]
-        signature = encrypted_data[4:signature_length + 4]
-        encrypted_message = encrypted_data[signature_length + 4:]
+        signature = encrypted_data[4 : signature_length + 4]
+        encrypted_message = encrypted_data[signature_length + 4 :]
 
         message = self.session.auth.session_security.unwrap(encrypted_message, signature)
 
@@ -161,8 +159,8 @@ class Encryption(object):
 
     def _decrypt_kerberos_message(self, encrypted_data, host):
         signature_length = struct.unpack("<i", encrypted_data[:4])[0]
-        signature = encrypted_data[4:signature_length + 4]
-        encrypted_message = encrypted_data[signature_length + 4:]
+        signature = encrypted_data[4 : signature_length + 4]
+        encrypted_message = encrypted_data[signature_length + 4 :]
 
         message = self.session.auth.unwrap_winrm(host, encrypted_message, signature)
 
@@ -195,7 +193,7 @@ class Encryption(object):
         # but there is no GSSAPI/OpenSSL equivalent so we need to calculate it
         # ourselves
 
-        if re.match(r'^.*-GCM-[\w\d]*$', cipher_suite):
+        if re.match(r"^.*-GCM-[\w\d]*$", cipher_suite):
             # We are using GCM for the cipher suite, GCM has a fixed length of 16
             # bytes for the TLS trailer making it easy for us
             trailer_length = 16
@@ -203,17 +201,17 @@ class Encryption(object):
             # We are not using GCM so need to calculate the trailer size. The
             # trailer length is equal to the length of the hmac + the length of the
             # padding required by the block cipher
-            hash_algorithm = cipher_suite.split('-')[-1]
+            hash_algorithm = cipher_suite.split("-")[-1]
 
             # while there are other algorithms, SChannel doesn't support them
             # as of yet https://msdn.microsoft.com/en-us/library/windows/desktop/aa374757(v=vs.85).aspx
-            if hash_algorithm == 'MD5':
+            if hash_algorithm == "MD5":
                 hash_length = 16
-            elif hash_algorithm == 'SHA':
+            elif hash_algorithm == "SHA":
                 hash_length = 20
-            elif hash_algorithm == 'SHA256':
+            elif hash_algorithm == "SHA256":
                 hash_length = 32
-            elif hash_algorithm == 'SHA384':
+            elif hash_algorithm == "SHA384":
                 hash_length = 48
             else:
                 hash_length = 0

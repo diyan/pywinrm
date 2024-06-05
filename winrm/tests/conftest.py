@@ -493,6 +493,7 @@ stdin_cmd_cleanup_response = """\
 </s:Envelope>
 """
 
+
 def sort_dict(ordered_dict):
     items = sorted(ordered_dict.items(), key=lambda x: x[0])
     ordered_dict.clear()
@@ -516,19 +517,15 @@ class TransportStub(object):
             return open_shell_response
         elif xml_str_compare(message, close_shell_request):
             return close_shell_response
-        elif xml_str_compare(
-                message, run_cmd_with_args_request) or xml_str_compare(
-                message, run_cmd_wo_args_request):
-            return run_cmd_ps_response % '1'
+        elif xml_str_compare(message, run_cmd_with_args_request) or xml_str_compare(message, run_cmd_wo_args_request):
+            return run_cmd_ps_response % "1"
         elif xml_str_compare(message, run_ps_request):
-            return run_cmd_ps_response % '2'
-        elif xml_str_compare(
-                message, cleanup_cmd_request % '1') or xml_str_compare(
-                message, cleanup_cmd_request % '2'):
+            return run_cmd_ps_response % "2"
+        elif xml_str_compare(message, cleanup_cmd_request % "1") or xml_str_compare(message, cleanup_cmd_request % "2"):
             return cleanup_cmd_response
-        elif xml_str_compare(message, get_cmd_ps_output_request % '1'):
+        elif xml_str_compare(message, get_cmd_ps_output_request % "1"):
             return get_cmd_output_response
-        elif xml_str_compare(message, get_cmd_ps_output_request % '2'):
+        elif xml_str_compare(message, get_cmd_ps_output_request % "2"):
             return get_ps_output_response
         elif xml_str_compare(message, run_cmd_req_input):
             return run_cmd_req_input_response
@@ -539,26 +536,21 @@ class TransportStub(object):
         elif xml_str_compare(message, stdin_cmd_cleanup):
             return stdin_cmd_cleanup_response
         else:
-            raise Exception('Message was not expected\n\n%s' % message)
+            raise Exception("Message was not expected\n\n%s" % message)
 
     def close_session(self):
         pass
 
 
-@fixture(scope='module')
+@fixture(scope="module")
 def protocol_fake(request):
-    uuid4_patcher = patch('uuid.uuid4')
+    uuid4_patcher = patch("uuid.uuid4")
     uuid4_mock = uuid4_patcher.start()
-    uuid4_mock.return_value = uuid.UUID(
-        '11111111-1111-1111-1111-111111111111')
+    uuid4_mock.return_value = uuid.UUID("11111111-1111-1111-1111-111111111111")
 
     from winrm.protocol import Protocol
 
-    protocol_fake = Protocol(
-        endpoint='http://windows-host:5985/wsman',
-        transport='plaintext',
-        username='john.smith',
-        password='secret')
+    protocol_fake = Protocol(endpoint="http://windows-host:5985/wsman", transport="plaintext", username="john.smith", password="secret")
 
     protocol_fake.transport = TransportStub()
 
@@ -569,27 +561,24 @@ def protocol_fake(request):
     return protocol_fake
 
 
-@fixture(scope='module')
+@fixture(scope="module")
 def protocol_real():
-    endpoint = os.environ.get('WINRM_ENDPOINT', None)
-    transport = os.environ.get('WINRM_TRANSPORT', None)
-    username = os.environ.get('WINRM_USERNAME', None)
-    password = os.environ.get('WINRM_PASSWORD', None)
+    endpoint = os.environ.get("WINRM_ENDPOINT", None)
+    transport = os.environ.get("WINRM_TRANSPORT", None)
+    username = os.environ.get("WINRM_USERNAME", None)
+    password = os.environ.get("WINRM_PASSWORD", None)
     if endpoint:
-        settings = dict(
-            endpoint=endpoint,
-            operation_timeout_sec=5,
-            read_timeout_sec=7
-        )
+        settings = dict(endpoint=endpoint, operation_timeout_sec=5, read_timeout_sec=7)
         if transport:
-            settings['transport'] = transport
+            settings["transport"] = transport
         if username:
-            settings['username'] = username
+            settings["username"] = username
         if password:
-            settings['password'] = password
+            settings["password"] = password
 
         from winrm.protocol import Protocol
+
         protocol = Protocol(**settings)
         return protocol
     else:
-        skip('WINRM_ENDPOINT environment variable was not set. Integration tests will be skipped')
+        skip("WINRM_ENDPOINT environment variable was not set. Integration tests will be skipped")
