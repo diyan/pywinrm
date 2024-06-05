@@ -1,15 +1,10 @@
-import requests
 import re
 import struct
-import sys
+from urllib.parse import urlsplit
+
+import requests
+
 from winrm.exceptions import WinRMError
-
-is_py2 = sys.version[0] == '2'
-
-if is_py2:
-    from urlparse import urlsplit
-else:
-    from urllib.parse import urlsplit
 
 
 class Encryption(object):

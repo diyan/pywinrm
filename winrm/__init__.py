@@ -1,10 +1,13 @@
-from __future__ import unicode_literals
+from __future__ import annotations
+
 import re
-from base64 import b64encode
-import xml.etree.ElementTree as ET
 import warnings
+import xml.etree.ElementTree as ET
+from base64 import b64encode
 
 from winrm.protocol import Protocol
+
+__version__ = '0.5.0'
 
 # Feature support attributes for multi-version clients.
 # These values can be easily checked for with hasattr(winrm, "FEATURE_X"),

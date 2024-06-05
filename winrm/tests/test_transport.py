@@ -1,10 +1,11 @@
 # coding=utf-8
 import os
-import mock
 import unittest
 
+import mock
+
 from winrm import transport
-from winrm.exceptions import WinRMError, InvalidCredentialsError
+from winrm.exceptions import InvalidCredentialsError, WinRMError
 
 
 class TestTransport(unittest.TestCase):

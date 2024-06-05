@@ -1,10 +1,10 @@
 # flake8: noqa
 import os
 import uuid
-import xmltodict
-from pytest import skip, fixture
-from mock import patch
 
+import xmltodict
+from mock import patch
+from pytest import fixture, skip
 
 open_shell_request = """\
 <?xml version="1.0" encoding="utf-8"?>

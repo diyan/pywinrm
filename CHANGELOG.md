@@ -1,5 +1,9 @@
 # Changelog
 
+### Version 0.5.0
+- Dropped Python 2.7, 3.6, and 3.7 support, minimum supported version is 3.8
+- Migrate to PEP 517 compliant build with a `pyproject.toml` file
+
 ### Version 0.4.3
 - Fix invalid regex escape sequences.
 - Decoding CLIXML failures for `run_ps` will create a `UserWarning` rather than printing the warning.

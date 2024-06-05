@@ -1,0 +1,80 @@
+[build-system]
+requires = [
+    "setuptools >= 61.0.0", # Support for setuptools config in pyproject.toml
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pywinrm"
+description = "Python library for Windows Remote Management"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Alexey Diyan", email = "alexey.diyan@gmail.com" }
+]
+keywords = ["winrm", "ws-man", "devops", "ws-management"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Natural Language :: English",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Clustering",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: System :: Systems Administration"
+]
+dependencies = [
+    "requests >= 2.9.1",
+    "requests_ntlm >= 1.1.0",
+    "xmltodict"
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "http://github.com/diyan/pywinrm/"
+
+
+[project.optional-dependencies]
+credssp = [
+    "requests-credssp >= 1.0.0"
+]
+kerberos = [
+    "pykerberos >= 1.2.1, < 2.0.0; sys_platform != 'win32'",
+    "winkerberos >= 0.5.0; sys_platform == 'win32'"
+]
+
+[tool.setuptools]
+include-package-data = true
+packages = ["winrm"]
+
+[tool.setuptools.package-data]
+"winrm.tests" = ["*.ps1"]
+
+[tool.setuptools.dynamic]
+version = { attr = "winrm.__version__" }
+
+[tool.black]
+line-length = 160
+exclude = '''
+/(
+    \.git
+    | \.venv
+    | build
+    | dist
+    | winrm/vendor
+)/
+'''
+
+[tool.isort]
+profile = "black"
