@@ -34,6 +34,12 @@ jobs:
         - os: macos-latest
           arch: x86
         - os: macos-latest
+          python-version: 3.8
+        - os: macos-latest
+          python-version: 3.9
+        - os: macos-latest
+          python-version: '3.10'
+        - os: macos-latest
           python-version: pypy-3.9
         - os: macos-latest
           python-version: pypy-3.10
@@ -58,7 +64,7 @@ jobs:
       run: >-
         sudo apt-get install -y
         gcc
-        python-dev
+        python3-dev
         libkrb5-dev
       env:
         DEBIAN_FRONTEND: noninteractive
