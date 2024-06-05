@@ -30,9 +30,9 @@ The entire `requests.api` should be supported.
 """
 import logging
 
-from .kerberos_ import HTTPKerberosAuth, REQUIRED, OPTIONAL, DISABLED
-from .exceptions import MutualAuthenticationError
 from .compat import NullHandler
+from .exceptions import MutualAuthenticationError
+from .kerberos_ import DISABLED, OPTIONAL, REQUIRED, HTTPKerberosAuth
 
 logging.getLogger(__name__).addHandler(NullHandler())
 

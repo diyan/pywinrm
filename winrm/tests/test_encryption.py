@@ -1,6 +1,7 @@
 import base64
-import pytest
 import struct
+
+import pytest
 
 from winrm.encryption import Encryption
 from winrm.exceptions import WinRMError

@@ -1,15 +1,14 @@
 """Contains client side logic of WinRM SOAP protocol implementation"""
-from __future__ import unicode_literals
+from __future__ import annotations
+
 import base64
 import uuid
-
 import xml.etree.ElementTree as ET
+
 import xmltodict
 
-from six import text_type
-
+from winrm.exceptions import WinRMError, WinRMOperationTimeoutError, WinRMTransportError
 from winrm.transport import Transport
-from winrm.exceptions import WinRMError, WinRMTransportError, WinRMOperationTimeoutError
 
 xmlns = {
     'soapenv': 'http://www.w3.org/2003/05/soap-envelope',
@@ -353,7 +352,7 @@ class Protocol(object):
             'env:Body', {}).setdefault('rsp:CommandLine', {})
         cmd_line['rsp:Command'] = {'#text': command}
         if arguments:
-            unicode_args = [a if isinstance(a, text_type) else a.decode('utf-8') for a in arguments]
+            unicode_args = [a if isinstance(a, str) else a.decode('utf-8') for a in arguments]
             cmd_line['rsp:Arguments'] = u' '.join(unicode_args)
 
         res = self.send_message(xmltodict.unparse(req))
@@ -410,7 +409,7 @@ class Protocol(object):
         more input will be able to be sent to the process and attempting to do so should result in an error.
         @return: None
         """
-        if isinstance(stdin_input, text_type):
+        if isinstance(stdin_input, str):
             stdin_input = stdin_input.encode("437")
         req = {'env:Envelope': self._get_soap_header(
             resource_uri='http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd',  # NOQA

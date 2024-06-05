@@ -1,27 +1,21 @@
-from __future__ import unicode_literals
-import sys
+from __future__ import annotations
+
 import os
-import requests
-import requests.auth
 import warnings
 
-from winrm.exceptions import InvalidCredentialsError, WinRMError, WinRMTransportError
-from winrm.encryption import Encryption
+import requests
+import requests.auth
 
-is_py2 = sys.version[0] == '2'
+from winrm.encryption import Encryption
+from winrm.exceptions import InvalidCredentialsError, WinRMError, WinRMTransportError
+
 DISPLAYED_PROXY_WARNING = False
 DISPLAYED_CA_TRUST_WARNING = False
 
-if is_py2:
-    # use six for this instead?
-    unicode_type = type(u'')
-else:
-    # use six for this instead?
-    unicode_type = type(u'')
 
 HAVE_KERBEROS = False
 try:
-    from winrm.vendor.requests_kerberos import HTTPKerberosAuth, REQUIRED
+    from winrm.vendor.requests_kerberos import REQUIRED, HTTPKerberosAuth
 
     HAVE_KERBEROS = True
 except ImportError:
@@ -310,7 +304,7 @@ class Transport(object):
 
         # urllib3 fails on SSL retries with unicode buffers- must send it a byte string
         # see https://github.com/shazow/urllib3/issues/717
-        if isinstance(message, unicode_type):
+        if isinstance(message, str):
             message = message.encode('utf-8')
 
         if self.encryption:

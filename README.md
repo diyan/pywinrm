@@ -1,4 +1,4 @@
-# pywinrm 
+# pywinrm
 pywinrm is a Python client for the Windows Remote Management (WinRM) service.
 It allows you to invoke commands on target Windows machines from any machine
 that can run Python.
@@ -8,8 +8,8 @@ that can run Python.
 [![Coverage](https://coveralls.io/repos/diyan/pywinrm/badge.svg)](https://coveralls.io/r/diyan/pywinrm)
 [![PyPI](https://img.shields.io/pypi/dm/pywinrm.svg)](https://pypi.python.org/pypi/pywinrm)
 
-WinRM allows you to perform various management tasks remotely. These include, 
-but are not limited to: running batch scripts, powershell scripts, and fetching 
+WinRM allows you to perform various management tasks remotely. These include,
+but are not limited to: running batch scripts, powershell scripts, and fetching
 WMI variables.
 
 Used by [Ansible](https://www.ansible.com/) for Windows support.
@@ -19,7 +19,7 @@ For more information on WinRM, please visit
 
 ## Requirements
 * Linux, Mac OS X or Windows
-* CPython 2.6-2.7, 3.3-3.5 or PyPy2
+* CPython 3.8+ or PyPy3
 * [requests-kerberos](http://pypi.python.org/pypi/requests-kerberos) and [requests-credssp](https://github.com/jborean93/requests-credssp) is optional
 
 ## Installation
@@ -43,12 +43,6 @@ $ pip install pywinrm[kerberos]
 ### To use CredSSP authentication you need these optional dependencies
 
 ```bash
-# for Debian/Ubuntu/etc:
-$ sudo apt-get install gcc python-dev libssl-dev
-$ pip install pywinrm[credssp]
-
-# for RHEL/CentOS/etc:
-$ sudo yum install gcc python-devel openssl-devel
 $ pip install pywinrm[credssp]
 ```
 
@@ -147,17 +141,15 @@ to enable encrypted communication with pywinrm:
 
 Using an HTTPS endpoint is recommended, as it will encrypt all the data sent
 to the server (including all headers), works securely with all
-auth types, and can properly verify remote host identity (when used with certificates signed by a 
-verifiable certificate authority). You can use [this script](https://github.com/ansible/ansible/blob/devel/examples/scripts/ConfigureRemotingForAnsible.ps1)
-to easily set up a HTTPS endpoint on WinRM with a self-signed certificate, but
-the use of a verifiable certificate authority is recommended in production environments.
+auth types, and can properly verify remote host identity (when used with certificates signed by a
+verifiable certificate authority).
 
 The second option is to use NTLM, Kerberos, or CredSSP, and set the `message_encryption`
 arg to protocol to `auto` (the default value) or `always`. This will use the authentication GSS-API
 Wrap and Unwrap methods to encrypt the message contents sent to
 the server. This form of encryption is independent of the transport layer, and the strength of the encryption
 used varies with the underlying authentication type selected (NTLM generally being the weakest and CredSSP the
-strongest). 
+strongest).
 
 To configure message encryption you can use the `message_encryption` argument
 when initialising protocol. This option has 3 values that can be set as shown
@@ -168,7 +160,7 @@ below.
 * `always`: Will always use message encryption even when running over HTTPS (fails if encryption support is unavailable on the selected auth method).
 
 If you set the value to `always` and the transport opt doesn't support message
-encryption (e.g., `basic` auth or an old version of `pykerberos` without message 
+encryption (e.g., `basic` auth or an old version of `pykerberos` without message
 encryption support is installed), pywinrm will throw an exception.
 
 If you do not use an HTTPS endpoint or message encryption, a default-configured WinRM
@@ -185,18 +177,11 @@ winrm set winrm/config/service @{AllowUnencrypted="true"}
 Set-Item -Path "WSMan:\localhost\Service\AllowUnencrypted" -Value $true
 ```
 
-Again, this should *not* be used in production environments, as your credentials and WinRM 
+Again, this should *not* be used in production environments, as your credentials and WinRM
 messages can be trivially recovered.
 
 
 ### Enabling WinRM on remote host
-Enable WinRM over HTTP and HTTPS with self-signed certificate (includes firewall rules):
-
-```
-# from powershell:
-Invoke-Expression ((New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1'))
-```
-
 Enable WinRM over HTTP for test usage (includes firewall rules):
 ```
 winrm quickconfig

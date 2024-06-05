@@ -1,5 +1,6 @@
 # this assumes the base requirements have been satisfied via setup.py
+black == 24.4.2
+isort == 5.13.2
 pytest
 pytest-cov
-pytest-flake8==1.0.7
 mock
