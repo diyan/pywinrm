@@ -1,6 +1,9 @@
 # this assumes the base requirements have been satisfied via setup.py
 black == 24.4.2
 isort == 5.13.2
+mypy == 1.10.0
 pytest
 pytest-cov
 mock
+types-requests
+types-xmltodict
