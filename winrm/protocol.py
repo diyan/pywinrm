@@ -157,7 +157,7 @@ class Protocol(object):
         @rtype string
         """
         req = {
-            "env:Envelope": self._get_soap_header(
+            "env:Envelope": self.build_wsman_header(
                 resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
                 action="http://schemas.xmlsoap.org/ws/2004/09/transfer/Create",
             )
@@ -198,13 +198,26 @@ class Protocol(object):
         return t.cast(str, next(node for node in root.findall(".//*") if node.get("Name") == "ShellId").text)
 
     # Helper method for building SOAP Header
-    def _get_soap_header(
+    def build_wsman_header(
         self,
-        action: str | None = None,
-        resource_uri: str | None = None,
+        action: str,
+        resource_uri: str,
         shell_id: str | None = None,
-        message_id: uuid.UUID | None = None,
+        message_id: str | uuid.UUID | None = None,
     ) -> dict[str, t.Any]:
+        """
+        Builds the standard header needed for WSMan operations. The return
+        value is a dictionary that can be used by xmltodict to generate the
+        WSMan envelope when sending custom requests.
+
+        @param string action: The WSMan action to perform.
+        @param string resource_uri: The WSMan resource URI the request is for.
+        @param string shell_id: The optional shell UUID the request is for.
+        @param string message_id: A unique message UUID, if unset a random UUID
+            is used.
+        @returns The WSMan header as a dictionary.
+        @rtype dict[str, t.Any]
+        """
         if not message_id:
             message_id = uuid.uuid4()
         header: dict[str, t.Any] = {
@@ -237,6 +250,11 @@ class Protocol(object):
         if shell_id:
             header["env:Header"]["w:SelectorSet"] = {"w:Selector": {"@Name": "ShellId", "#text": shell_id}}
         return header
+
+    # For backwards compatibility with Ansible. This should not be removed
+    # until all supported releases of Ansible has been updated to use the new
+    # method.
+    _get_soap_header = build_wsman_header
 
     def send_message(self, message: str) -> bytes:
         # TODO add message_id vs relates_to checking
@@ -311,7 +329,7 @@ class Protocol(object):
         try:
             message_id = uuid.uuid4()
             req = {
-                "env:Envelope": self._get_soap_header(
+                "env:Envelope": self.build_wsman_header(
                     resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
                     action="http://schemas.xmlsoap.org/ws/2004/09/transfer/Delete",
                     shell_id=shell_id,
@@ -356,7 +374,7 @@ class Protocol(object):
         @rtype string
         """
         req = {
-            "env:Envelope": self._get_soap_header(
+            "env:Envelope": self.build_wsman_header(
                 resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
                 action="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command",  # NOQA
                 shell_id=shell_id,
@@ -393,7 +411,7 @@ class Protocol(object):
         """
         message_id = uuid.uuid4()
         req = {
-            "env:Envelope": self._get_soap_header(
+            "env:Envelope": self.build_wsman_header(
                 resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
                 action="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Signal",  # NOQA
                 shell_id=shell_id,
@@ -430,7 +448,7 @@ class Protocol(object):
         if isinstance(stdin_input, str):
             stdin_input = stdin_input.encode("437")
         req = {
-            "env:Envelope": self._get_soap_header(
+            "env:Envelope": self.build_wsman_header(
                 resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
                 action="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Send",  # NOQA
                 shell_id=shell_id,
@@ -449,22 +467,22 @@ class Protocol(object):
 
     def get_command_output(self, shell_id: str, command_id: str) -> tuple[bytes, bytes, int]:
         """
-        Get the Output of the given shell and command
+        Get the Output of the given shell and command. This will wait until the
+        command is finished before returning the output.
+
         @param string shell_id: The shell id on the remote machine.
          See #open_shell
         @param string command_id: The command id on the remote machine.
          See #run_command
-        #@return [Hash] Returns a Hash with a key :exitcode and :data.
-         Data is an Array of Hashes where the corresponding key
-        #   is either :stdout or :stderr.  The reason it is in an Array so so
-         we can get the output in the order it occurs on
-        #   the console.
+        @return tuple[bytes, bytes, int]: Returns a tuple with the stdout,
+            stderr, and the return code of the command. The stdout and stderr
+            value is a byte string and not a normal string.
         """
         stdout_buffer, stderr_buffer = [], []
         command_done = False
         while not command_done:
             try:
-                stdout, stderr, return_code, command_done = self._raw_get_command_output(shell_id, command_id)
+                stdout, stderr, return_code, command_done = self.get_command_output_raw(shell_id, command_id)
                 stdout_buffer.append(stdout)
                 stderr_buffer.append(stderr)
             except WinRMOperationTimeoutError:
@@ -472,9 +490,25 @@ class Protocol(object):
                 pass
         return b"".join(stdout_buffer), b"".join(stderr_buffer), return_code
 
-    def _raw_get_command_output(self, shell_id: str, command_id: str) -> tuple[bytes, bytes, int, bool]:
+    def get_command_output_raw(self, shell_id: str, command_id: str) -> tuple[bytes, bytes, int, bool]:
+        """
+        Get the next available output of the given shell and command. This
+        will wait until the issued WSMan Receive action returns data or times
+        out with WinRMOperationTimeoutError.
+
+        @param string shell_id: The shell id on the remote machine.
+         See #open_shell
+        @param string command_id: The command id on the remote machine.
+         See #run_command
+        @return tuple[bytes, bytes, int, bool]: Returns a tuple with the stdout,
+            stderr, the return code of the command, and whether it has finished
+            or not. The stdout and stderr value is a byte string and not a
+            normal string.
+        @raises WinRMOperationTimeoutError: Raised when there has been no
+            output from the command
+        """
         req = {
-            "env:Envelope": self._get_soap_header(
+            "env:Envelope": self.build_wsman_header(
                 resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
                 action="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Receive",  # NOQA
                 shell_id=shell_id,
@@ -488,15 +522,16 @@ class Protocol(object):
         res = self.send_message(xmltodict.unparse(req))
         root = ET.fromstring(res)
         stream_nodes = [node for node in root.findall(".//*") if node.tag.endswith("Stream")]
-        stdout = stderr = b""
+        stdout = []
+        stderr = []
         return_code = -1
         for stream_node in stream_nodes:
             if not stream_node.text:
                 continue
             if stream_node.attrib["Name"] == "stdout":
-                stdout += base64.b64decode(stream_node.text.encode("ascii"))
+                stdout.append(base64.b64decode(stream_node.text.encode("ascii")))
             elif stream_node.attrib["Name"] == "stderr":
-                stderr += base64.b64decode(stream_node.text.encode("ascii"))
+                stderr.append(base64.b64decode(stream_node.text.encode("ascii")))
 
         # We may need to get additional output if the stream has not finished.
         # The CommandState will change from Running to Done like so:
@@ -511,4 +546,10 @@ class Protocol(object):
         if command_done:
             return_code = int(next(node for node in root.findall(".//*") if node.tag.endswith("ExitCode")).text or -1)
 
-        return stdout, stderr, return_code, command_done
+        return b"".join(stdout), b"".join(stderr), return_code, command_done
+
+    # While it was meant to be private it has been treated as a public API.
+    # This might be removed in a future version but for now keep it as an
+    # alias for the now public API method 'get_command_output_raw'.
+    # https://github.com/search?q=_raw_get_command_output+language%3APython&type=code&l=Python
+    _raw_get_command_output = get_command_output_raw
