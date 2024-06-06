@@ -3,6 +3,10 @@
 ### Version 0.5.0
 - Dropped Python 2.7, 3.6, and 3.7 support, minimum supported version is 3.8
 - Migrate to PEP 517 compliant build with a `pyproject.toml` file
+- Added type annotation
+- Added `WSManFaultError` which contains WSManFault specific information when receiving a 500 WSMan fault response
+  - This contains pre-parsed values like the code, subcode, wsman fault code, wmi error code, and raw response
+  - It can be used by the caller to implement fallback behaviour based on specific error codes
 
 ### Version 0.4.3
 - Fix invalid regex escape sequences.

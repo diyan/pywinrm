@@ -10,13 +10,19 @@ import xml.etree.ElementTree as ET
 
 import xmltodict
 
-from winrm.exceptions import WinRMError, WinRMOperationTimeoutError, WinRMTransportError
+from winrm.exceptions import (
+    WinRMError,
+    WinRMOperationTimeoutError,
+    WinRMTransportError,
+    WSManFaultError,
+)
 from winrm.transport import Transport
 
 xmlns = {
     "soapenv": "http://www.w3.org/2003/05/soap-envelope",
     "soapaddr": "http://schemas.xmlsoap.org/ws/2004/08/addressing",
     "wsmanfault": "http://schemas.microsoft.com/wbem/wsman/1/wsmanfault",
+    "wmierror": "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/MSFT_WmiError",
 }
 
 
@@ -247,33 +253,49 @@ class Protocol(object):
                 raise ex
 
             fault = root.find("soapenv:Body/soapenv:Fault", xmlns)
-            if fault is not None:
-                fault_data = dict(transport_message=ex.message, http_status_code=ex.code)
-                wsmanfault_code = fault.find("soapenv:Detail/wsmanfault:WSManFault[@Code]", xmlns)
-                if wsmanfault_code is not None:
-                    fault_data["wsmanfault_code"] = wsmanfault_code.get("Code")
-                    # convert receive timeout code to WinRMOperationTimeoutError
-                    if fault_data["wsmanfault_code"] == "2150858793":
-                        # TODO: this fault code is specific to the Receive operation; convert all op timeouts?
-                        raise WinRMOperationTimeoutError()
+            if fault is None:
+                raise
 
-                fault_code = fault.find("soapenv:Code/soapenv:Value", xmlns)
-                if fault_code is not None:
-                    fault_data["fault_code"] = fault_code.text
+            wsmanfault_code_raw = fault.find("soapenv:Detail/wsmanfault:WSManFault[@Code]", xmlns)
+            wsmanfault_code: int | None = None
+            if wsmanfault_code_raw is not None:
+                wsmanfault_code = int(wsmanfault_code_raw.attrib["Code"])
 
-                fault_subcode = fault.find("soapenv:Code/soapenv:Subcode/soapenv:Value", xmlns)
-                if fault_subcode is not None:
-                    fault_data["fault_subcode"] = fault_subcode.text
+                # convert receive timeout code to WinRMOperationTimeoutError
+                if wsmanfault_code == 2150858793:
+                    # TODO: this fault code is specific to the Receive operation; convert all op timeouts?
+                    raise WinRMOperationTimeoutError()
 
-                error_message_node = fault.find("soapenv:Reason/soapenv:Text", xmlns)
-                if error_message_node is not None:
-                    error_message = error_message_node.text
-                else:
-                    error_message = "(no error message in fault)"
+            fault_code_raw = fault.find("soapenv:Code/soapenv:Value", xmlns)
+            fault_code: str | None = None
+            if fault_code_raw is not None and fault_code_raw.text:
+                fault_code = fault_code_raw.text
 
-                raise WinRMError("{0} (extended fault data: {1})".format(error_message, fault_data))
+            fault_subcode_raw = fault.find("soapenv:Code/soapenv:Subcode/soapenv:Value", xmlns)
+            fault_subcode: str | None = None
+            if fault_subcode_raw is not None and fault_subcode_raw.text:
+                fault_subcode = fault_subcode_raw.text
 
-            raise
+            error_message_node = fault.find("soapenv:Reason/soapenv:Text", xmlns)
+            reason: str | None = None
+            if error_message_node is not None:
+                reason = error_message_node.text
+
+            wmi_error_code_raw = fault.find("soapenv:Detail/wmierror:MSFT_WmiError/wmierror:error_Code", xmlns)
+            wmi_error_code: int | None = None
+            if wmi_error_code_raw is not None and wmi_error_code_raw.text:
+                wmi_error_code = int(wmi_error_code_raw.text)
+
+            raise WSManFaultError(
+                code=ex.code,
+                message=ex.message,
+                response=ex.response_text,
+                reason=reason or "(no error message in fault)",
+                fault_code=fault_code,
+                fault_subcode=fault_subcode,
+                wsman_fault_code=wsmanfault_code,
+                wmierror_code=wmi_error_code,
+            )
 
     def close_shell(self, shell_id: str, close_session: bool = True) -> None:
         """
