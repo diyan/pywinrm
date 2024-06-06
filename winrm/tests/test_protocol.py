@@ -3,6 +3,17 @@ import pytest
 from winrm.protocol import Protocol
 
 
+@pytest.mark.parametrize("func_name", ["build_wsman_header", "_get_soap_header"])
+def test_build_wsman_header(func_name, protocol_fake):
+    func = getattr(protocol_fake, func_name)
+    actual = func("my action", "resource uri", "shell id", "message id")
+
+    assert actual["env:Header"]["a:Action"]["#text"] == "my action"
+    assert actual["env:Header"]["w:ResourceURI"]["#text"] == "resource uri"
+    assert actual["env:Header"]["a:MessageID"] == "uuid:message id"
+    assert actual["env:Header"]["w:SelectorSet"]["w:Selector"]["#text"] == "shell id"
+
+
 def test_open_shell_and_close_shell(protocol_fake):
     shell_id = protocol_fake.open_shell()
     assert shell_id == "11111111-1111-1111-1111-111111111113"
@@ -35,6 +46,22 @@ def test_get_command_output(protocol_fake):
     assert status_code == 0
     assert b"Windows IP Configuration" in std_out
     assert len(std_err) == 0
+
+    protocol_fake.cleanup_command(shell_id, command_id)
+    protocol_fake.close_shell(shell_id)
+
+
+@pytest.mark.parametrize("func_name", ["get_command_output_raw", "_raw_get_command_output"])
+def test_get_command_output_raw(func_name, protocol_fake):
+    func = getattr(protocol_fake, func_name)
+    shell_id = protocol_fake.open_shell()
+    command_id = protocol_fake.run_command(shell_id, "ipconfig", ["/all"])
+
+    std_out, std_err, status_code, done = func(shell_id, command_id)
+    assert status_code == 0
+    assert b"Windows IP Configuration" in std_out
+    assert len(std_err) == 0
+    assert done is True
 
     protocol_fake.cleanup_command(shell_id, command_id)
     protocol_fake.close_shell(shell_id)
