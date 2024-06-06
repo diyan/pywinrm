@@ -3,17 +3,10 @@ import pytest
 from winrm.protocol import Protocol
 
 
-def test_build_wsman_header(protocol_fake):
-    actual = protocol_fake.build_wsman_header("my action", "resource uri", "shell id", "message id")
-
-    assert actual["env:Header"]["a:Action"]["#text"] == "my action"
-    assert actual["env:Header"]["w:ResourceURI"]["#text"] == "resource uri"
-    assert actual["env:Header"]["a:MessageID"] == "uuid:message id"
-    assert actual["env:Header"]["w:SelectorSet"]["w:Selector"]["#text"] == "shell id"
-
-
-def test_build_wsman_header_compat_api(protocol_fake):
-    actual = protocol_fake._get_soap_header("my action", "resource uri", "shell id", "message id")
+@pytest.mark.parametrize("func_name", ["build_wsman_header", "_get_soap_header"])
+def test_build_wsman_header(func_name, protocol_fake):
+    func = getattr(protocol_fake, func_name)
+    actual = func("my action", "resource uri", "shell id", "message id")
 
     assert actual["env:Header"]["a:Action"]["#text"] == "my action"
     assert actual["env:Header"]["w:ResourceURI"]["#text"] == "resource uri"
@@ -58,23 +51,13 @@ def test_get_command_output(protocol_fake):
     protocol_fake.close_shell(shell_id)
 
 
-def test_get_command_output_raw(protocol_fake):
+@pytest.mark.parametrize("func_name", ["get_command_output_raw", "_raw_get_command_output"])
+def test_get_command_output_raw(func_name, protocol_fake):
+    func = getattr(protocol_fake, func_name)
     shell_id = protocol_fake.open_shell()
     command_id = protocol_fake.run_command(shell_id, "ipconfig", ["/all"])
-    std_out, std_err, status_code, done = protocol_fake.get_command_output_raw(shell_id, command_id)
-    assert status_code == 0
-    assert b"Windows IP Configuration" in std_out
-    assert len(std_err) == 0
-    assert done is True
 
-    protocol_fake.cleanup_command(shell_id, command_id)
-    protocol_fake.close_shell(shell_id)
-
-
-def test_get_command_output_raw_compat_api(protocol_fake):
-    shell_id = protocol_fake.open_shell()
-    command_id = protocol_fake.run_command(shell_id, "ipconfig", ["/all"])
-    std_out, std_err, status_code, done = protocol_fake._raw_get_command_output(shell_id, command_id)
+    std_out, std_err, status_code, done = func(shell_id, command_id)
     assert status_code == 0
     assert b"Windows IP Configuration" in std_out
     assert len(std_err) == 0
