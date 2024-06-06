@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import typing as t
 import warnings
 
 import requests
@@ -40,7 +41,7 @@ except ImportError as ie:
 __all__ = ["Transport"]
 
 
-def strtobool(value):
+def strtobool(value: str) -> bool:
     value = value.lower()
     if value in ("true", "t", "yes", "y", "on", "1"):
         return True
@@ -59,27 +60,27 @@ class UnsupportedAuthArgument(Warning):
 class Transport(object):
     def __init__(
         self,
-        endpoint,
-        username=None,
-        password=None,
-        realm=None,
-        service=None,
-        keytab=None,
-        ca_trust_path="legacy_requests",
-        cert_pem=None,
-        cert_key_pem=None,
-        read_timeout_sec=None,
-        server_cert_validation="validate",
-        kerberos_delegation=False,
-        kerberos_hostname_override=None,
-        auth_method="auto",
-        message_encryption="auto",
-        credssp_disable_tlsv1_2=False,
-        credssp_auth_mechanism="auto",
-        credssp_minimum_version=2,
-        send_cbt=True,
-        proxy="legacy_requests",
-    ):
+        endpoint: str,
+        username: str | None = None,
+        password: str | None = None,
+        realm: None = None,
+        service: str | None = None,
+        keytab: None = None,
+        ca_trust_path: t.Literal["legacy_requests"] | str = "legacy_requests",
+        cert_pem: str | None = None,
+        cert_key_pem: str | None = None,
+        read_timeout_sec: int | None = None,
+        server_cert_validation: t.Literal["validate", "ignore"] | None = "validate",
+        kerberos_delegation: bool | str = False,
+        kerberos_hostname_override: str | None = None,
+        auth_method: t.Literal["auto", "basic", "certificate", "ntlm", "kerberos", "credssp", "plaintext", "ssl"] = "auto",
+        message_encryption: t.Literal["auto", "always", "never"] = "auto",
+        credssp_disable_tlsv1_2: bool = False,
+        credssp_auth_mechanism: t.Literal["auto", "ntlm", "kerberos"] = "auto",
+        credssp_minimum_version: int = 2,
+        send_cbt: bool = True,
+        proxy: t.Literal["legacy_requests"] | str | None = "legacy_requests",
+    ) -> None:
         self.endpoint = endpoint
         self.username = username
         self.password = password
@@ -161,14 +162,17 @@ class Transport(object):
                 if self.password is None:
                     raise InvalidCredentialsError("auth method %s requires a password" % self.auth_method)
 
-        self.session = None
+        self.session: requests.Session | None = None
 
         # Used for encrypting messages
-        self.encryption = None  # The Pywinrm Encryption class used to encrypt/decrypt messages
+        self.encryption: Encryption | None = None  # The Pywinrm Encryption class used to encrypt/decrypt messages
         if self.message_encryption not in ["auto", "always", "never"]:
             raise WinRMError("invalid message_encryption arg: %s. Should be 'auto', 'always', or 'never'" % self.message_encryption)
 
-    def build_session(self):
+    def build_session(self) -> requests.Session:
+        if self.session:
+            return self.session
+
         session = requests.Session()
         proxies = dict()
 
@@ -234,7 +238,7 @@ class Transport(object):
             if not HAVE_KERBEROS:
                 raise WinRMError("requested auth method is kerberos, but pykerberos is not installed")
 
-            session.auth = HTTPKerberosAuth(
+            kerb_auth = session.auth = HTTPKerberosAuth(
                 mutual_authentication=REQUIRED,
                 delegate=self.kerberos_delegation,
                 force_preemptive=True,
@@ -244,14 +248,17 @@ class Transport(object):
                 service=self.service,
                 send_cbt=self.send_cbt,
             )
-            encryption_available = hasattr(session.auth, "winrm_encryption_available") and session.auth.winrm_encryption_available
+            encryption_available = hasattr(session.auth, "winrm_encryption_available") and kerb_auth.winrm_encryption_available
         elif self.auth_method in ["certificate", "ssl"]:
             if self.auth_method == "ssl" and not self.cert_pem and not self.cert_key_pem:
                 # 'ssl' was overloaded for HTTPS with optional certificate auth,
                 # fall back to basic auth if no cert specified
-                session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
+                session.auth = requests.auth.HTTPBasicAuth(
+                    username=self.username or "",
+                    password=self.password or "",
+                )
             else:
-                session.cert = (self.cert_pem, self.cert_key_pem)
+                session.cert = (self.cert_pem or "", self.cert_key_pem or "")
                 session.headers["Authorization"] = "http://schemas.dmtf.org/wbem/wsman/1/wsman/secprofile/https/mutual"
         elif self.auth_method == "ntlm":
             if not HAVE_NTLM:
@@ -266,7 +273,10 @@ class Transport(object):
             encryption_available = hasattr(session.auth, "session_security")
         # TODO: ssl is not exactly right here- should really be client_cert
         elif self.auth_method in ["basic", "plaintext"]:
-            session.auth = requests.auth.HTTPBasicAuth(username=self.username, password=self.password)
+            session.auth = requests.auth.HTTPBasicAuth(
+                username=self.username or "",
+                password=self.password or "",
+            )
         elif self.auth_method == "credssp":
             if not HAVE_CREDSSP:
                 raise WinRMError("requests auth method is credssp, but requests-credssp is not installed")
@@ -290,26 +300,27 @@ class Transport(object):
             raise WinRMError("message encryption is set to 'always' but the selected auth method %s does not support it" % self.auth_method)
         elif encryption_available:
             if self.message_encryption == "always":
-                self.setup_encryption()
+                self.setup_encryption(session)
             elif self.message_encryption == "auto" and not self.endpoint.lower().startswith("https"):
-                self.setup_encryption()
+                self.setup_encryption(session)
 
-    def setup_encryption(self):
+        return session
+
+    def setup_encryption(self, session: requests.Session) -> None:
         # Security context doesn't exist, sending blank message to initialise context
         request = requests.Request("POST", self.endpoint, data=None)
-        prepared_request = self.session.prepare_request(request)
-        self._send_message_request(prepared_request, "")
-        self.encryption = Encryption(self.session, self.auth_method)
+        prepared_request = session.prepare_request(request)
+        self._send_message_request(session, prepared_request)
+        self.encryption = Encryption(session, self.auth_method)
 
-    def close_session(self):
+    def close_session(self) -> None:
         if not self.session:
             return
         self.session.close()
         self.session = None
 
-    def send_message(self, message):
-        if not self.session:
-            self.build_session()
+    def send_message(self, message: str | bytes) -> bytes:
+        session = self.build_session()
 
         # urllib3 fails on SSL retries with unicode buffers- must send it a byte string
         # see https://github.com/shazow/urllib3/issues/717
@@ -317,17 +328,17 @@ class Transport(object):
             message = message.encode("utf-8")
 
         if self.encryption:
-            prepared_request = self.encryption.prepare_encrypted_request(self.session, self.endpoint, message)
+            prepared_request = self.encryption.prepare_encrypted_request(session, self.endpoint, message)
         else:
             request = requests.Request("POST", self.endpoint, data=message)
-            prepared_request = self.session.prepare_request(request)
+            prepared_request = session.prepare_request(request)
 
-        response = self._send_message_request(prepared_request, message)
+        response = self._send_message_request(session, prepared_request)
         return self._get_message_response_text(response)
 
-    def _send_message_request(self, prepared_request, message):
+    def _send_message_request(self, session: requests.Session, prepared_request: requests.PreparedRequest) -> requests.Response:
         try:
-            response = self.session.send(prepared_request, timeout=self.read_timeout_sec)
+            response = session.send(prepared_request, timeout=self.read_timeout_sec)
             response.raise_for_status()
             return response
         except requests.HTTPError as ex:
@@ -336,11 +347,11 @@ class Transport(object):
             if ex.response.content:
                 response_text = self._get_message_response_text(ex.response)
             else:
-                response_text = ""
+                response_text = b""
 
-            raise WinRMTransportError("http", ex.response.status_code, response_text)
+            raise WinRMTransportError("http", ex.response.status_code, response_text.decode())
 
-    def _get_message_response_text(self, response):
+    def _get_message_response_text(self, response: requests.Response) -> bytes:
         if self.encryption:
             response_text = self.encryption.parse_encrypted_response(response)
         else:

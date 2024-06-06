@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import collections.abc
+import typing as t
 import uuid
 import xml.etree.ElementTree as ET
 
@@ -31,25 +33,25 @@ class Protocol(object):
 
     def __init__(
         self,
-        endpoint,
-        transport="plaintext",
-        username=None,
-        password=None,
-        realm=None,
-        service="HTTP",
-        keytab=None,
-        ca_trust_path="legacy_requests",
-        cert_pem=None,
-        cert_key_pem=None,
-        server_cert_validation="validate",
-        kerberos_delegation=False,
-        read_timeout_sec=DEFAULT_READ_TIMEOUT_SEC,
-        operation_timeout_sec=DEFAULT_OPERATION_TIMEOUT_SEC,
-        kerberos_hostname_override=None,
-        message_encryption="auto",
-        credssp_disable_tlsv1_2=False,
-        send_cbt=True,
-        proxy="legacy_requests",
+        endpoint: str,
+        transport: t.Literal["auto", "basic", "certificate", "ntlm", "kerberos", "credssp", "plaintext", "ssl"] = "plaintext",
+        username: str | None = None,
+        password: str | None = None,
+        realm: None = None,
+        service: str = "HTTP",
+        keytab: None = None,
+        ca_trust_path: t.Literal["legacy_requests"] | str = "legacy_requests",
+        cert_pem: str | None = None,
+        cert_key_pem: str | None = None,
+        server_cert_validation: t.Literal["validate", "ignore"] | None = "validate",
+        kerberos_delegation: bool = False,
+        read_timeout_sec: str | int = DEFAULT_READ_TIMEOUT_SEC,
+        operation_timeout_sec: str | int = DEFAULT_OPERATION_TIMEOUT_SEC,
+        kerberos_hostname_override: str | None = None,
+        message_encryption: t.Literal["auto", "always", "never"] = "auto",
+        credssp_disable_tlsv1_2: bool = False,
+        send_cbt: bool = True,
+        proxy: t.Literal["legacy_requests"] | str | None = "legacy_requests",
     ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -58,7 +60,7 @@ class Protocol(object):
         @param string password: password
         @param string realm: unused
         @param string service: the service name, default is HTTP
-        @param string keytab: the path to a keytab file if you are using one
+        @param string keytab: unused
         @param string ca_trust_path: Certification Authority trust path. If server_cert_validation is set to 'validate':
                                         'legacy_requests'(default) to use environment variables,
                                         None to explicitly disallow any additional CA trust path
@@ -125,15 +127,15 @@ class Protocol(object):
 
     def open_shell(
         self,
-        i_stream="stdin",
-        o_stream="stdout stderr",
-        working_directory=None,
-        env_vars=None,
-        noprofile=False,
-        codepage=437,
-        lifetime=None,
-        idle_timeout=None,
-    ):
+        i_stream: str = "stdin",
+        o_stream: str = "stdout stderr",
+        working_directory: str | None = None,
+        env_vars: dict[str, str] | None = None,
+        noprofile: bool = False,
+        codepage: int = 437,
+        lifetime: None = None,
+        idle_timeout: str | int | None = None,
+    ) -> str:
         """
         Create a Shell on the destination host
         @param string i_stream: Which input stream to open. Leave this alone
@@ -187,13 +189,19 @@ class Protocol(object):
         # res = xmltodict.parse(res)
         # return res['s:Envelope']['s:Body']['x:ResourceCreated']['a:ReferenceParameters']['w:SelectorSet']['w:Selector']['#text']
         root = ET.fromstring(res)
-        return next(node for node in root.findall(".//*") if node.get("Name") == "ShellId").text
+        return t.cast(str, next(node for node in root.findall(".//*") if node.get("Name") == "ShellId").text)
 
     # Helper method for building SOAP Header
-    def _get_soap_header(self, action=None, resource_uri=None, shell_id=None, message_id=None):
+    def _get_soap_header(
+        self,
+        action: str | None = None,
+        resource_uri: str | None = None,
+        shell_id: str | None = None,
+        message_id: uuid.UUID | None = None,
+    ) -> dict[str, t.Any]:
         if not message_id:
             message_id = uuid.uuid4()
-        header = {
+        header: dict[str, t.Any] = {
             "@xmlns:xsd": "http://www.w3.org/2001/XMLSchema",
             "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
             "@xmlns:env": xmlns["soapenv"],
@@ -224,7 +232,7 @@ class Protocol(object):
             header["env:Header"]["w:SelectorSet"] = {"w:Selector": {"@Name": "ShellId", "#text": shell_id}}
         return header
 
-    def send_message(self, message):
+    def send_message(self, message: str) -> bytes:
         # TODO add message_id vs relates_to checking
         # TODO port error handling code
         try:
@@ -257,15 +265,17 @@ class Protocol(object):
                 if fault_subcode is not None:
                     fault_data["fault_subcode"] = fault_subcode.text
 
-                error_message = fault.find("soapenv:Reason/soapenv:Text", xmlns)
-                if error_message is not None:
-                    error_message = error_message.text
+                error_message_node = fault.find("soapenv:Reason/soapenv:Text", xmlns)
+                if error_message_node is not None:
+                    error_message = error_message_node.text
                 else:
                     error_message = "(no error message in fault)"
 
                 raise WinRMError("{0} (extended fault data: {1})".format(error_message, fault_data))
 
-    def close_shell(self, shell_id, close_session=True):
+            raise
+
+    def close_shell(self, shell_id: str, close_session: bool = True) -> None:
         """
         Close the shell
         @param string shell_id: The shell id on the remote machine.
@@ -292,7 +302,7 @@ class Protocol(object):
 
             res = self.send_message(xmltodict.unparse(req))
             root = ET.fromstring(res)
-            relates_to = next(node for node in root.findall(".//*") if node.tag.endswith("RelatesTo")).text
+            relates_to = t.cast(str, next(node for node in root.findall(".//*") if node.tag.endswith("RelatesTo")).text)
         finally:
             # Close the transport if we are done with the shell.
             # This will ensure no lingering TCP connections are thrown back into a requests' connection pool.
@@ -302,7 +312,14 @@ class Protocol(object):
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace("uuid:", "")) == message_id
 
-    def run_command(self, shell_id, command, arguments=(), console_mode_stdin=True, skip_cmd_shell=False):
+    def run_command(
+        self,
+        shell_id: str,
+        command: str,
+        arguments: collections.abc.Iterable[str | bytes] = (),
+        console_mode_stdin: bool = True,
+        skip_cmd_shell: bool = False,
+    ) -> str:
         """
         Run a command on a machine with an open shell
         @param string shell_id: The shell id on the remote machine.
@@ -339,9 +356,9 @@ class Protocol(object):
         res = self.send_message(xmltodict.unparse(req))
         root = ET.fromstring(res)
         command_id = next(node for node in root.findall(".//*") if node.tag.endswith("CommandId")).text
-        return command_id
+        return t.cast(str, command_id)
 
-    def cleanup_command(self, shell_id, command_id):
+    def cleanup_command(self, shell_id: str, command_id: str) -> None:
         """
         Clean-up after a command. @see #run_command
         @param string shell_id: The shell id on the remote machine.
@@ -369,11 +386,11 @@ class Protocol(object):
 
         res = self.send_message(xmltodict.unparse(req))
         root = ET.fromstring(res)
-        relates_to = next(node for node in root.findall(".//*") if node.tag.endswith("RelatesTo")).text
+        relates_to = t.cast(str, next(node for node in root.findall(".//*") if node.tag.endswith("RelatesTo")).text)
         # TODO change assert into user-friendly exception
         assert uuid.UUID(relates_to.replace("uuid:", "")) == message_id
 
-    def send_command_input(self, shell_id, command_id, stdin_input, end=False):
+    def send_command_input(self, shell_id: str, command_id: str, stdin_input: str | bytes, end: bool = False) -> None:
         """
         Send input to the given shell and command.
         @param string shell_id: The shell id on the remote machine.
@@ -408,7 +425,7 @@ class Protocol(object):
         stdin_envelope["#text"] = base64.b64encode(stdin_input)
         self.send_message(xmltodict.unparse(req))
 
-    def get_command_output(self, shell_id, command_id):
+    def get_command_output(self, shell_id: str, command_id: str) -> tuple[bytes, bytes, int]:
         """
         Get the Output of the given shell and command
         @param string shell_id: The shell id on the remote machine.
@@ -433,7 +450,7 @@ class Protocol(object):
                 pass
         return b"".join(stdout_buffer), b"".join(stderr_buffer), return_code
 
-    def _raw_get_command_output(self, shell_id, command_id):
+    def _raw_get_command_output(self, shell_id: str, command_id: str) -> tuple[bytes, bytes, int, bool]:
         req = {
             "env:Envelope": self._get_soap_header(
                 resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
@@ -470,6 +487,6 @@ class Protocol(object):
         #   </rsp:CommandState>
         command_done = len([node for node in root.findall(".//*") if node.get("State", "").endswith("CommandState/Done")]) == 1
         if command_done:
-            return_code = int(next(node for node in root.findall(".//*") if node.tag.endswith("ExitCode")).text)
+            return_code = int(next(node for node in root.findall(".//*") if node.tag.endswith("ExitCode")).text or -1)
 
         return stdout, stderr, return_code, command_done

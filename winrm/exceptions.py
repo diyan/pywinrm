@@ -11,22 +11,22 @@ class WinRMTransportError(Exception):
     """WinRM errors specific to transport-level problems (unexpected HTTP error codes, etc)"""
 
     @property
-    def protocol(self):
+    def protocol(self) -> str:
         return self.args[0]
 
     @property
-    def code(self):
+    def code(self) -> int:
         return self.args[1]
 
     @property
-    def message(self):
+    def message(self) -> str:
         return "Bad HTTP response returned from server. Code {0}".format(self.code)
 
     @property
-    def response_text(self):
+    def response_text(self) -> str:
         return self.args[2]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.message
 
 

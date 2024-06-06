@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import collections.abc
 import re
+import typing as t
 import warnings
 import xml.etree.ElementTree as ET
 from base64 import b64encode
@@ -22,22 +24,22 @@ FEATURE_PROXY_SUPPORT = True
 class Response(object):
     """Response from a remote command execution"""
 
-    def __init__(self, args):
+    def __init__(self, args: tuple[bytes, bytes, int]) -> None:
         self.std_out, self.std_err, self.status_code = args
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # TODO put tree dots at the end if out/err was truncated
-        return '<Response code {0}, out "{1}", err "{2}">'.format(self.status_code, self.std_out[:20], self.std_err[:20])
+        return '<Response code {0}, out "{1!r}", err "{2!r}">'.format(self.status_code, self.std_out[:20], self.std_err[:20])
 
 
 class Session(object):
     # TODO implement context manager methods
-    def __init__(self, target, auth, **kwargs):
+    def __init__(self, target: str, auth: tuple[str, str], **kwargs: t.Any) -> None:
         username, password = auth
         self.url = self._build_url(target, kwargs.get("transport", "plaintext"))
         self.protocol = Protocol(self.url, username=username, password=password, **kwargs)
 
-    def run_cmd(self, command, args=()):
+    def run_cmd(self, command: str, args: collections.abc.Iterable[str | bytes] = ()) -> Response:
         # TODO optimize perf. Do not call open/close shell every time
         shell_id = self.protocol.open_shell()
         command_id = self.protocol.run_command(shell_id, command, args)
@@ -46,7 +48,7 @@ class Session(object):
         self.protocol.close_shell(shell_id)
         return rs
 
-    def run_ps(self, script):
+    def run_ps(self, script: str) -> Response:
         """base64 encodes a Powershell script and executes the powershell
         encoded script command
         """
@@ -59,7 +61,7 @@ class Session(object):
             rs.std_err = self._clean_error_msg(rs.std_err)
         return rs
 
-    def _clean_error_msg(self, msg):
+    def _clean_error_msg(self, msg: bytes) -> bytes:
         """converts a Powershell CLIXML message to a more human readable string"""
         # TODO prepare unit test, beautify code
         # if the msg does not start with this, return it as is
@@ -77,7 +79,8 @@ class Session(object):
                 for s in nodes:
                     # append error msg string to result, also
                     # the hex chars represent CRLF so we replace with newline
-                    new_msg += s.text.replace("_x000D__x000A_", "\n")
+                    if s.text:
+                        new_msg += s.text.replace("_x000D__x000A_", "\n")
             except Exception as e:
                 # if any of the above fails, the msg was not true xml
                 # print a warning and return the original string
@@ -93,7 +96,7 @@ class Session(object):
         # just return the original message
         return msg
 
-    def _strip_namespace(self, xml):
+    def _strip_namespace(self, xml: bytes) -> bytes:
         """strips any namespaces from an xml string"""
         p = re.compile(b'xmlns=*[""][^""]*[""]')
         allmatches = p.finditer(xml)
@@ -102,8 +105,11 @@ class Session(object):
         return xml
 
     @staticmethod
-    def _build_url(target, transport):
+    def _build_url(target: str, transport: str) -> str:
         match = re.match(r"(?i)^((?P<scheme>http[s]?)://)?(?P<host>[0-9a-z-_.]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?", target)  # NOQA
+        if not match:
+            raise ValueError("Invalid target URL: {0}".format(target))
+
         scheme = match.group("scheme")
         if not scheme:
             # TODO do we have anything other than HTTP/HTTPS

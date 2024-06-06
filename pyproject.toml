@@ -59,6 +59,7 @@ include-package-data = true
 packages = ["winrm"]
 
 [tool.setuptools.package-data]
+"winrm" = ["py.typed"]
 "winrm.tests" = ["*.ps1"]
 
 [tool.setuptools.dynamic]
@@ -78,3 +79,37 @@ exclude = '''
 
 [tool.isort]
 profile = "black"
+
+[tool.mypy]
+exclude = "build/|winrm/tests/|winrm/vendor/"
+mypy_path = "$MYPY_CONFIG_FILE_DIR"
+python_version = "3.8"
+show_error_codes = true
+show_column_numbers = true
+disallow_any_unimported = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_reexport = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = "winrm.vendor.*"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "requests.packages.urllib3.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "requests_credssp"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "requests_ntlm"
+ignore_missing_imports = true

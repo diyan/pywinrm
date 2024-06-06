@@ -79,6 +79,7 @@ jobs:
       run: |
         python -m black . --check
         python -m isort . --check-only
+        python -m mypy .
         pytest -v --cov=winrm --cov-report=term-missing winrm/tests/
 
     - name: upload coverage data
