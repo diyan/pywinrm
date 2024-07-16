@@ -56,7 +56,9 @@ kerberos = [
 
 [tool.setuptools]
 include-package-data = true
-packages = ["winrm"]
+
+[tool.setupstools.packages]
+find = {}
 
 [tool.setuptools.package-data]
 "winrm" = ["py.typed"]
