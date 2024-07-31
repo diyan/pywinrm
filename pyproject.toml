@@ -111,7 +111,3 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "requests_credssp"
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "requests_ntlm"
-ignore_missing_imports = true
