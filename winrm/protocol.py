@@ -32,10 +32,12 @@ class Protocol(object):
     first.
     """
 
-    DEFAULT_READ_TIMEOUT_SEC = 30
-    DEFAULT_OPERATION_TIMEOUT_SEC = 20
-    DEFAULT_MAX_ENV_SIZE = 153600
     DEFAULT_LOCALE = "en-US"
+    DEFAULT_MAX_ENV_SIZE = 153600
+    DEFAULT_OPERATION_TIMEOUT_SEC = 20
+    DEFAULT_READ_TIMEOUT_SEC = 30
+    DEFAULT_RECONNECTION_BACKOFF = 2.0
+    DEFAULT_RECONNECTION_RETRIES = 0
 
     def __init__(
         self,
@@ -53,6 +55,8 @@ class Protocol(object):
         kerberos_delegation: bool = False,
         read_timeout_sec: str | int = DEFAULT_READ_TIMEOUT_SEC,
         operation_timeout_sec: str | int = DEFAULT_OPERATION_TIMEOUT_SEC,
+        reconnection_retries: str | int = DEFAULT_RECONNECTION_RETRIES,
+        reconnection_backoff: str | float = DEFAULT_RECONNECTION_BACKOFF,
         kerberos_hostname_override: str | None = None,
         message_encryption: t.Literal["auto", "always", "never"] = "auto",
         credssp_disable_tlsv1_2: bool = False,
@@ -77,6 +81,8 @@ class Protocol(object):
         @param bool kerberos_delegation: if True, TGT is sent to target server to allow multiple hops  # NOQA
         @param int read_timeout_sec: maximum seconds to wait before an HTTP connect/read times out (default 30). This value should be slightly higher than operation_timeout_sec, as the server can block *at least* that long. # NOQA
         @param int operation_timeout_sec: maximum allowed time in seconds for any single wsman HTTP operation (default 20). Note that operation timeouts while receiving output (the only wsman operation that should take any significant time, and where these timeouts are expected) will be silently retried indefinitely. # NOQA
+        @param int reconnection_retries: Number of retries on connection problems
+        @param float reconnection_backoff: Number of seconds to backoff in between reconnection attempts (first sleeps X, then sleeps 2*X, then sleeps 4*X, ...)
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
         @param bool message_encryption_enabled: Will encrypt the WinRM messages if set to True and the transport auth supports message encryption (Default True).
         @param string proxy: Specify a proxy for the WinRM connection to use. 'legacy_requests'(default) to use environment variables, None to disable proxies completely or the proxy URL itself.
@@ -95,6 +101,16 @@ class Protocol(object):
         if operation_timeout_sec >= read_timeout_sec or operation_timeout_sec < 1:
             raise WinRMError("read_timeout_sec must exceed operation_timeout_sec, and both must be non-zero")
 
+        try:
+            reconnection_retries = int(reconnection_retries)
+        except ValueError as ve:
+            raise ValueError("failed to parse reconnection_retries as int: %s" % str(ve))
+
+        try:
+            reconnection_backoff = float(reconnection_backoff)
+        except ValueError as ve:
+            raise ValueError("failed to parse reconnection_backoff as float: %s" % str(ve))
+
         self.read_timeout_sec = read_timeout_sec
         self.operation_timeout_sec = operation_timeout_sec
         self.max_env_sz = Protocol.DEFAULT_MAX_ENV_SIZE
@@ -111,6 +127,8 @@ class Protocol(object):
             cert_pem=cert_pem,
             cert_key_pem=cert_key_pem,
             read_timeout_sec=self.read_timeout_sec,
+            reconnection_retries=reconnection_retries,
+            reconnection_backoff=reconnection_backoff,
             server_cert_validation=server_cert_validation,
             kerberos_delegation=kerberos_delegation,
             kerberos_hostname_override=kerberos_hostname_override,
@@ -130,6 +148,8 @@ class Protocol(object):
         self.kerberos_delegation = kerberos_delegation
         self.kerberos_hostname_override = kerberos_hostname_override
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
+        self.reconnection_retries = reconnection_retries
+        self.reconnection_backoff = reconnection_backoff
 
     def open_shell(
         self,

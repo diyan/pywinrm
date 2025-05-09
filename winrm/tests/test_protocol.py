@@ -86,6 +86,12 @@ def test_set_timeout_as_sec():
     assert protocol.operation_timeout_sec == 29
 
 
+def test_set_retry_connection():
+    protocol = Protocol("endpoint", username="username", password="password", reconnection_retries="5", reconnection_backoff="3")
+    assert protocol.reconnection_retries == 5
+    assert protocol.reconnection_backoff == 3.0
+
+
 def test_fail_set_read_timeout_as_sec():
     with pytest.raises(ValueError) as exc:
         Protocol("endpoint", username="username", password="password", read_timeout_sec="30a", operation_timeout_sec="29")
@@ -96,3 +102,15 @@ def test_fail_set_operation_timeout_as_sec():
     with pytest.raises(ValueError) as exc:
         Protocol("endpoint", username="username", password="password", read_timeout_sec=30, operation_timeout_sec="29a")
     assert str(exc.value) == "failed to parse operation_timeout_sec as int: " "invalid literal for int() with base 10: '29a'"
+
+
+def test_fail_set_reconnection_retries():
+    with pytest.raises(ValueError) as exc:
+        Protocol("endpoint", username="username", password="password", reconnection_retries="5a", reconnection_backoff=4.0)
+    assert str(exc.value) == "failed to parse reconnection_retries as int: " "invalid literal for int() with base 10: '5a'"
+
+
+def test_fail_set_reconnection_backoff():
+    with pytest.raises(ValueError) as exc:
+        Protocol("endpoint", username="username", password="password", reconnection_retries=5, reconnection_backoff="4a")
+    assert str(exc.value) == "failed to parse reconnection_backoff as float: " "could not convert string to float: '4a'"

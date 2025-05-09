@@ -6,6 +6,7 @@ import warnings
 
 import requests
 import requests.auth
+import urllib3
 
 from winrm.encryption import Encryption
 from winrm.exceptions import InvalidCredentialsError, WinRMError, WinRMTransportError
@@ -70,6 +71,8 @@ class Transport(object):
         cert_pem: str | None = None,
         cert_key_pem: str | None = None,
         read_timeout_sec: int | None = None,
+        reconnection_retries: int | None = 0,
+        reconnection_backoff: float = 2.0,
         server_cert_validation: t.Literal["validate", "ignore"] | None = "validate",
         kerberos_delegation: bool | str = False,
         kerberos_hostname_override: str | None = None,
@@ -91,6 +94,8 @@ class Transport(object):
         self.cert_pem = cert_pem
         self.cert_key_pem = cert_key_pem
         self.read_timeout_sec = read_timeout_sec
+        self.reconnection_retries = reconnection_retries
+        self.reconnection_backoff = reconnection_backoff
         self.server_cert_validation = server_cert_validation
         self.kerberos_hostname_override = kerberos_hostname_override
         self.message_encryption = message_encryption
@@ -185,6 +190,20 @@ class Transport(object):
 
         # Merge proxy environment variables
         settings = session.merge_environment_settings(url=self.endpoint, proxies=proxies, stream=None, verify=None, cert=None)
+
+        # Retry on connection errors, with a backoff factor
+        retries = urllib3.util.retry.Retry(
+            total=self.reconnection_retries,
+            connect=self.reconnection_retries,
+            read=0,
+            redirect=0,
+            status=self.reconnection_retries,
+            other=0,
+            status_forcelist=(425, 429, 503),
+            backoff_factor=self.reconnection_backoff,
+        )
+        session.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
+        session.mount("https://", requests.adapters.HTTPAdapter(max_retries=retries))
 
         global DISPLAYED_PROXY_WARNING
 
