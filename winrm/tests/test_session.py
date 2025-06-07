@@ -1,6 +1,6 @@
 import pytest
 
-from winrm import Session
+from winrm import Response, Session
 
 
 def test_run_cmd(protocol_fake):
@@ -89,3 +89,15 @@ def test_decode_clixml_invalid_xml():
         actual = s._clean_error_msg(msg)
 
     assert actual == msg
+
+
+def test_response_repr_short():
+    r = Response(std_out=b"short std out", std_err=b"short std err")
+
+    assert repr(r) == "<Response code 0, out \"b'short std out'\", err \"b'short std err'\">"
+
+
+def test_response_repr_long():
+    r = Response(std_out=b"some very long std out that take more than 20 chars", std_err=b"some very long std err that take more than 20 chars")
+
+    assert repr(r) == "<Response code 0, out \"b'some very long std o...'\", err \"b'some very long std e...'\">"
