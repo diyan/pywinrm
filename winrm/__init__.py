@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import collections.abc
 import re
+import reprlib
 import typing as t
 import warnings
 import xml.etree.ElementTree as ET
 from base64 import b64encode
+from dataclasses import dataclass
 
 from winrm.protocol import Protocol
 
@@ -21,15 +23,16 @@ FEATURE_OPERATION_TIMEOUT = True
 FEATURE_PROXY_SUPPORT = True
 
 
-class Response(object):
+@dataclass
+class Response:
     """Response from a remote command execution"""
 
-    def __init__(self, args: tuple[bytes, bytes, int]) -> None:
-        self.std_out, self.std_err, self.status_code = args
+    std_out: bytes
+    std_err: bytes
+    status_code: int = 0
 
     def __repr__(self) -> str:
-        # TODO put tree dots at the end if out/err was truncated
-        return '<Response code {0}, out "{1!r}", err "{2!r}">'.format(self.status_code, self.std_out[:20], self.std_err[:20])
+        return f'<Response code {self.status_code}, out "{reprlib.repr(self.std_out)}", err "{reprlib.repr(self.std_err)}">'
 
 
 class Session(object):
@@ -43,7 +46,7 @@ class Session(object):
         # TODO optimize perf. Do not call open/close shell every time
         shell_id = self.protocol.open_shell()
         command_id = self.protocol.run_command(shell_id, command, args)
-        rs = Response(self.protocol.get_command_output(shell_id, command_id))
+        rs = Response(*self.protocol.get_command_output(shell_id, command_id))
         self.protocol.cleanup_command(shell_id, command_id)
         self.protocol.close_shell(shell_id)
         return rs
