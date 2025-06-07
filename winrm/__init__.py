@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import collections.abc
 import re
+import reprlib
 import typing as t
 import warnings
 import xml.etree.ElementTree as ET
@@ -31,13 +32,7 @@ class Response:
     status_code: int = 0
 
     def __repr__(self) -> str:
-        def shorten_repr(obj: bytes) -> str:
-            obj_repr = repr(obj[:20])
-            if len(obj) > 20:
-                obj_repr = f"{obj_repr[:-1]}...{obj_repr[-1]}"  # bytes repr usually ends with a single quote
-            return obj_repr
-
-        return f'<Response code {self.status_code}, out "{shorten_repr(self.std_out)}", err "{shorten_repr(self.std_err)}">'
+        return f'<Response code {self.status_code}, out "{reprlib.repr(self.std_out)}", err "{reprlib.repr(self.std_err)}">'
 
 
 class Session(object):

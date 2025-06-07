@@ -98,6 +98,9 @@ def test_response_repr_short():
 
 
 def test_response_repr_long():
-    r = Response(std_out=b"some very long std out that take more than 20 chars", std_err=b"some very long std err that take more than 20 chars")
+    r = Response(
+        std_out=b"some very long std out that take more than 20 chars",
+        std_err=b"some very long std err that take more than 20 chars",
+    )
 
-    assert repr(r) == "<Response code 0, out \"b'some very long std o...'\", err \"b'some very long std e...'\">"
+    assert repr(r) == "<Response code 0, out \"b'some very l...than 20 chars'\", err \"b'some very l...than 20 chars'\">"
