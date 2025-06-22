@@ -58,6 +58,7 @@ class Protocol(object):
         credssp_disable_tlsv1_2: bool = False,
         send_cbt: bool = True,
         proxy: t.Literal["legacy_requests"] | str | None = "legacy_requests",
+        retry_on_operation_timeout: bool = True,
     ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -80,6 +81,7 @@ class Protocol(object):
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
         @param bool message_encryption_enabled: Will encrypt the WinRM messages if set to True and the transport auth supports message encryption (Default True).
         @param string proxy: Specify a proxy for the WinRM connection to use. 'legacy_requests'(default) to use environment variables, None to disable proxies completely or the proxy URL itself.
+        @param bool retry_on_operation_timeout: If True, the client will retry on an operation timeout.
         """
 
         try:
@@ -130,6 +132,7 @@ class Protocol(object):
         self.kerberos_delegation = kerberos_delegation
         self.kerberos_hostname_override = kerberos_hostname_override
         self.credssp_disable_tlsv1_2 = credssp_disable_tlsv1_2
+        self.retry_on_operation_timeout = retry_on_operation_timeout
 
     def open_shell(
         self,
@@ -486,8 +489,12 @@ class Protocol(object):
                 stdout_buffer.append(stdout)
                 stderr_buffer.append(stderr)
             except WinRMOperationTimeoutError:
-                # this is an expected error when waiting for a long-running process, just silently retry
-                pass
+                if self.retry_on_operation_timeout:
+                    # this is an expected error when waiting for a long-running process, just silently retry
+                    pass
+                else:
+                    return_code = -1
+                    break
         return b"".join(stdout_buffer), b"".join(stderr_buffer), return_code
 
     def get_command_output_raw(self, shell_id: str, command_id: str) -> tuple[bytes, bytes, int, bool]:
