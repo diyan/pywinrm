@@ -85,6 +85,21 @@ def test_run_command_taking_more_than_operation_timeout_sec(protocol_real):
     protocol_real.close_shell(shell_id)
 
 
+def test_run_command_with_stdin_input(protocol_real):
+    shell_id = protocol_real.open_shell()
+    command_id = protocol_real.run_command(shell_id, "more")
+    stdin_text = "Hello, stdin input"
+    protocol_real.send_command_input(shell_id, command_id, stdin_text, end=True)
+    std_out, std_err, status_code = protocol_real.get_command_output(shell_id, command_id)
+
+    assert status_code == 0
+    assert len(std_err) == 0
+    assert std_out.decode().strip() == stdin_text.strip()
+
+    protocol_real.cleanup_command(shell_id, command_id)
+    protocol_real.close_shell(shell_id)
+
+
 @xfail()
 def test_set_timeout(protocol_real):
     raise NotImplementedError()
