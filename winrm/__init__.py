@@ -39,22 +39,24 @@ class Session(object):
         self.url = self._build_url(target, kwargs.get("transport", "plaintext"))
         self.protocol = Protocol(self.url, username=username, password=password, **kwargs)
 
-    def run_cmd(self, command: str, args: collections.abc.Iterable[str | bytes] = ()) -> Response:
+    def run_cmd(self, command: str, args: collections.abc.Iterable[str | bytes] = (), stdin_input: str | bytes | None = None) -> Response:
         # TODO optimize perf. Do not call open/close shell every time
         shell_id = self.protocol.open_shell()
         command_id = self.protocol.run_command(shell_id, command, args)
+        if stdin_input is not None:
+            self.protocol.send_command_input(shell_id, command_id, stdin_input, True)
         rs = Response(self.protocol.get_command_output(shell_id, command_id))
         self.protocol.cleanup_command(shell_id, command_id)
         self.protocol.close_shell(shell_id)
         return rs
 
-    def run_ps(self, script: str) -> Response:
+    def run_ps(self, script: str, stdin_input: str | bytes | None = None) -> Response:
         """base64 encodes a Powershell script and executes the powershell
         encoded script command
         """
         # must use utf16 little endian on windows
         encoded_ps = b64encode(script.encode("utf_16_le")).decode("ascii")
-        rs = self.run_cmd("powershell -encodedcommand {0}".format(encoded_ps))
+        rs = self.run_cmd("powershell -encodedcommand {0}".format(encoded_ps), stdin_input=stdin_input)
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
