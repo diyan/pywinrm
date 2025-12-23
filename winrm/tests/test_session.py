@@ -27,6 +27,17 @@ def test_run_ps_with_error(protocol_fake):
     assert len(r.std_out) == 0
 
 
+def test_run_ps_with_pwsh(protocol_fake):
+    s = Session("windows-host", auth=("john.smith", "secret"))
+    s.protocol = protocol_fake
+
+    r = s.run_ps('Write-Host "pwsh7 test"', pwsh=True)
+
+    assert r.status_code == 0
+    assert b'Write-Host "pwsh7 test"' in r.std_out
+    assert len(r.std_err) == 0
+
+
 def test_target_as_hostname():
     s = Session("windows-host", auth=("john.smith", "secret"))
     assert s.url == "http://windows-host:5985/wsman"

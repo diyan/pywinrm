@@ -200,6 +200,36 @@ run_ps_request = """\
   </env:Body>
 </env:Envelope>"""
 
+run_ps_pwsh_request = """\
+<?xml version="1.0" encoding="utf-8"?>
+<env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
+  <env:Header>
+    <a:To>http://windows-host:5985/wsman</a:To>
+    <a:ReplyTo>
+      <a:Address mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+    </a:ReplyTo>
+    <w:MaxEnvelopeSize mustUnderstand="true">153600</w:MaxEnvelopeSize>
+    <a:MessageID>uuid:11111111-1111-1111-1111-111111111111</a:MessageID>
+    <w:Locale mustUnderstand="false" xml:lang="en-US" />
+    <p:DataLocale mustUnderstand="false" xml:lang="en-US" />
+    <w:OperationTimeout>PT20S</w:OperationTimeout>
+    <w:ResourceURI mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd</w:ResourceURI>
+    <a:Action mustUnderstand="true">http://schemas.microsoft.com/wbem/wsman/1/windows/shell/Command</a:Action>
+    <w:SelectorSet>
+      <w:Selector Name="ShellId">11111111-1111-1111-1111-111111111113</w:Selector>
+    </w:SelectorSet>
+    <w:OptionSet>
+      <w:Option Name="WINRS_CONSOLEMODE_STDIN">TRUE</w:Option>
+      <w:Option Name="WINRS_SKIP_CMD_SHELL">FALSE</w:Option>
+    </w:OptionSet>
+  </env:Header>
+  <env:Body>
+    <rsp:CommandLine>
+      <rsp:Command>pwsh -encodedcommand VwByAGkAdABlAC0ASABvAHMAdAAgACIAcAB3AHMAaAA3ACAAdABlAHMAdAAiAA==</rsp:Command>
+    </rsp:CommandLine>
+  </env:Body>
+</env:Envelope>"""
+
 cleanup_cmd_request = """\
 <?xml version="1.0" encoding="utf-8"?>
 <env:Envelope xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xmlns:cfg="http://schemas.microsoft.com/wbem/wsman/1/config" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:b="http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">
@@ -305,6 +335,27 @@ get_ps_output_response = """\
             <rsp:Stream CommandId="11111111-1111-1111-1111-111111111124" End="true" Name="stderr"/>
             <rsp:CommandState CommandId="11111111-1111-1111-1111-111111111124" State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
                 <rsp:ExitCode>1</rsp:ExitCode>
+            </rsp:CommandState>
+        </rsp:ReceiveResponse>
+    </s:Body>
+</s:Envelope>"""
+
+get_ps_pwsh_output_response = """\
+<?xml version="1.0" ?>
+<s:Envelope xml:lang="en-US" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd" xmlns:rsp="http://schemas.microsoft.com/wbem/wsman/1/windows/shell" xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd">
+    <s:Header>
+        <a:Action>http://schemas.microsoft.com/wbem/wsman/1/windows/shell/ReceiveResponse</a:Action>
+        <a:MessageID>uuid:11111111-1111-1111-1111-111111111112</a:MessageID>
+        <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+        <a:RelatesTo>uuid:11111111-1111-1111-1111-111111111111</a:RelatesTo>
+    </s:Header>
+    <s:Body>
+        <rsp:ReceiveResponse>
+            <rsp:Stream CommandId="11111111-1111-1111-1111-111111111134" Name="stdout">V3JpdGUtSG9zdCAicHdzaDcgdGVzdCI=</rsp:Stream>
+            <rsp:Stream CommandId="11111111-1111-1111-1111-111111111134" End="true" Name="stdout"/>
+            <rsp:Stream CommandId="11111111-1111-1111-1111-111111111134" End="true" Name="stderr"/>
+            <rsp:CommandState CommandId="11111111-1111-1111-1111-111111111134" State="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/CommandState/Done">
+                <rsp:ExitCode>0</rsp:ExitCode>
             </rsp:CommandState>
         </rsp:ReceiveResponse>
     </s:Body>
@@ -521,12 +572,16 @@ class TransportStub(object):
             return run_cmd_ps_response % "1"
         elif xml_str_compare(message, run_ps_request):
             return run_cmd_ps_response % "2"
-        elif xml_str_compare(message, cleanup_cmd_request % "1") or xml_str_compare(message, cleanup_cmd_request % "2"):
+        elif xml_str_compare(message, run_ps_pwsh_request):
+            return run_cmd_ps_response % "3"
+        elif xml_str_compare(message, cleanup_cmd_request % "1") or xml_str_compare(message, cleanup_cmd_request % "2") or xml_str_compare(message, cleanup_cmd_request % "3"):
             return cleanup_cmd_response
         elif xml_str_compare(message, get_cmd_ps_output_request % "1"):
             return get_cmd_output_response
         elif xml_str_compare(message, get_cmd_ps_output_request % "2"):
             return get_ps_output_response
+        elif xml_str_compare(message, get_cmd_ps_output_request % "3"):
+            return get_ps_pwsh_output_response
         elif xml_str_compare(message, run_cmd_req_input):
             return run_cmd_req_input_response
         elif xml_str_compare(message, run_cmd_send_input):
