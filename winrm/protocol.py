@@ -58,6 +58,7 @@ class Protocol(object):
         credssp_disable_tlsv1_2: bool = False,
         send_cbt: bool = True,
         proxy: t.Literal["legacy_requests"] | str | None = "legacy_requests",
+        bind_address: str | None = None,
     ):
         """
         @param string endpoint: the WinRM webservice endpoint
@@ -80,6 +81,7 @@ class Protocol(object):
         @param string kerberos_hostname_override: the hostname to use for the kerberos exchange (defaults to the hostname in the endpoint URL)
         @param bool message_encryption_enabled: Will encrypt the WinRM messages if set to True and the transport auth supports message encryption (Default True).
         @param string proxy: Specify a proxy for the WinRM connection to use. 'legacy_requests'(default) to use environment variables, None to disable proxies completely or the proxy URL itself.
+        @param string bind_address: Bind outgoing WinRM connections to this local IP address.
         """
 
         try:
@@ -119,6 +121,7 @@ class Protocol(object):
             credssp_disable_tlsv1_2=credssp_disable_tlsv1_2,
             send_cbt=send_cbt,
             proxy=proxy,
+            bind_address=bind_address,
         )
 
         self.username = username

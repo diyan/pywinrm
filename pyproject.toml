@@ -46,6 +46,9 @@ homepage = "http://github.com/diyan/pywinrm/"
 
 
 [project.optional-dependencies]
+bind_address = [
+    "requests-toolbelt >= 1.0.0"
+]
 credssp = [
     "requests-credssp >= 1.0.0"
 ]
@@ -110,4 +113,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "requests_credssp"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "requests_toolbelt.*"
 ignore_missing_imports = true

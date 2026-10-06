@@ -38,6 +38,14 @@ try:
 except ImportError as ie:
     pass
 
+HAVE_REQUESTS_TOOLBELT = False
+try:
+    from requests_toolbelt.adapters.source import SourceAddressAdapter
+
+    HAVE_REQUESTS_TOOLBELT = True
+except ImportError:
+    pass
+
 __all__ = ["Transport"]
 
 
@@ -80,6 +88,7 @@ class Transport(object):
         credssp_minimum_version: int = 2,
         send_cbt: bool = True,
         proxy: t.Literal["legacy_requests"] | str | None = "legacy_requests",
+        bind_address: str | None = None,
     ) -> None:
         self.endpoint = endpoint
         self.username = username
@@ -99,6 +108,7 @@ class Transport(object):
         self.credssp_minimum_version = credssp_minimum_version
         self.send_cbt = send_cbt
         self.proxy = proxy
+        self.bind_address = bind_address
 
         if self.server_cert_validation not in [None, "validate", "ignore"]:
             raise WinRMError("invalid server_cert_validation mode: %s" % self.server_cert_validation)
@@ -174,6 +184,16 @@ class Transport(object):
             return self.session
 
         session = requests.Session()
+
+        if self.bind_address:
+            if not HAVE_REQUESTS_TOOLBELT:
+                raise WinRMError(
+                    "bind_address requires requests-toolbelt to be installed; "
+                    'install it with pip install "pywinrm[bind_address]"'
+                )
+
+            session.mount("http://", SourceAddressAdapter(self.bind_address))
+            session.mount("https://", SourceAddressAdapter(self.bind_address))
         proxies = dict()
 
         if self.proxy is None:
