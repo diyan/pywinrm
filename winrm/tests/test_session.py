@@ -32,6 +32,18 @@ def test_target_as_hostname():
     assert s.url == "http://windows-host:5985/wsman"
 
 
+@pytest.mark.parametrize("args", ["/all", b"/all"])
+def test_run_cmd_with_single_string_args(protocol_fake, args):
+    # a single string is the same as a one item list, not one argument per character
+    s = Session("windows-host", auth=("john.smith", "secret"))
+    s.protocol = protocol_fake
+
+    r = s.run_cmd("ipconfig", args)
+
+    assert r.status_code == 0
+    assert b"Windows IP Configuration" in r.std_out
+
+
 def test_target_as_hostname_then_port():
     s = Session("windows-host:1111", auth=("john.smith", "secret"))
     assert s.url == "http://windows-host:1111/wsman"

@@ -356,7 +356,7 @@ class Protocol(object):
         self,
         shell_id: str,
         command: str,
-        arguments: collections.abc.Iterable[str | bytes] = (),
+        arguments: str | bytes | collections.abc.Iterable[str | bytes] = (),
         console_mode_stdin: bool = True,
         skip_cmd_shell: bool = False,
     ) -> str:
@@ -366,13 +366,17 @@ class Protocol(object):
          See #open_shell
         @param string command: The command to run on the remote machine
         @param iterable of string arguments: An array of arguments for this
-         command
+         command, or a single string that is used as the arguments as is
         @param bool console_mode_stdin: (default: True)
         @param bool skip_cmd_shell: (default: False)
         @return: The CommandId from the SOAP response.
          This is the ID we need to query in order to get output.
         @rtype string
         """
+        if isinstance(arguments, (str, bytes)):
+            # a single string would otherwise be sent as one argument per character
+            arguments = [arguments]
+
         req = {
             "env:Envelope": self.build_wsman_header(
                 resource_uri="http://schemas.microsoft.com/wbem/wsman/1/windows/shell/cmd",  # NOQA
