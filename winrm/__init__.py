@@ -42,9 +42,18 @@ class Session(object):
     def run_cmd(self, command: str, args: collections.abc.Iterable[str | bytes] = ()) -> Response:
         # TODO optimize perf. Do not call open/close shell every time
         shell_id = self.protocol.open_shell()
-        command_id = self.protocol.run_command(shell_id, command, args)
-        rs = Response(self.protocol.get_command_output(shell_id, command_id))
-        self.protocol.cleanup_command(shell_id, command_id)
+        try:
+            command_id = self.protocol.run_command(shell_id, command, args)
+            rs = Response(self.protocol.get_command_output(shell_id, command_id))
+            self.protocol.cleanup_command(shell_id, command_id)
+        except BaseException:
+            # closing the shell also ends any command still running in it, don't let
+            # a failure here hide the original error
+            try:
+                self.protocol.close_shell(shell_id)
+            except Exception:
+                pass
+            raise
         self.protocol.close_shell(shell_id)
         return rs
 

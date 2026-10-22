@@ -15,6 +15,71 @@ def test_run_cmd(protocol_fake):
     assert len(r.std_err) == 0
 
 
+class SpyError(Exception):
+    pass
+
+
+class ProtocolSpy(object):
+    def __init__(self, fail_on=None, fail_close=False):
+        self.calls = []
+        self.fail_on = fail_on
+        self.fail_close = fail_close
+
+    def _call(self, name, result=None):
+        self.calls.append(name)
+        if name == self.fail_on:
+            raise SpyError("%s failed" % name)
+        return result
+
+    def open_shell(self):
+        return self._call("open_shell", "shell-id")
+
+    def run_command(self, shell_id, command, args=()):
+        return self._call("run_command", "command-id")
+
+    def get_command_output(self, shell_id, command_id):
+        return self._call("get_command_output", (b"out", b"", 0))
+
+    def cleanup_command(self, shell_id, command_id):
+        self._call("cleanup_command")
+
+    def close_shell(self, shell_id):
+        self.calls.append("close_shell")
+        if self.fail_close:
+            raise SpyError("close_shell failed")
+
+
+def test_run_cmd_closes_shell():
+    s = Session("windows-host", auth=("john.smith", "secret"))
+    s.protocol = ProtocolSpy()
+
+    r = s.run_cmd("ipconfig")
+
+    assert r.std_out == b"out"
+    assert s.protocol.calls == ["open_shell", "run_command", "get_command_output", "cleanup_command", "close_shell"]
+
+
+@pytest.mark.parametrize("fail_on", ["run_command", "get_command_output", "cleanup_command"])
+def test_run_cmd_closes_shell_on_error(fail_on):
+    s = Session("windows-host", auth=("john.smith", "secret"))
+    s.protocol = ProtocolSpy(fail_on=fail_on)
+
+    with pytest.raises(SpyError, match="%s failed" % fail_on):
+        s.run_cmd("ipconfig")
+
+    assert s.protocol.calls[-1] == "close_shell"
+
+
+def test_run_cmd_keeps_original_error_when_close_fails():
+    s = Session("windows-host", auth=("john.smith", "secret"))
+    s.protocol = ProtocolSpy(fail_on="get_command_output", fail_close=True)
+
+    with pytest.raises(SpyError, match="get_command_output failed"):
+        s.run_cmd("ipconfig")
+
+    assert s.protocol.calls[-1] == "close_shell"
+
+
 def test_run_ps_with_error(protocol_fake):
     # TODO this test should cover __init__ method
     s = Session("windows-host", auth=("john.smith", "secret"))
