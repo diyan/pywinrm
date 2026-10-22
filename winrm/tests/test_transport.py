@@ -263,18 +263,23 @@ def test_build_session_no_password():
     assert "auth method basic requires a password" == str(exc.value)
 
 
-def test_build_session_invalid_auth():
-    winrm_transport = transport.Transport(
-        endpoint="Endpoint",
-        server_cert_validation="validate",
-        username="test",
-        password="test",
-        auth_method="invalid_value",
-    )
-
+@pytest.mark.parametrize("auth_method", ["invalid_value", "auto"])
+def test_build_session_invalid_auth(auth_method):
     with pytest.raises(WinRMError) as exc:
-        winrm_transport.build_session()
-    assert "unsupported auth method: invalid_value" == str(exc.value)
+        transport.Transport(
+            endpoint="Endpoint",
+            server_cert_validation="validate",
+            username="test",
+            password="test",
+            auth_method=auth_method,
+        )
+    expected = "unsupported auth method: %s. Should be one of 'basic', 'certificate', 'ntlm', 'kerberos', 'credssp', 'plaintext', 'ssl'" % auth_method
+    assert expected == str(exc.value)
+
+
+def test_default_auth_method_is_plaintext():
+    winrm_transport = transport.Transport(endpoint="Endpoint", username="test", password="test")
+    assert winrm_transport.auth_method == "plaintext"
 
 
 def test_build_session_invalid_encryption():

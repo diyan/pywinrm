@@ -40,7 +40,7 @@ class Protocol(object):
     def __init__(
         self,
         endpoint: str,
-        transport: t.Literal["auto", "basic", "certificate", "ntlm", "kerberos", "credssp", "plaintext", "ssl"] = "plaintext",
+        transport: t.Literal["basic", "certificate", "ntlm", "kerberos", "credssp", "plaintext", "ssl"] = "plaintext",
         username: str | None = None,
         password: str | None = None,
         realm: None = None,
@@ -61,7 +61,7 @@ class Protocol(object):
     ):
         """
         @param string endpoint: the WinRM webservice endpoint
-        @param string transport: transport type, one of 'plaintext' (default), 'kerberos', 'ssl', 'ntlm', 'credssp'  # NOQA
+        @param string transport: transport type, one of 'plaintext' (default), 'basic', 'certificate', 'kerberos', 'ssl', 'ntlm', 'credssp'  # NOQA
         @param string username: username
         @param string password: password
         @param string realm: unused
