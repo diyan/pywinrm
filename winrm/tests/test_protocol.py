@@ -96,3 +96,21 @@ def test_fail_set_operation_timeout_as_sec():
     with pytest.raises(ValueError) as exc:
         Protocol("endpoint", username="username", password="password", read_timeout_sec=30, operation_timeout_sec="29a")
     assert str(exc.value) == "failed to parse operation_timeout_sec as int: " "invalid literal for int() with base 10: '29a'"
+
+
+@pytest.mark.parametrize("args", ["/all /v", b"/all /v", ["/all /v"], ["/all", "/v"]])
+def test_run_command_single_string_arguments(args):
+    # a single str or bytes is sent as is, the same as a one item list
+    class Sent(Exception):
+        pass
+
+    def send_message(message):
+        raise Sent(message)
+
+    p = Protocol("http://windows-host:5985/wsman", username="john.smith", password="secret")
+    p.send_message = send_message
+
+    with pytest.raises(Sent) as exc:
+        p.run_command("11111111-1111-1111-1111-111111111113", "ipconfig", args)
+
+    assert "<rsp:Arguments>/all /v</rsp:Arguments>" in str(exc.value)

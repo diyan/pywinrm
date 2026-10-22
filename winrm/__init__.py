@@ -39,7 +39,7 @@ class Session(object):
         self.url = self._build_url(target, kwargs.get("transport", "plaintext"))
         self.protocol = Protocol(self.url, username=username, password=password, **kwargs)
 
-    def run_cmd(self, command: str, args: collections.abc.Iterable[str | bytes] = ()) -> Response:
+    def run_cmd(self, command: str, args: str | bytes | collections.abc.Iterable[str | bytes] = ()) -> Response:
         # TODO optimize perf. Do not call open/close shell every time
         shell_id = self.protocol.open_shell()
         command_id = self.protocol.run_command(shell_id, command, args)
