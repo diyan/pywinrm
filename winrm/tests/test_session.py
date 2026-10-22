@@ -1,6 +1,6 @@
 import pytest
 
-from winrm import Session
+from winrm import Response, Session
 
 
 def test_run_cmd(protocol_fake):
@@ -25,6 +25,17 @@ def test_run_ps_with_error(protocol_fake):
     assert r.status_code == 1
     assert b'Write-Error "Error"' in r.std_err
     assert len(r.std_out) == 0
+
+
+def test_run_ps_is_non_interactive(monkeypatch):
+    # a prompt can never be answered over WinRM, so PowerShell must fail instead of waiting for input
+    s = Session("windows-host", auth=("john.smith", "secret"))
+    commands = []
+    monkeypatch.setattr(s, "run_cmd", lambda command, args=(): commands.append(command) or Response((b"", b"", 0)))
+
+    s.run_ps("Get-Content")
+
+    assert commands[0].startswith("powershell -NonInteractive -encodedcommand ")
 
 
 def test_target_as_hostname():

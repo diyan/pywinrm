@@ -54,7 +54,7 @@ class Session(object):
         """
         # must use utf16 little endian on windows
         encoded_ps = b64encode(script.encode("utf_16_le")).decode("ascii")
-        rs = self.run_cmd("powershell -encodedcommand {0}".format(encoded_ps))
+        rs = self.run_cmd("powershell -NonInteractive -encodedcommand {0}".format(encoded_ps))
         if len(rs.std_err):
             # if there was an error message, clean it it up and make it human
             # readable
