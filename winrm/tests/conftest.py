@@ -195,7 +195,7 @@ run_ps_request = """\
   </env:Header>
   <env:Body>
     <rsp:CommandLine>
-      <rsp:Command>powershell -encodedcommand VwByAGkAdABlAC0ARQByAHIAbwByACAAIgBFAHIAcgBvAHIAIgA=</rsp:Command>
+      <rsp:Command>powershell -NonInteractive -encodedcommand VwByAGkAdABlAC0ARQByAHIAbwByACAAIgBFAHIAcgBvAHIAIgA=</rsp:Command>
     </rsp:CommandLine>
   </env:Body>
 </env:Envelope>"""
