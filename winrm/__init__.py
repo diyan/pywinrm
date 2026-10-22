@@ -113,11 +113,12 @@ class Session(object):
         scheme = match.group("scheme")
         if not scheme:
             # TODO do we have anything other than HTTP/HTTPS
-            scheme = "https" if transport == "ssl" else "http"
+            # certificate auth is TLS client auth so it needs HTTPS just like ssl
+            scheme = "https" if transport in ["ssl", "certificate"] else "http"
         host = match.group("host")
         port = match.group("port")
         if not port:
-            port = 5986 if transport == "ssl" else 5985
+            port = 5986 if scheme.lower() == "https" else 5985
         path = match.group("path")
         if not path:
             path = "wsman"

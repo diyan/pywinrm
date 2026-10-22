@@ -57,6 +57,30 @@ def test_target_with_dots():
     assert s.url == "http://windows-host.example.com:5985/wsman"
 
 
+def test_target_with_ssl_transport():
+    s = Session("windows-host", auth=("john.smith", "secret"), transport="ssl")
+    assert s.url == "https://windows-host:5986/wsman"
+
+
+def test_target_with_certificate_transport():
+    # certificate transport validates the cert files exist, so test the url builder directly
+    assert Session._build_url("windows-host", "certificate") == "https://windows-host:5986/wsman"
+
+
+def test_target_with_certificate_transport_and_port():
+    assert Session._build_url("windows-host:1111", "certificate") == "https://windows-host:1111/wsman"
+
+
+def test_target_as_https_schema_infers_https_port():
+    s = Session("https://windows-host", auth=("john.smith", "secret"), transport="ntlm")
+    assert s.url == "https://windows-host:5986/wsman"
+
+
+def test_target_as_http_schema_with_ssl_transport_keeps_http_port():
+    s = Session("http://windows-host", auth=("john.smith", "secret"), transport="ssl")
+    assert s.url == "http://windows-host:5985/wsman"
+
+
 def test_decode_clixml_error():
     s = Session("windows-host.example.com", auth=("john.smith", "secret"))
     msg = b'#< CLIXML\r\n<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="1"><TNRef RefId="0" /><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><S S="Error">fake : The term \'fake\' is not recognized as the name of a cmdlet, function, script file, or operable program. Check _x000D__x000A_</S><S S="Error">the spelling of the name, or if a path was included, verify that the path is correct and try again._x000D__x000A_</S><S S="Error">At line:1 char:1_x000D__x000A_</S><S S="Error">+ fake cmdlet_x000D__x000A_</S><S S="Error">+ ~~~~_x000D__x000A_</S><S S="Error">    + CategoryInfo          : ObjectNotFound: (fake:String) [], CommandNotFoundException_x000D__x000A_</S><S S="Error">    + FullyQualifiedErrorId : CommandNotFoundException_x000D__x000A_</S><S S="Error"> _x000D__x000A_</S></Objs>'
