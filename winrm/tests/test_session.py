@@ -1,6 +1,7 @@
 import pytest
 
 from winrm import Session
+from winrm.exceptions import WinRMError
 
 
 def test_run_cmd(protocol_fake):
@@ -55,6 +56,11 @@ def test_target_as_full_url():
 def test_target_with_dots():
     s = Session("windows-host.example.com", auth=("john.smith", "secret"))
     assert s.url == "http://windows-host.example.com:5985/wsman"
+
+
+def test_session_with_auto_transport_fails_early():
+    with pytest.raises(WinRMError, match="unsupported auth method: auto"):
+        Session("windows-host", auth=("john.smith", "secret"), transport="auto")
 
 
 def test_decode_clixml_error():

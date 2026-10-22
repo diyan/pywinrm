@@ -40,6 +40,8 @@ except ImportError as ie:
 
 __all__ = ["Transport"]
 
+SUPPORTED_AUTH_METHODS = ["basic", "certificate", "ntlm", "kerberos", "credssp", "plaintext", "ssl"]
+
 
 def strtobool(value: str) -> bool:
     value = value.lower()
@@ -73,7 +75,7 @@ class Transport(object):
         server_cert_validation: t.Literal["validate", "ignore"] | None = "validate",
         kerberos_delegation: bool | str = False,
         kerberos_hostname_override: str | None = None,
-        auth_method: t.Literal["auto", "basic", "certificate", "ntlm", "kerberos", "credssp", "plaintext", "ssl"] = "auto",
+        auth_method: t.Literal["basic", "certificate", "ntlm", "kerberos", "credssp", "plaintext", "ssl"] = "plaintext",
         message_encryption: t.Literal["auto", "always", "never"] = "auto",
         credssp_disable_tlsv1_2: bool = False,
         credssp_auth_mechanism: t.Literal["auto", "ntlm", "kerberos"] = "auto",
@@ -109,6 +111,8 @@ class Transport(object):
         else:
             self.kerberos_delegation = bool(strtobool(str(kerberos_delegation)))
 
+        if auth_method not in SUPPORTED_AUTH_METHODS:
+            raise WinRMError("unsupported auth method: %s. Should be one of %s" % (auth_method, ", ".join("'%s'" % a for a in SUPPORTED_AUTH_METHODS)))
         self.auth_method = auth_method
         self.default_headers = {
             "Content-Type": "application/soap+xml;charset=UTF-8",
