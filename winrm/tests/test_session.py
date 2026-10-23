@@ -89,3 +89,43 @@ def test_decode_clixml_invalid_xml():
         actual = s._clean_error_msg(msg)
 
     assert actual == msg
+
+
+def test_target_as_ipv6_address():
+    s = Session("[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]", auth=("john.smith", "secret"))
+    assert s.url == "http://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:5985/wsman"
+
+
+def test_target_as_ipv6_address_with_port():
+    s = Session("[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:1111", auth=("john.smith", "secret"))
+    assert s.url == "http://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:1111/wsman"
+
+
+def test_target_as_schema_then_ipv6():
+    s = Session("http://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]", auth=("john.smith", "secret"))
+    assert s.url == "http://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:5985/wsman"
+
+
+def test_target_as_schema_then_ipv6_with_port():
+    s = Session("http://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:5985", auth=("john.smith", "secret"))
+    assert s.url == "http://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:5985/wsman"
+
+
+def test_target_as_full_url_with_ipv6():
+    s = Session("http://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:5985/wsman", auth=("john.smith", "secret"))
+    assert s.url == "http://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:5985/wsman"
+
+
+def test_target_as_https_ipv6():
+    s = Session("https://[::1]:5986/wsman", auth=("john.smith", "secret"))
+    assert s.url == "https://[::1]:5986/wsman"
+
+
+def test_target_as_ipv6_localhost():
+    s = Session("[::1]", auth=("john.smith", "secret"))
+    assert s.url == "http://[::1]:5985/wsman"
+
+
+def test_target_as_ipv6_with_ssl_transport():
+    s = Session("[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]", auth=("john.smith", "secret"), transport="ssl")
+    assert s.url == "https://[2a05:d018:1961:ba00:ff5b:37ba:20c7:726a]:5986/wsman"

@@ -106,7 +106,10 @@ class Session(object):
 
     @staticmethod
     def _build_url(target: str, transport: str) -> str:
-        match = re.match(r"(?i)^((?P<scheme>http[s]?)://)?(?P<host>[0-9a-z-_.]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?", target)  # NOQA
+        # Host is either an IPv6 address in brackets, or an IPv4/hostname.
+        pattern = r"(?i)^((?P<scheme>http[s]?)://)?(?P<host>\[[0-9a-f:]+\]|[0-9a-z-_.]+)(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?"
+        match = re.match(pattern, target)
+
         if not match:
             raise ValueError("Invalid target URL: {0}".format(target))
 
